@@ -767,9 +767,33 @@ function renderEvCfgTable() {
       );
     } else if (ev.type==='per_group') {
       const dpt = c.dmgPerMissType!==undefined?c.dmgPerMissType:(ev.dmgPerMissType||2);
-      fields += h('div','class="cfg-row" style="margin-top:6px"',
-        h('div','class="cfg-lbl"','DMG ต่อ item type ที่ขาด (×จำนวน type, max ×3)')+
-        h('input','class="ain" type="number" min="1" max="10" value="'+dpt+'" onchange="saveEvCfg(\''+ev.id+'\',\'dmgPerMissType\',+this.value)"','')
+      const cap = c.maxMissTypes!==undefined?c.maxMissTypes:(ev.maxMissTypes||3);
+      const chk = JSON.stringify(c.checkDepts||ev.checkDepts||DK);
+      fields += h('div','class="cfg-grid" style="margin-top:6px"',
+        h('div','class="cfg-row"',
+          h('div','class="cfg-lbl"','DMG ต่อ 1 type ที่ขาด')+
+          h('input','class="ain" type="number" min="1" max="10" value="'+dpt+'" onchange="saveEvCfg(\''+ev.id+'\',\'dmgPerMissType\',+this.value)"','')
+        )+
+        h('div','class="cfg-row"',
+          h('div','class="cfg-lbl"','Cap สูงสุด (จำนวน type ที่นับ)')+
+          h('input','class="ain" type="number" min="1" max="10" value="'+cap+'" onchange="saveEvCfg(\''+ev.id+'\',\'maxMissTypes\',+this.value)"','')
+        )+
+        h('div','class="cfg-row"',
+          h('div','class="cfg-lbl"','เช็คเฉพาะ dept (JSON array, ว่าง=ทุก dept)')+
+          h('input','type="text" style="width:100%" value=\''+chk+'\' onblur="try{saveEvCfg(\''+ev.id+'\',\'checkDepts\',JSON.parse(this.value))}catch(e){toast(\'JSON ไม่ถูกต้อง\',true)}"','')
+        )
+      );
+      // preview penalty table
+      const rows=[];
+      for(let m=0;m<=cap;m++){
+        const dmg=dpt*Math.min(m,cap);
+        rows.push(h('span','style="font-family:monospace;font-size:.6rem;padding:2px 6px;border-radius:3px;background:var(--sur2);border:1px solid var(--brd2);margin:1px"',
+          'ขาด '+m+(m===cap?'+':'')+' type → '+(dmg===0?'ผ่าน ✓':'-'+dmg+' HP')
+        ));
+      }
+      fields += h('div','style="margin-top:8px"',
+        h('div','class="cfg-lbl" style="margin-bottom:4px"','Preview penalty')+
+        h('div','style="display:flex;flex-wrap:wrap;gap:2px"',rows.join(''))
       );
     } else if (ev.type==='headcount_reward') {
       const conds = c.conditions||ev.conditions||[];
@@ -884,6 +908,8 @@ function getEffectiveEvent(idx) {
   if (cfg.dmgPerMissType !== undefined) ev.dmgPerMissType = cfg.dmgPerMissType;
   if (cfg.dmgTiers !== undefined) ev.dmgTiers = cfg.dmgTiers;
   if (cfg.reqMultiplier !== undefined) ev.reqMultiplier = cfg.reqMultiplier;
+  if (cfg.maxMissTypes !== undefined) ev.maxMissTypes = cfg.maxMissTypes;
+  if (cfg.checkDepts !== undefined) ev.checkDepts = cfg.checkDepts;
   if (cfg.conditions !== undefined) ev.conditions = cfg.conditions;
   return ev;
 }
@@ -1187,19 +1213,20 @@ function applyDamage(ev, playerArr, poolMap, gs, poolCap, updates, logs, groupRe
     }
 
   } else if (ev.type==='per_group') {
-    // ตรวจแยกกลุ่ม — นับ item type ที่กลุ่มไม่มี
     const dmgPer = ev.dmgPerMissType||2;
+    const maxMiss = ev.maxMissTypes||3;
+    const checkDepts = ev.checkDepts||DK; // เช็คเฉพาะ dept ที่กำหนด
     const groupIds = [...new Set(playerArr.filter(alive).map(p=>p.groupId))].filter(id=>id>=0);
     groupIds.forEach(gid => {
       const pool = poolMap[gid]||{};
       const aliveInGroup = playerArr.filter(p=>p.groupId==gid&&p.alive);
-      const missing = DK.filter(dk=>!(pool[dk]>0));
+      const missing = checkDepts.filter(dk=>!(pool[dk]>0));
       const gname = (gs.groupNames||GN)[gid]||('G'+gid);
       if (!missing.length) {
         logs.push({type:'g',msg:gname+': มีครบทุก type ✓'});
         groupResults[gid] = { name:gname, pass:true, dmg:0 };
       } else {
-        const dmg = Math.min(dmgPer*missing.length, dmgPer*3);
+        const dmg = dmgPer * Math.min(missing.length, maxMiss);
         aliveInGroup.forEach(p => dmgPlayer(p,dmg));
         logs.push({type:'b',msg:gname+': ขาด '+missing.length+' type ['+missing.map(dk=>DEPTS[dk]?.icon||dk).join('')+'] → -'+dmg+' HP'});
         groupResults[gid] = { name:gname, pass:false, dmg, missingTypes:missing.length };

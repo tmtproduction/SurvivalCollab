@@ -318,7 +318,20 @@ function renderEvCfg(){
         <div><div class="flbl">dmgTiers (JSON array)</div><input class="ain" type="text" style="width:100%;font-size:.55rem" value='${JSON.stringify(ev.dmgTiers||[])}' onblur="try{S.events[${i}].dmgTiers=JSON.parse(this.value)}catch(e){}"></div>
       </div>`;
     }else if(ev.type==='per_group'){
-      fields+=`<div style="margin-top:6px"><div class="flbl">DMG ต่อ item type ที่ขาด (max ×3)</div><input class="ain" type="number" min="1" max="10" value="${ev.dmgPerMissType||2}" onchange="S.events[${i}].dmgPerMissType=+this.value" style="width:52px"></div>`;
+      const cap=ev.maxMissTypes||3;
+      const chk=JSON.stringify(ev.checkDepts||DK);
+      // preview rows
+      let preview='';
+      for(let m=0;m<=cap;m++){
+        const dmg=(ev.dmgPerMissType||2)*Math.min(m,cap);
+        preview+=`<span style="font-family:var(--mono);font-size:.57rem;padding:2px 5px;border-radius:3px;background:var(--sur2);border:1px solid var(--brd);margin:1px;display:inline-block">${m===0?'ครบ ✓':'ขาด '+m+(m===cap?'+':'')+' → -'+dmg+' HP'}</span>`;
+      }
+      fields+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+        <div><div class="flbl">DMG ต่อ 1 type ที่ขาด</div><input class="ain" type="number" min="1" max="10" value="${ev.dmgPerMissType||2}" onchange="S.events[${i}].dmgPerMissType=+this.value;renderEvCfg()" style="width:52px"></div>
+        <div><div class="flbl">Cap สูงสุด (จำนวน type)</div><input class="ain" type="number" min="1" max="10" value="${cap}" onchange="S.events[${i}].maxMissTypes=+this.value;renderEvCfg()" style="width:52px"></div>
+        <div style="grid-column:span 2"><div class="flbl">เช็คเฉพาะ dept (JSON array)</div><input class="ain" type="text" style="width:100%" value='${chk}' onblur="try{S.events[${i}].checkDepts=JSON.parse(this.value)}catch(e){}"></div>
+      </div>
+      <div style="margin-top:6px"><div class="flbl" style="margin-bottom:3px">Preview penalty</div><div>${preview}</div></div>`;
     }else if(ev.type==='headcount_reward'){
       const condFields=(ev.conditions||[]).map((cond,ci)=>`
         <div style="background:var(--sur3);border:1px solid var(--brd);border-radius:5px;padding:7px 9px;margin-bottom:4px">
@@ -963,16 +976,17 @@ function applyDmg(ev,poolMap,logs){
       }
     });
   }else if(ev.type==='per_group'){
-    // Ev10: ตรวจแต่ละกลุ่ม — นับ item type ที่ขาด → dmgPerMissType × จำนวน type ที่ขาด
     const dmgPer=ev.dmgPerMissType||2;
+    const maxMiss=ev.maxMissTypes||3;
+    const checkDepts=ev.checkDepts||DK;
     allG().forEach(gid=>{
       const alive=alv().filter(p=>p.groupId===gid);if(!alive.length)return;
       const pool=poolMap[gid]||{};
-      const missingTypes=DK.filter(dk=>!(pool[dk]>0));
+      const missingTypes=checkDepts.filter(dk=>!(pool[dk]>0));
       const gn=GN[gid]||('G'+(gid+1));
       if(!missingTypes.length){logs.push({type:'g',msg:gn+': มีครบทุก type ✓'});}
       else{
-        const d=Math.min(dmgPer*missingTypes.length,dmgPer*3); // cap ที่ ×3
+        const d=dmgPer*Math.min(missingTypes.length,maxMiss);
         alive.forEach(p=>dmg(p,d));
         logs.push({type:'b',msg:gn+': ขาด '+missingTypes.length+' type ['+missingTypes.map(dk=>DEPTS[dk]?.icon||dk).join('')+'] → -'+d+' HP'});
       }
