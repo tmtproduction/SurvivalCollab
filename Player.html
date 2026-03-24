@@ -45,6 +45,9 @@ body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 .sb-item{display:flex;flex-direction:column;align-items:center;gap:2px}
 .sb-val{font-family:var(--deco);font-size:1.25rem;line-height:1}
 .sb-lbl{font-family:var(--mono);font-size:.5rem;color:var(--dim);letter-spacing:.1em}
+/* hp pips */
+.hp-pips{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;max-width:72px}
+.hp-pip{width:10px;height:10px;border-radius:50%}
 .sb-div{width:1px;background:var(--brd2);align-self:stretch;margin:2px 0}
 
 /* cards */
@@ -202,9 +205,15 @@ function calcItems(name){
 
 function buildGroups(){
   const gs=S.gs||{},gc=gs.groupCount||8,names=gs.groupNames||GN,pa=Object.values(S.players);
+  const evPool=gs.eventPool||{},pending=gs.pendingConfirm;
   S.groups=Array.from({length:gc},(_,i)=>{
-    const members=pa.filter(p=>p.groupId==i),pool={};
-    members.filter(p=>p.alive).forEach(p=>{pool[p.dept]=(pool[p.dept]||0)+(p.items||0);});
+    const members=pa.filter(p=>p.groupId==i);
+    let pool={};
+    if(pending&&evPool[i]){
+      pool=Object.assign({},evPool[i]);
+    }else{
+      members.filter(p=>p.alive).forEach(p=>{pool[p.dept]=(pool[p.dept]||0)+(p.items||0);});
+    }
     return{id:i,name:names[i]||('G'+(i+1)),members,pool,full:members.length>=(gs.maxGroupSize||7),max:gs.maxGroupSize||7};
   });
 }
@@ -297,8 +306,16 @@ async function doUseItems(){
   const btn=document.getElementById('btn-use');
   if(btn){btn.disabled=true;btn.textContent='⏳ กำลังส่ง...';}
   const ni=Math.max(0,(S.player.items||0)-S.useAmt);
-  await update(ref(db,'players/'+S.pid),{items:ni});
-  await push(ref(db,'game/logs'),{ts:Date.now(),type:'g',msg:S.player.name+' ใช้ '+S.useAmt+' '+(DEPTS[S.player.dept]?.icon||'')+' เหลือ '+ni});
+  const gid=S.player.groupId, dept=S.player.dept;
+  // อัปเดต 2 จุดพร้อมกัน: ลด items ของ player + เพิ่ม eventPool ของกลุ่ม
+  const writes={['players/'+S.pid+'/items']:ni};
+  if(gid>=0){
+    const cur=(S.gs?.eventPool?.[gid]?.[dept])||0;
+    writes['game/state/eventPool/'+gid+'/'+dept]=cur+S.useAmt;
+  }
+  await update(ref(db),writes);
+  await push(ref(db,'game/logs'),{ts:Date.now(),type:'g',
+    msg:S.player.name+' ใช้ '+S.useAmt+' '+(DEPTS[dept]?.icon||'')+' → กลุ่มได้รับ '+((S.gs?.eventPool?.[gid]?.[dept]||0)+S.useAmt)});
   S.useAmt=0;
 }
 
@@ -384,6 +401,14 @@ function renderResult(app){
   </div>`;
 }
 
+function hpPips(hp,maxHp,color){
+  let h='';
+  for(let i=0;i<maxHp;i++){
+    h+=`<div class="hp-pip" style="background:${i<hp?color:'var(--brd2)'}"></div>`;
+  }
+  return h;
+}
+
 function renderShell(app,phase){
   const p=S.player||{},gs=S.gs||{},evIdx=gs.currentEvent||0;
   const hc=p.hp<=2?'var(--red)':p.hp<=4?'#ff9800':'var(--green)';
@@ -413,8 +438,8 @@ function renderShell(app,phase){
     </div>
     <div id="statusbar">
       <div class="sb-item">
-        <div class="sb-val" style="color:${hc}">${p.hp||0}<span style="font-size:.75rem;color:var(--dim)">/${p.maxHp||0}</span></div>
-        <div class="sb-lbl">HP</div>
+        <div class="hp-pips">${hpPips(p.hp||0,p.maxHp||8,hc)}</div>
+        <div class="sb-lbl" style="margin-top:3px">${p.hp||0}/${p.maxHp||0} HP</div>
       </div>
       <div class="sb-div"></div>
       <div class="sb-item"><div class="sb-val">${p.items||0}</div><div class="sb-lbl">ITEMS</div></div>

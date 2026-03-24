@@ -373,11 +373,15 @@ function buildGroupStatus() {
   const maxGS = gs.maxGroupSize||7, minGS = gs.minGroupSize||5;
   const gc = gs.groupCount||8, names = gs.groupNames||GN;
   const playerArr = Object.values(S.players);
+  const evPool = gs.eventPool || {}, pending = gs.pendingConfirm;
   S.groupStatus = Array.from({length:gc}, (_,i) => {
     const members = playerArr.filter(p => p.groupId == i);
+    // poolContrib = items ที่ contribute จริงในรอบนี้ (สำหรับแสดงผล)
+    const poolContrib = pending && evPool[i] ? Object.assign({},evPool[i]) : {};
+    // poolRemain = items คงเหลือ (เดิม)
     const pool = {};
     members.filter(p => p.alive).forEach(p => { pool[p.dept] = (pool[p.dept]||0) + (p.items||0); });
-    return { id:i, name:names[i]||('G'+(i+1)), count:members.length, max:maxGS, min:minGS, full:members.length>=maxGS, members, pool };
+    return { id:i, name:names[i]||('G'+(i+1)), count:members.length, max:maxGS, min:minGS, full:members.length>=maxGS, members, pool, poolContrib, pending };
   });
 }
 
@@ -504,21 +508,28 @@ function renderGamePanel() {
   let out = '';
 
   if (ev) {
-    // Pool summary for relevant events
+    // Pool summary — ใช้ eventPool (items ที่ contribute จริง) ถ้า pending
     let poolSummaryHtml = '';
+    const evPoolNow = gs.eventPool || {};
     if (ev.type==='global_per' || ev.type==='people_var') {
       const poolSummary = S.groupStatus.map(g => {
-        const pool = g.pool||{};
-        let req = ev.req||{};
+        // ถ้า pending ใช้ contributed pool, ถ้าไม่ pending ใช้ remaining pool
+        const pool = (pending && evPoolNow[g.id]) ? evPoolNow[g.id] : (g.pool||{});
+        let req = {...(ev.req||{})};
         if (ev.reqMultiplier) {
           const cnt = g.members.filter(m=>m.alive).length;
           Object.entries(ev.reqMultiplier).forEach(([d,m2]) => { req[d] = cnt*m2; });
         }
         const hasReq = Object.keys(req).length > 0;
         const pass = hasReq ? Object.entries(req).every(([d,n])=>(pool[d]||0)>=n) : true;
-        return h('span','style="font-size:.63rem;font-family:monospace;padding:2px 8px;border-radius:4px;border:1px solid '+(pass?'rgba(61,186,106,.4)':'rgba(232,64,64,.4)')+';background:'+(pass?'rgba(61,186,106,.07)':'rgba(232,64,64,.07)')+';color:'+(pass?'var(--green)':'var(--red)')+';"', g.name+' '+(pass?'✓':'✗'));
+        const label = g.name+' '+(pass?'✓':'✗');
+        return h('span','style="font-size:.63rem;font-family:monospace;padding:2px 8px;border-radius:4px;border:1px solid '+(pass?'rgba(61,186,106,.4)':'rgba(232,64,64,.4)')+';background:'+(pass?'rgba(61,186,106,.07)':'rgba(232,64,64,.07)')+';color:'+(pass?'var(--green)':'var(--red)')+';"', label);
       }).join('');
-      poolSummaryHtml = h('div','style="display:flex;flex-wrap:wrap;gap:3px;margin-top:7px"', poolSummary);
+      const label = pending ? '✦ CONTRIBUTED' : 'REMAINING ITEMS';
+      poolSummaryHtml = h('div','style="margin-top:8px"',
+        h('div','style="font-family:monospace;font-size:.5rem;color:var(--dim);margin-bottom:4px"',label)+
+        h('div','style="display:flex;flex-wrap:wrap;gap:3px"', poolSummary)
+      );
     }
 
     out += h('div','class="ev-card"',
@@ -646,14 +657,29 @@ function renderPlayersPanel() {
 function renderGroupsPanel() {
   const grid = document.getElementById('groups-grid'); if (!grid) return;
   if (!S.groupStatus.length) { grid.innerHTML = h('div','style="font-family:monospace;font-size:.75rem;color:var(--dim);padding:20px"','ยังไม่มีกลุ่ม'); return; }
+  const isPending = S.gs?.pendingConfirm;
   grid.innerHTML = S.groupStatus.map(g => {
     const pool = g.pool||{};
+    const contrib = g.poolContrib||{};
     const alive = g.members.filter(p => p.alive);
-    const poolHtml = DK.map(dk => h('div','class="ib"',(DEPTS[dk]?.icon||dk)+h('span','class="iv"',pool[dk]||0))).join('');
+
+    // ถ้า pending: แสดง items ที่ contribute (ส่งมาแล้ว) + เปลี่ยนสีให้ชัด
+    const poolHtml = DK.map(dk => {
+      const cv = contrib[dk]||0, rv = pool[dk]||0;
+      const show = isPending ? cv : rv;
+      const color = isPending&&cv>0 ? 'color:var(--green)' : '';
+      return h('div','class="ib"',(DEPTS[dk]?.icon||dk)+h('span','class="iv" style="'+color+'"',show));
+    }).join('');
+
+    const poolLabel = isPending
+      ? h('div','style="font-family:monospace;font-size:.5rem;color:var(--green);margin-bottom:3px"','✦ CONTRIBUTED THIS ROUND')
+      : h('div','style="font-family:monospace;font-size:.5rem;color:var(--dim);margin-bottom:3px"','POOL (remaining items)');
+
     const mHtml = g.members.map(m => {
       const md = DEPTS[m.dept]||{}, mc = m.hp<=2?'var(--red)':m.hp<=4?'#ff9800':'var(--green)';
       let mpips = '';
       for (let i=0; i<(m.maxHp||0); i++) mpips += h('span','style="width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:1px;background:'+(i<(m.hp||0)?mc:'var(--brd2)')+';"','');
+      const sentAmt = isPending ? (contrib[md.dept]!==undefined?'→'+m.items:'?') : (m.items||0);
       return h('div','class="mrow'+(m.alive?'':' mrow-dead')+'"',
         h('div','style="display:flex;align-items:center;gap:4px"',
           h('div','class="dtag" style="background:'+md.color+'22;color:'+md.color+';border:1px solid '+md.color+'44;font-size:.5rem"',m.dept)+
@@ -668,7 +694,7 @@ function renderGroupsPanel() {
       h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"',
         h('div','class="gname"',g.name)+
         h('div','style="font-family:monospace;font-size:.58rem;color:var(--dim);background:var(--sur2);padding:2px 6px;border-radius:10px"',alive.length+'/'+g.members.length+' alive')
-      )+h('div','class="pool-row"',poolHtml)+h('div','class="mlist-a"',mHtml)
+      )+poolLabel+h('div','class="pool-row"',poolHtml)+h('div','class="mlist-a"',mHtml)
     );
   }).join('');
 }
@@ -828,7 +854,8 @@ async function doRunEvent() {
     if (Object.keys(updates).length) await update(ref(db), updates);
   }
 
-  await update(ref(db,'game/state'), {pendingConfirm:true, pendingEventId:ev.id});
+  // รีเซ็ต eventPool ทุกครั้งที่เปิด event ใหม่
+  await update(ref(db,'game/state'), {pendingConfirm:true, pendingEventId:ev.id, eventPool:{}});
   await push(ref(db,'game/logs'), {ts:Date.now(),type:'w',msg:'Event '+ev.id+': '+ev.emoji+' '+ev.name+' — รอผู้เล่นใช้ Items'});
   setBtn('btn-run-ev', null, false);
   toast('⚡ Event เปิดแล้ว');
@@ -841,13 +868,23 @@ async function doConfirmEvent() {
   const playerArr = Object.values(S.players);
   const poolCap = (gs.globalConfig?.poolCap)||35;
 
+  // ใช้ eventPool = items ที่ player ส่งมาจริงๆ ไม่ใช่ items คงเหลือ
+  const evPool = gs.eventPool || {};
   const poolMap = {};
-  playerArr.forEach(p => {
-    if (p.alive && p.groupId >= 0) {
-      if (!poolMap[p.groupId]) poolMap[p.groupId] = {};
-      poolMap[p.groupId][p.dept] = (poolMap[p.groupId][p.dept]||0) + (p.items||0);
-    }
-  });
+  if (ev.type === 'discard') {
+    // discard ใช้ items คงเหลือ (player ทิ้งไปแล้วก่อนหน้า)
+    playerArr.forEach(p => {
+      if (p.alive && p.groupId >= 0) {
+        if (!poolMap[p.groupId]) poolMap[p.groupId] = {};
+        poolMap[p.groupId][p.dept] = (poolMap[p.groupId][p.dept]||0) + (p.items||0);
+      }
+    });
+  } else {
+    // event ปกติ: pool = สิ่งที่ player contribute แล้ว
+    Object.entries(evPool).forEach(([gid, depts]) => {
+      poolMap[gid] = Object.assign({}, depts);
+    });
+  }
 
   const dmgLogs = [];
   const updates = {};
