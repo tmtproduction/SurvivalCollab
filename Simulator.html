@@ -165,12 +165,7 @@ input:focus,select:focus{border-color:var(--amber)}
     </div>
     <div>
       <div class="st">Event Config</div>
-      <div class="card" style="padding:10px 12px">
-        <table class="ptable" style="font-size:.72rem">
-          <thead><tr><th>#</th><th>Event</th><th>DMG</th><th>preDmg</th><th>PoolCap</th></tr></thead>
-          <tbody id="ev-cfg-body"></tbody>
-        </table>
-      </div>
+      <div id="ev-cfg-cards" style="display:flex;flex-direction:column;gap:6px"></div>
     </div>
   </div>
   <div class="card ct" style="text-align:center;padding:18px">
@@ -240,19 +235,26 @@ const THAI_NAMES=['สมชาย','สมหญิง','สมศักดิ�
 
 const DEF_EVENTS=[
   {id:1,name:'หลงทาง',emoji:'🗺',type:'global_per',req:{PD1:5},dmg:2,desc:'แต่ละกลุ่มต้องมีเข็มทิศ 5 ชิ้น'},
-  {id:2,name:'หิวโหย',emoji:'🍖',type:'global_per',req:{PD3:5},dmg:3,desc:'แต่ละกลุ่มต้องมีอาหาร 5 ชิ้น'},
-  {id:3,name:'บาดเจ็บ',emoji:'🩹',type:'global_per',req:{EN:6},dmg:3,desc:'แต่ละกลุ่มต้องมียา 6 ชิ้น'},
+  {id:2,name:'หิวโหย',emoji:'🍖',type:'global_per',req:{PD3:5},dmg:2,desc:'แต่ละกลุ่มต้องมีอาหาร 5 ชิ้น'},
+  {id:3,name:'บาดเจ็บ',emoji:'🩹',type:'global_per',req:{EN:6},dmg:2,desc:'แต่ละกลุ่มต้องมียา 6 ชิ้น'},
   {id:4,name:'แผ่นดินไหว',emoji:'🌋',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
-  {id:5,name:'สร้างแพ',emoji:'🛖',type:'people_var',reqMultiplier:{MN:2},dmg:3,desc:'ต้องมีเครื่องมือ = คนมีชีวิต × 2'},
-  {id:6,name:'สถานการณ์ฉุกเฉิน',emoji:'⚖',type:'discard',poolCap:35,desc:'แต่ละกลุ่มถือได้ไม่เกิน 35 ชิ้น'},
-  {id:7,name:'หนาวจัด',emoji:'🥶',type:'global_per',req:{PD3:1,MN:2},dmg:4,desc:'ต้องมีอาหาร 1 + เครื่องมือ 2 ชิ้น'},
-  {id:8,name:'ไฟป่า',emoji:'🔥',type:'regroup',preDmg:2,desc:'ทุกคน -2 HP ก่อน แล้วเลือกกลุ่มใหม่'},
-  {id:9,name:'โรคระบาด',emoji:'🦠',type:'global_all',req:{EN:40,QA:20,MN:40},dmgWho:'tiered_shortage',dmgTiers:[{max:0,dmg:0},{max:10,dmg:1},{max:20,dmg:2},{max:999,dmg:3}],desc:'รวม Pool ทั้งหมด'},
-  {id:10,name:'หนีรอด',emoji:'🚁',type:'global_all',req:{PD1:30,PD3:30,EN:20,PD2:20,QA:15,MN:15},dmgWho:'tiered_missing_types',dmgTiers:[{max:0,dmg:0},{max:2,dmg:1},{max:4,dmg:2},{max:6,dmg:3}],desc:'รวม Pool สุดท้าย'},
+  {id:'4b',name:'พบแหล่งน้ำ',emoji:'💧',type:'headcount_reward',
+    conditions:[
+      {reqHeadcount:{PD1:2,QA:1}, reward:{type:'hp', amt:2}, desc:'PD1≥2คน + QA≥1คน → +2 HP ทุกคน'},
+      {reqHeadcount:{PD2:2,EN:1}, reward:{type:'items', depts:['PD1','PD2','PD3'], amt:2}, desc:'PD2≥2คน + EN≥1คน → 🧭📋🍖 +2 items ต่อคน'},
+      {reqHeadcount:{PD3:2,MN:2}, reward:{type:'items', depts:['QA','EN','MN'], amt:2}, desc:'PD3≥2คน + MN≥2คน → 💰💊🔧 +2 items ต่อคน'},
+    ],
+    maxHp:10, desc:'เช็คจำนวนคนใน dept — ผ่านได้หลายข้อ (stack)'},
+  {id:5,name:'สร้างแพ',emoji:'🛖',type:'people_var',reqMultiplier:{MN:2},dmg:2,desc:'ต้องมีเครื่องมือ = คนมีชีวิต × 2'},
+  {id:6,name:'สถานการณ์ฉุกเฉิน',emoji:'⚖',type:'discard',poolCap:55,desc:'แต่ละกลุ่มถือได้ไม่เกิน 55 ชิ้น'},
+  {id:7,name:'หนาวจัด',emoji:'🥶',type:'global_per',req:{PD3:1,MN:2},dmg:2,desc:'ต้องมีอาหาร 1 + เครื่องมือ 2 ชิ้น'},
+  {id:8,name:'ไฟป่า',emoji:'🔥',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
+  {id:9,name:'โรคระบาด',emoji:'🦠',type:'collective_pool',req:{EN:40,QA:20,MN:40},dmgTiers:[{max:0,dmg:0},{max:20,dmg:1},{max:40,dmg:2},{max:999,dmg:3}],desc:'ทุกกลุ่มส่ง items เข้ากองกลาง — รวมกันต้องถึง 💊EN:40 💰QA:20 🔧MN:40'},
+  {id:10,name:'หนีรอด',emoji:'🚁',type:'per_group',dmgPerMissType:2,desc:'ตรวจแยกกลุ่ม — ขาด 1 item type→-2HP, 2 type→-4HP, 3+type→-6HP'},
 ];
 
-let S={cfg:{gc:8,hp:8,min:5,max:7,poolCap:35,np:40},
-  itemRange:{PD1:{count:7,min:3,max:8},PD2:{count:7,min:3,max:8},PD3:{count:7,min:3,max:8},QA:{count:7,min:3,max:8},EN:{count:6,min:3,max:8},MN:{count:6,min:3,max:8}},
+let S={cfg:{gc:6,hp:10,min:6,max:8,poolCap:65,np:45},
+  itemRange:{PD1:{count:8,min:7,max:13},PD2:{count:8,min:8,max:14},PD3:{count:8,min:7,max:15},QA:{count:6,min:8,max:15},EN:{count:5,min:10,max:15},MN:{count:10,min:8,max:15}},
   events:DEF_EVENTS.map(e=>({...e})),players:[],logs:[],useAmts:{},dragPid:null,
   game:{started:false,phase:'lobby',evIdx:0,pending:false,regroup:false}};
 
@@ -291,14 +293,55 @@ function switchTab(n){
 
 // ── SETUP ───────────────────────────────────────────────────
 function renderEvCfg(){
-  document.getElementById('ev-cfg-body').innerHTML=S.events.map((ev,i)=>`
-    <tr>
-      <td style="font-family:var(--mono);font-size:.62rem;color:var(--dim)">${ev.id}</td>
-      <td style="font-size:.73rem">${ev.emoji} ${ev.name}</td>
-      <td><input class="ain" type="number" min="0" max="20" value="${ev.dmg||0}" onchange="S.events[${i}].dmg=+this.value" style="width:46px"></td>
-      <td><input class="ain" type="number" min="0" max="20" value="${ev.preDmg||0}" onchange="S.events[${i}].preDmg=+this.value" style="width:46px"></td>
-      <td><input class="ain" type="number" min="1" max="999" value="${ev.poolCap||35}" onchange="S.events[${i}].poolCap=+this.value" style="width:52px"></td>
-    </tr>`).join('');
+  const el=document.getElementById('ev-cfg-cards');if(!el)return;
+  const tColor={global_per:'var(--dim)',people_var:'var(--dim)',regroup:'var(--purple)',discard:'var(--orange)',headcount_reward:'var(--green)',collective_pool:'var(--amber)',per_group:'var(--dim)',global_all:'var(--dim)'};
+  const tLabel={global_per:'per-group',people_var:'×คน',regroup:'regroup',discard:'discard',headcount_reward:'HEAL/ITEM',collective_pool:'กองกลาง',per_group:'per-group',global_all:'global'};
+
+  el.innerHTML=S.events.map((ev,i)=>{
+    let fields='';
+    if(ev.type==='global_per'||ev.type==='people_var'||ev.type==='global_all'){
+      const reqStr=JSON.stringify(ev.req||{});
+      fields+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+        <div><div class="flbl">Req (JSON)</div><input class="ain" type="text" style="width:100%" value='${reqStr}' onblur="try{S.events[${i}].req=JSON.parse(this.value)}catch(e){}"></div>
+        <div><div class="flbl">DMG ถ้าไม่ผ่าน</div><input class="ain" type="number" min="0" max="20" value="${ev.dmg||0}" onchange="S.events[${i}].dmg=+this.value" style="width:52px"></div>
+      </div>`;
+      if(ev.type==='people_var'){
+        fields+=`<div style="margin-top:5px"><div class="flbl">reqMultiplier (JSON)</div><input class="ain" type="text" style="width:100%" value='${JSON.stringify(ev.reqMultiplier||{})}' onblur="try{S.events[${i}].reqMultiplier=JSON.parse(this.value)}catch(e){}"></div>`;
+      }
+    }else if(ev.type==='regroup'){
+      fields+=`<div style="margin-top:6px"><div class="flbl">Pre-damage (HP ก่อน regroup)</div><input class="ain" type="number" min="0" max="20" value="${ev.preDmg||0}" onchange="S.events[${i}].preDmg=+this.value" style="width:52px"></div>`;
+    }else if(ev.type==='discard'){
+      fields+=`<div style="margin-top:6px"><div class="flbl">Pool Cap (items ต่อกลุ่ม)</div><input class="ain" type="number" min="1" max="999" value="${ev.poolCap||S.cfg.poolCap}" onchange="S.events[${i}].poolCap=+this.value" style="width:60px"></div>`;
+    }else if(ev.type==='collective_pool'){
+      fields+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+        <div><div class="flbl">Req รวม (JSON)</div><input class="ain" type="text" style="width:100%" value='${JSON.stringify(ev.req||{})}' onblur="try{S.events[${i}].req=JSON.parse(this.value)}catch(e){}"></div>
+        <div><div class="flbl">dmgTiers (JSON array)</div><input class="ain" type="text" style="width:100%;font-size:.55rem" value='${JSON.stringify(ev.dmgTiers||[])}' onblur="try{S.events[${i}].dmgTiers=JSON.parse(this.value)}catch(e){}"></div>
+      </div>`;
+    }else if(ev.type==='per_group'){
+      fields+=`<div style="margin-top:6px"><div class="flbl">DMG ต่อ item type ที่ขาด (max ×3)</div><input class="ain" type="number" min="1" max="10" value="${ev.dmgPerMissType||2}" onchange="S.events[${i}].dmgPerMissType=+this.value" style="width:52px"></div>`;
+    }else if(ev.type==='headcount_reward'){
+      const condFields=(ev.conditions||[]).map((cond,ci)=>`
+        <div style="background:var(--sur3);border:1px solid var(--brd);border-radius:5px;padding:7px 9px;margin-bottom:4px">
+          <div class="flbl" style="margin-bottom:4px">เงื่อนไข ${ci+1} — ${cond.desc||''}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+            <div><div class="flbl">reqHeadcount (JSON)</div><input class="ain" type="text" style="width:100%" value='${JSON.stringify(cond.reqHeadcount||{})}' onblur="try{S.events[${i}].conditions[${ci}].reqHeadcount=JSON.parse(this.value)}catch(e){}"></div>
+            <div><div class="flbl">reward type (hp/items)</div><input class="ain" type="text" style="width:100%" value="${cond.reward?.type||'hp'}" onblur="S.events[${i}].conditions[${ci}].reward.type=this.value"></div>
+            <div><div class="flbl">reward amt</div><input class="ain" type="number" min="1" max="20" value="${cond.reward?.amt||2}" onchange="S.events[${i}].conditions[${ci}].reward.amt=+this.value" style="width:52px"></div>
+            <div><div class="flbl">reward depts (JSON)</div><input class="ain" type="text" style="width:100%" value='${JSON.stringify(cond.reward?.depts||[])}' onblur="try{S.events[${i}].conditions[${ci}].reward.depts=JSON.parse(this.value)}catch(e){}"></div>
+          </div>
+        </div>`).join('');
+      fields+=`<div style="margin-top:6px"><div class="flbl" style="margin-bottom:4px">Max HP (heal cap)</div><input class="ain" type="number" min="1" max="30" value="${ev.maxHp||10}" onchange="S.events[${i}].maxHp=+this.value" style="width:52px"></div>${condFields}`;
+    }
+
+    return`<div class="card" style="padding:9px 11px">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="font-size:1rem">${ev.emoji}</span>
+        <span style="font-family:var(--deco);font-size:.82rem;letter-spacing:.15em;color:var(--amber)">#${ev.id} ${ev.name}</span>
+        <span style="font-family:var(--mono);font-size:.52rem;padding:1px 5px;border-radius:3px;background:var(--sur2);border:1px solid var(--brd);color:${tColor[ev.type]||'var(--dim)'}">${tLabel[ev.type]||ev.type}</span>
+      </div>
+      ${fields}
+    </div>`;
+  }).join('');
   renderItemRangeCfg();
 }
 function renderItemRangeCfg(){
@@ -452,18 +495,18 @@ function doDrop(e,gid){
 function renderRun(){
   const alive=S.players.filter(p=>p.alive),dead=S.players.filter(p=>!p.alive);
   const evIdx=S.game.evIdx||0;
+  const evTotal=S.events.length;
   document.getElementById('run-stats').innerHTML=`
-    <div class="stat"><div class="sv">${Math.min(evIdx+1,10)}/10</div><div class="sl">EVENT</div></div>
+    <div class="stat"><div class="sv">${Math.min(evIdx+1,evTotal)}/${evTotal}</div><div class="sl">EVENT</div></div>
     <div class="stat"><div class="sv">${S.players.length}</div><div class="sl">PLAYERS</div></div>
     <div class="stat"><div class="sv" style="color:var(--green)">${alive.length}</div><div class="sl">ALIVE</div></div>
     <div class="stat"><div class="sv" style="color:var(--red)">${dead.length}</div><div class="sl">DEAD</div></div>
     <div class="stat"><div class="sv">${S.players.filter(p=>p.alive).reduce((s,p)=>s+(p.items||0),0)}</div><div class="sl">ITEMS</div></div>`;
 
-  const types=['','global_per','global_per','global_per','regroup','people_var','discard','global_per','regroup','global_all','global_all'];
-  document.getElementById('evbar').innerHTML=Array.from({length:10},(_,i)=>{
-    const t=types[i+1]||'';let c='eseg';
-    if(i<evIdx)c+=' done';else if(i===evIdx)c+=(t==='regroup'?' rg':t==='discard'?' dc':' cur');
-    return`<div class="${c}" title="Event ${i+1}: ${S.events[i]?.name||''}"></div>`;
+  document.getElementById('evbar').innerHTML=S.events.map((ev,i)=>{
+    const t=ev.type||'';let c='eseg';
+    if(i<evIdx)c+=' done';else if(i===evIdx)c+=(t==='regroup'?' rg':t==='discard'?' dc':t==='heal'?' cg':' cur');
+    return`<div class="${c}" title="Event ${i+1}: ${ev.name||''}"></div>`;
   }).join('');
 
   renderRunContent();
@@ -491,13 +534,23 @@ function renderRunContent(){
     }else if(ev.type==='discard'){
       const cap=ev.poolCap||S.cfg.poolCap;
       reqSum=allG().map(i=>{const tot=DK.reduce((s,d)=>s+(gPool(i)[d]||0),0),ok=tot<=cap;return`<span class="${ok?'rp':'rf'}">${GN[i]||('G'+(i+1))} ${tot}/${cap} ${ok?'✓':'✗'}</span>`;}).join(' ');
+    }else if(ev.type==='headcount_reward'&&ev.conditions){
+      // แสดงสถานะต่อกลุ่มต่อเงื่อนไข
+      reqSum=allG().map(gid=>{
+        const alive=S.players.filter(p=>p.alive&&p.groupId===gid);if(!alive.length)return'';
+        const hc={};DK.forEach(dk=>{hc[dk]=alive.filter(p=>p.dept===dk).length;});
+        const passed=ev.conditions.filter(c=>Object.entries(c.reqHeadcount).every(([dk,n])=>(hc[dk]||0)>=n)).length;
+        const gn=GN[gid]||('G'+(gid+1));
+        return`<span class="${passed?'rp':'rf'}">${gn} ${passed}/${ev.conditions.length} ✓</span>`;
+      }).filter(Boolean).join(' ');
     }
     html+=`<div class="ev-card eva">
-      <div style="font-family:var(--mono);font-size:.56rem;color:var(--dim);margin-bottom:4px">EVENT ${evIdx+1} / 10</div>
+      <div style="font-family:var(--mono);font-size:.56rem;color:var(--dim);margin-bottom:4px">EVENT ${evIdx+1} / ${S.events.length}</div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:${reqSum?'8px':'0'}">
         <span style="font-size:1.5rem;line-height:1">${ev.emoji}</span>
         <div><div class="ev-title">${ev.name}</div><div style="font-size:.8rem;color:var(--dim);margin-top:2px">${ev.desc}</div></div>
       </div>${reqSum?`<div style="display:flex;flex-wrap:wrap;gap:4px">${reqSum}</div>`:''}
+      ${ev.type==='headcount_reward'&&ev.conditions?`<div style="margin-top:8px">${ev.conditions.map(c=>`<div style="font-family:var(--mono);font-size:.6rem;color:var(--dim);margin-bottom:2px">• ${c.desc}</div>`).join('')}</div>`:''}
     </div>`;
   }
 
@@ -523,6 +576,7 @@ function renderRunContent(){
 function pIsRelevant(p,ev){
   if(!ev)return false;
   if(ev.type==='discard')return true;
+  if(ev.type==='collective_pool')return p.dept in (ev.req||{});
   const cnt=gAlive(p.groupId),req=evReq(ev,cnt);
   return p.dept in req;
 }
@@ -530,6 +584,7 @@ function pIsRelevant(p,ev){
 function refreshGCard(gid,ev){
   const cnt=gAlive(gid),req=evReq(ev,cnt);
   const isDiscard=ev?.type==='discard',cap=ev?.poolCap||S.cfg.poolCap;
+  const isCollective=ev?.type==='collective_pool';
   const usedByDept={};
   S.players.filter(p=>p.alive&&p.groupId===gid).forEach(p=>{
     usedByDept[p.dept]=(usedByDept[p.dept]||0)+(S.useAmts[p.id]||0);
@@ -544,28 +599,81 @@ function refreshGCard(gid,ev){
   });
   // อัปเดต pass/fail badge ของกลุ่ม
   const badge=document.getElementById('gpf-'+gid);if(!badge)return;
-  let pass;
-  if(isDiscard){
-    const usedTot=Object.values(usedByDept).reduce((s,v)=>s+v,0);
-    const poolTot=DK.reduce((s,d)=>s+(gPool(gid)[d]||0),0);
-    pass=(poolTot-usedTot)<=cap;
+  if(isCollective){
+    // collective_pool: แสดงยอดส่งของกลุ่มนี้ ไม่ใช่ pass/fail
+    const tot=Object.values(usedByDept).reduce((s,v)=>s+v,0);
+    badge.className='rp';badge.textContent='ส่ง '+tot;
+    // อัปเดต global collective bar
+    refreshCollectiveBar(ev);
   }else{
-    pass=Object.entries(req).every(([dk,n])=>(usedByDept[dk]||0)>=n);
+    let pass;
+    if(isDiscard){
+      const usedTot=Object.values(usedByDept).reduce((s,v)=>s+v,0);
+      const poolTot=DK.reduce((s,d)=>s+(gPool(gid)[d]||0),0);
+      pass=(poolTot-usedTot)<=cap;
+    }else{
+      pass=Object.entries(req).every(([dk,n])=>(usedByDept[dk]||0)>=n);
+    }
+    badge.className=pass?'rp':'rf';
+    badge.textContent=pass?'✓ PASS':'✗ FAIL';
   }
-  badge.className=pass?'rp':'rf';
-  badge.textContent=pass?'✓ PASS':'✗ FAIL';
+}
+// อัปเดต collective bar (กองกลางรวมทุกกลุ่ม) สำหรับ collective_pool
+function refreshCollectiveBar(ev){
+  const req=ev?.req||{};
+  const tot={};DK.forEach(dk=>{tot[dk]=0;});
+  S.players.filter(p=>p.alive).forEach(p=>{tot[p.dept]=(tot[p.dept]||0)+(S.useAmts[p.id]||0);});
+  DK.forEach(dk=>{
+    const bar=document.getElementById('cbar-'+dk);if(!bar)return;
+    const need=req[dk]||0,have=tot[dk]||0;
+    const pct=need>0?Math.min(100,Math.round(have/need*100)):100;
+    bar.style.width=pct+'%';bar.style.background=have>=need?'var(--green)':'var(--amber)';
+    const lbl=document.getElementById('clbl-'+dk);if(lbl)lbl.textContent=have+(need?'/'+need:'');
+  });
+  const totalPass=Object.entries(req).every(([dk,n])=>(tot[dk]||0)>=n);
+  const badge=document.getElementById('collective-badge');
+  if(badge){badge.className=totalPass?'rp':'rf';badge.textContent=totalPass?'✓ PASS':'✗ FAIL';}
 }
 
 function buildItemForm(ev){
   const cap=ev?.poolCap||S.cfg.poolCap;
   const isDiscard=ev?.type==='discard';
-  const label=isDiscard?'Items ที่ทิ้ง':'Items ที่ใช้';
+  const isCollective=ev?.type==='collective_pool';
+  const label=isDiscard?'Items ที่ทิ้ง':isCollective?'Items ที่ส่งกองกลาง':'Items ที่ใช้';
+  const evReqObj=ev?.req||{};
+
+  // collective_pool: แสดง panel กองกลางรวมด้านบน
+  let collectivePanel='';
+  if(isCollective){
+    const tot={};DK.forEach(dk=>{tot[dk]=0;});
+    S.players.filter(p=>p.alive).forEach(p=>{tot[p.dept]=(tot[p.dept]||0)+(S.useAmts[p.id]||0);});
+    const totalPass=Object.entries(evReqObj).every(([dk,n])=>(tot[dk]||0)>=n);
+    const bars=DK.filter(dk=>evReqObj[dk]).map(dk=>{
+      const need=evReqObj[dk]||0,have=tot[dk]||0;
+      const pct=need>0?Math.min(100,Math.round(have/need*100)):100;
+      const col=have>=need?'var(--green)':'var(--amber)';
+      return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+        <span style="font-family:var(--mono);font-size:.6rem;color:${DEPTS[dk]?.color};min-width:30px">${DEPTS[dk]?.icon} ${dk}</span>
+        <div style="flex:1;height:6px;background:var(--brd2);border-radius:3px;overflow:hidden">
+          <div id="cbar-${dk}" style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width .2s"></div>
+        </div>
+        <span id="clbl-${dk}" style="font-family:var(--mono);font-size:.6rem;color:var(--dim);min-width:40px;text-align:right">${have}/${need}</span>
+      </div>`;
+    }).join('');
+    collectivePanel=`<div style="background:var(--sur3);border:1px solid var(--amber-brd);border-radius:var(--r);padding:10px 14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-family:var(--deco);font-size:.85rem;letter-spacing:.08em;color:var(--amber)">🧪 กองกลางรวม</span>
+        <span id="collective-badge" class="${totalPass?'rp':'rf'}">${totalPass?'✓ PASS':'✗ FAIL'}</span>
+      </div>
+      ${bars}
+    </div>`;
+  }
 
   const groupCards=allG().map(gid=>{
     const members=S.players.filter(p=>p.alive&&p.groupId===gid);
     if(!members.length)return'';
-    const cnt=gAlive(gid),req=evReq(ev,cnt),pool=gPool(gid);
-    // dept progress bars
+    const cnt=gAlive(gid),req=isCollective?evReqObj:evReq(ev,cnt),pool=gPool(gid);
+    // dept progress bars (ต่อกลุ่ม)
     const deptKeys=isDiscard?DK:DK.filter(dk=>req[dk]);
     const usedByDept={};members.forEach(p=>{usedByDept[p.dept]=(usedByDept[p.dept]||0)+(S.useAmts[p.id]||0);});
     const deptBars=deptKeys.map(dk=>{
@@ -605,11 +713,15 @@ function buildItemForm(ev){
     const usedByDeptInit={};members.forEach(p=>{usedByDeptInit[p.dept]=(usedByDeptInit[p.dept]||0)+(S.useAmts[p.id]||0);});
     let initPass;
     if(isDiscard){const ut=Object.values(usedByDeptInit).reduce((s,v)=>s+v,0),pt=DK.reduce((s,d)=>s+(pool[d]||0),0);initPass=(pt-ut)<=cap;}
+    else if(isCollective){initPass=false;} // badge แสดง "ส่ง X" ไม่ใช่ pass/fail ต่อกลุ่ม
     else{initPass=Object.keys(req).length===0||Object.entries(req).every(([dk,n])=>(usedByDeptInit[dk]||0)>=n);}
+    const badgeInit=isCollective
+      ?`<span id="gpf-${gid}" class="rp" style="flex-shrink:0">ส่ง 0</span>`
+      :`<span id="gpf-${gid}" class="${initPass?'rp':'rf'}" style="flex-shrink:0">${initPass?'✓ PASS':'✗ FAIL'}</span>`;
     return`<div style="background:var(--sur2);border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px">
-        <div style="font-family:var(--deco);font-size:.85rem;letter-spacing:.1em;color:var(--amber)">${GN[gid]||('G'+(gid+1))}${reqTxt?`<span style="font-family:var(--mono);font-size:.58rem;color:var(--dim);font-weight:400;letter-spacing:0;margin-left:8px">ต้องการ: ${reqTxt}</span>`:''}</div>
-        <span id="gpf-${gid}" class="${initPass?'rp':'rf'}" style="flex-shrink:0">${initPass?'✓ PASS':'✗ FAIL'}</span>
+        <div style="font-family:var(--deco);font-size:.85rem;letter-spacing:.1em;color:var(--amber)">${GN[gid]||('G'+(gid+1))}${reqTxt&&!isCollective?`<span style="font-family:var(--mono);font-size:.58rem;color:var(--dim);font-weight:400;letter-spacing:0;margin-left:8px">ส่งได้ตามต้องการ</span>`:''}</div>
+        ${badgeInit}
       </div>
       ${deptBars}<div style="margin-top:6px">${rows}</div>
     </div>`;
@@ -617,6 +729,7 @@ function buildItemForm(ev){
 
   return`<div class="card" style="margin-bottom:10px">
     <div class="st">กำหนด ${label} ต่อคน</div>
+    ${collectivePanel}
     <div class="grid3">${groupCards}</div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
       <button class="btn btn-a" onclick="confirmEvent()">✅ Confirm → Apply Damage</button>
@@ -635,37 +748,51 @@ function stepP(pid,d){
 function autoFill(){
   const evIdx=S.game.evIdx||0,ev=S.events[evIdx],cap=ev?.poolCap||S.cfg.poolCap;
   const isDiscard=ev?.type==='discard';
-  // reset ก่อนทุกครั้ง
+  const isCollective=ev?.type==='collective_pool';
   S.players.filter(p=>p.alive).forEach(p=>{S.useAmts[p.id]=0;});
-  allG().forEach(gid=>{
-    const members=S.players.filter(p=>p.alive&&p.groupId===gid);
-    if(!members.length)return;
-    const cnt=members.length,req=evReq(ev,cnt);
-    if(isDiscard){
-      // คิดจาก pool รวมทุก dept ของกลุ่ม แล้วกระจาย excess ตามสัดส่วน items แต่ละคน
-      const pool=gPool(gid),gTot=DK.reduce((s,d)=>s+(pool[d]||0),0);
-      const excess=Math.max(0,gTot-cap);
-      if(excess>0){
-        let rem=excess;
-        const sorted=[...members].sort((a,b)=>b.items-a.items);
-        sorted.forEach((p,idx)=>{
-          const share=idx===sorted.length-1?rem:Math.min(p.items,Math.round((p.items/Math.max(1,gTot))*excess));
-          S.useAmts[p.id]=Math.max(0,Math.min(p.items,share));rem-=S.useAmts[p.id];
+
+  if(isCollective){
+    // กระจาย req รวมให้ทุกกลุ่ม โดยเช็คจาก dept ที่ req ต้องการ แล้วหารตามสัดส่วน items
+    const req=ev?.req||{};
+    DK.forEach(dk=>{
+      const need=req[dk]||0;if(!need)return;
+      const eligible=S.players.filter(p=>p.alive&&p.dept===dk);
+      const total=eligible.reduce((s,p)=>s+(p.items||0),0);
+      let rem=Math.min(need,total);
+      [...eligible].sort((a,b)=>b.items-a.items).forEach((p,idx,arr)=>{
+        const give=idx===arr.length-1?rem:Math.min(p.items,Math.round((p.items/Math.max(1,total))*need));
+        S.useAmts[p.id]=(S.useAmts[p.id]||0)+Math.max(0,Math.min(p.items,give));rem-=S.useAmts[p.id];
+      });
+    });
+  }else{
+    allG().forEach(gid=>{
+      const members=S.players.filter(p=>p.alive&&p.groupId===gid);
+      if(!members.length)return;
+      const cnt=members.length,req=evReq(ev,cnt);
+      if(isDiscard){
+        const pool=gPool(gid),gTot=DK.reduce((s,d)=>s+(pool[d]||0),0);
+        const excess=Math.max(0,gTot-cap);
+        if(excess>0){
+          let rem=excess;
+          const sorted=[...members].sort((a,b)=>b.items-a.items);
+          sorted.forEach((p,idx)=>{
+            const share=idx===sorted.length-1?rem:Math.min(p.items,Math.round((p.items/Math.max(1,gTot))*excess));
+            S.useAmts[p.id]=Math.max(0,Math.min(p.items,share));rem-=S.useAmts[p.id];
+          });
+        }
+      }else{
+        DK.forEach(dk=>{
+          const need=req[dk]||0;if(!need)return;
+          const eligible=members.filter(p=>p.dept===dk);
+          let rem=Math.min(need,eligible.reduce((s,p)=>s+(p.items||0),0));
+          [...eligible].sort((a,b)=>b.items-a.items).forEach((p,idx,arr)=>{
+            const give=idx===arr.length-1?rem:Math.min(p.items,rem);
+            S.useAmts[p.id]=(S.useAmts[p.id]||0)+give;rem-=give;
+          });
         });
       }
-    }else{
-      // กระจาย req แต่ละ dept ให้เฉพาะคนที่ dept ตรง
-      DK.forEach(dk=>{
-        const need=req[dk]||0;if(!need)return;
-        const eligible=members.filter(p=>p.dept===dk);
-        let rem=Math.min(need,eligible.reduce((s,p)=>s+(p.items||0),0));
-        [...eligible].sort((a,b)=>b.items-a.items).forEach((p,idx,arr)=>{
-          const give=idx===arr.length-1?rem:Math.min(p.items,rem);
-          S.useAmts[p.id]=(S.useAmts[p.id]||0)+give;rem-=give;
-        });
-      });
-    }
-  });
+    });
+  }
   renderRunContent();
 }
 
@@ -687,8 +814,18 @@ function openEvent(){
     log('w','Event '+ev.id+': '+ev.emoji+' '+ev.name+' — Regroup!');
     renderRun();toast('🔀 Regroup');return;
   }
+  // headcount_reward ไม่ต้องใช้ items — auto-confirm เลย
+  if(ev.type==='headcount_reward'){
+    log('w','⚡ Event '+ev.id+': '+ev.emoji+' '+ev.name);
+    const poolMap={};allG().forEach(gid=>{poolMap[gid]={...gPool(gid)};});
+    const dmgLogs=[];applyDmg(ev,poolMap,dmgLogs);dmgLogs.forEach(l=>log(l.type,l.msg));
+    const next=evIdx+1;
+    S.game.evIdx=next;S.game.phase=next>=S.events.length?'result':'playing';
+    log('i','— Event '+(evIdx+1)+' สรุปแล้ว — Event '+(next+1)+' พร้อม');
+    renderRun();toast('💧 '+ev.name+' สรุปแล้ว');return;
+  }
   S.game.pending=true;
-  autoFill(); // populates S.useAmts per player
+  autoFill();
   log('w','⚡ Event '+ev.id+': '+ev.emoji+' '+ev.name);
   renderRun();
 }
@@ -714,7 +851,7 @@ function confirmEvent(){
   dmgLogs.forEach(l=>log(l.type,l.msg));
   const next=evIdx+1;
   S.game.evIdx=next;S.game.pending=false;
-  S.game.phase=next>=10?'result':'playing';
+  S.game.phase=next>=S.events.length?'result':'playing';
   S.useAmts={};
   log('i','— Event '+(evIdx+1)+' สรุปแล้ว — Event '+(next+1)+' พร้อม');
   renderRun();
@@ -737,14 +874,14 @@ function autoAssignRegroup(){
 function confirmRegroup(){
   const next=(S.game.evIdx||0)+1;
   S.game.evIdx=next;S.game.pending=false;
-  S.game.phase=next>=10?'result':'playing';S.game.regroup=false;
+  S.game.phase=next>=S.events.length?'result':'playing';S.game.regroup=false;
   log('p','🔀 Regroup เสร็จ — Event '+(next+1)+' พร้อม');
   renderRun();toast('✅ Regroup สรุปแล้ว');
 }
 
 // ── AUTO RUN ─────────────────────────────────────────────────
 async function autoRunAll(){
-  const total=10-S.game.evIdx;toast('⏩ Auto-run '+total+' events...');
+  const total=S.events.length-S.game.evIdx;toast('⏩ Auto-run '+total+' events...');
   for(let i=0;i<total;i++){
     await new Promise(r=>setTimeout(r,80));
     const evIdx=S.game.evIdx,ev=S.events[evIdx];if(!ev)break;
@@ -761,7 +898,7 @@ async function autoRunAll(){
       // deduct items: each alive player spends all their items for auto-run
       S.players.filter(p=>p.alive).forEach(p=>{p.items=0;});
     }
-    S.game.evIdx=evIdx+1;S.game.phase=evIdx+1>=10?'result':'playing';
+    S.game.evIdx=evIdx+1;S.game.phase=evIdx+1>=S.events.length?'result':'playing';
     renderRun();
   }
   toast('🏁 Auto-run จบ!');
@@ -771,6 +908,8 @@ async function autoRunAll(){
 function applyDmg(ev,poolMap,logs){
   const alv=()=>S.players.filter(p=>p.alive);
   const dmg=(p,d)=>{p.hp=Math.max(0,p.hp-d);if(p.hp<=0){p.alive=false;logs.push({type:'b',msg:'💀 '+p.name+' ถูกตัดออก'});}};
+  const heal=(p,h,max)=>{p.hp=Math.min(max||p.maxHp,p.hp+h);};
+
   if(ev.type==='global_per'||ev.type==='people_var'){
     allG().forEach(gid=>{
       const alive=alv().filter(p=>p.groupId===gid);if(!alive.length)return;
@@ -780,8 +919,79 @@ function applyDmg(ev,poolMap,logs){
       if(met)logs.push({type:'g',msg:gn+': ผ่าน ✓'});
       else{const d=ev.dmg||0;alive.forEach(p=>dmg(p,d));const miss=Object.entries(req).filter(([d,n])=>(pool[d]||0)<n).map(([d,n])=>(DEPTS[d]?.icon||d)+(pool[d]||0)+'/'+n).join(' ');logs.push({type:'b',msg:gn+': ไม่ผ่าน ['+miss+'] → -'+d+' HP'});}
     });
-  }else if(ev.type==='global_all'){
+  }else if(ev.type==='heal'||ev.type==='headcount_reward'){
+    const maxHp=ev.maxHp||10;
+    // headcount_reward: เช็คจำนวนคนต่อ dept ในกลุ่ม (ไม่เกี่ยวกับ items)
+    // รองรับทั้ง conditions array (ใหม่) และ req เดิม (backward compat)
+    allG().forEach(gid=>{
+      const alive=alv().filter(p=>p.groupId===gid);if(!alive.length)return;
+      const gn=GN[gid]||('G'+(gid+1));
+      // นับจำนวนคนที่รอดต่อ dept ในกลุ่มนี้
+      const headcount={};DK.forEach(dk=>{headcount[dk]=alive.filter(p=>p.dept===dk).length;});
+
+      if(ev.conditions){
+        // ระบบใหม่: วนทุก condition — stack reward
+        let anyPass=false;
+        ev.conditions.forEach(cond=>{
+          const pass=Object.entries(cond.reqHeadcount).every(([dk,n])=>(headcount[dk]||0)>=n);
+          if(!pass){
+            const miss=Object.entries(cond.reqHeadcount).filter(([dk,n])=>(headcount[dk]||0)<n)
+              .map(([dk,n])=>`${DEPTS[dk]?.icon||dk}${headcount[dk]||0}/${n}คน`).join(' ');
+            logs.push({type:'i',msg:gn+' ['+cond.desc.split('→')[0].trim()+']: ไม่ผ่าน ['+miss+']'});
+            return;
+          }
+          anyPass=true;
+          if(cond.reward.type==='hp'){
+            alive.forEach(p=>heal(p,cond.reward.amt,maxHp));
+            logs.push({type:'g',msg:gn+': ✓ '+cond.desc+' → +'+cond.reward.amt+' HP ทุกคน'});
+            logs.push({type:'g',msg:'💚 +'+cond.reward.amt+' HP → '+alive.map(p=>p.name).join(', ')});
+          }else if(cond.reward.type==='items'){
+            const bene=alive.filter(p=>cond.reward.depts.includes(p.dept));
+            bene.forEach(p=>{p.items+=cond.reward.amt;p.maxItems=Math.max(p.maxItems,p.items);});
+            const deptIcons=cond.reward.depts.map(dk=>DEPTS[dk]?.icon||dk).join('');
+            logs.push({type:'g',msg:gn+': ✓ '+cond.desc+' → '+deptIcons+' +'+cond.reward.amt+' items'});
+            bene.forEach(p=>{logs.push({type:'g',msg:'📦 '+p.name+' ('+p.dept+') ได้รับ '+deptIcons+' +'+cond.reward.amt+' items → รวม '+p.items});});
+          }
+        });
+        if(!anyPass)logs.push({type:'i',msg:gn+': ไม่ผ่านเงื่อนไขใดเลย'});
+      }else{
+        // backward compat: req เดิม → HP heal
+        const req=ev.req||{},h=ev.healAmt||2;
+        const met=Object.entries(req).every(([d,n])=>(alive.filter(p=>p.dept===d).length)>=n);
+        if(met){alive.forEach(p=>heal(p,h,maxHp));logs.push({type:'g',msg:gn+': ✓ → +'+h+' HP'});}
+        else logs.push({type:'i',msg:gn+': ไม่ผ่าน — ไม่ได้ heal'});
+      }
+    });
+  }else if(ev.type==='per_group'){
+    // Ev10: ตรวจแต่ละกลุ่ม — นับ item type ที่ขาด → dmgPerMissType × จำนวน type ที่ขาด
+    const dmgPer=ev.dmgPerMissType||2;
+    allG().forEach(gid=>{
+      const alive=alv().filter(p=>p.groupId===gid);if(!alive.length)return;
+      const pool=poolMap[gid]||{};
+      const missingTypes=DK.filter(dk=>!(pool[dk]>0));
+      const gn=GN[gid]||('G'+(gid+1));
+      if(!missingTypes.length){logs.push({type:'g',msg:gn+': มีครบทุก type ✓'});}
+      else{
+        const d=Math.min(dmgPer*missingTypes.length,dmgPer*3); // cap ที่ ×3
+        alive.forEach(p=>dmg(p,d));
+        logs.push({type:'b',msg:gn+': ขาด '+missingTypes.length+' type ['+missingTypes.map(dk=>DEPTS[dk]?.icon||dk).join('')+'] → -'+d+' HP'});
+      }
+    });
+  }else if(ev.type==='collective_pool'){
+    // Ev9: รวม poolMap จากทุกกลุ่ม (items ที่ส่งเข้ากองกลาง) แล้วเทียบ req รวม
     const tot={};Object.values(poolMap).forEach(p=>{DK.forEach(d=>{tot[d]=(tot[d]||0)+(p[d]||0);});});
+    const req=ev.req||{};
+    let sh=0;Object.entries(req).forEach(([d,n])=>{sh+=Math.max(0,n-(tot[d]||0));});
+    const poolSummary=Object.entries(req).map(([d,n])=>`${DEPTS[d]?.icon||d}${tot[d]||0}/${n}`).join(' ');
+    if(sh===0){
+      logs.push({type:'g',msg:'🧪 กองกลางผ่าน! ['+poolSummary+']'});
+    }else{
+      const tier=ev.dmgTiers.find(t=>sh<=t.max)||ev.dmgTiers[ev.dmgTiers.length-1];
+      logs.push({type:'b',msg:'🧪 กองกลางขาด '+sh+' ชิ้น ['+poolSummary+']'});
+      if(tier.dmg>0){alv().forEach(p=>dmg(p,tier.dmg));logs.push({type:'b',msg:'ทุกคน -'+tier.dmg+' HP'});}
+    }
+  }else if(ev.type==='global_all'){
+    const tot={};Object.values(poolMap).forEach(p=>{DK.forEach(d=>{tot[d]=(tot[d]||0)+(p[d]||0);});});;
     if(ev.dmgWho==='tiered_shortage'&&ev.req){
       let sh=0;Object.entries(ev.req).forEach(([d,n])=>{sh+=Math.max(0,n-(tot[d]||0));});
       const tier=ev.dmgTiers.find(t=>sh<=t.max)||ev.dmgTiers[ev.dmgTiers.length-1];
