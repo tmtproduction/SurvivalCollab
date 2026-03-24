@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Survival — Scoreboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080c10;--sur:#0f1820;--sur2:#162030;--brd:#1e3040;--brd2:#2a4050;--txt:#c0d0e0;--dim:#506070;--amber:#f5a623;--green:#3dba6a;--red:#e84040;--orange:#ff6b35;--purple:#ce93d8;--gold:#f5c842;--silver:#a0b0c0;--bronze:#cd7f32}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Sarabun',sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(30,48,64,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(30,48,64,.15) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:20px}
+
+/* ── HEADER ── */
+.hdr{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--brd)}
+.hdr-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:20px;padding:3px 12px;font-family:'Space Mono',monospace;font-size:.58rem;color:var(--amber);margin-bottom:10px}
+.pdot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+.pdot.off{background:var(--red);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hdr-title{font-family:'Bebas Neue',sans-serif;font-size:3rem;letter-spacing:12px;color:var(--amber)}
+.hdr-sub{font-family:'Space Mono',monospace;font-size:.65rem;color:var(--dim);letter-spacing:4px;margin-top:4px}
+
+/* ── GAME NOT DONE BANNER ── */
+.live-banner{background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.25);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:10px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--amber)}
+.live-banner .ev-progress{display:flex;gap:2px;flex:1}
+.evdot{flex:1;height:5px;border-radius:3px;background:var(--brd2);max-width:60px}
+.evdot.done{background:var(--green)}.evdot.cur{background:var(--amber);box-shadow:0 0 5px rgba(245,166,35,.5)}
+.evdot.cur-rg{background:var(--purple)}.evdot.cur-disc{background:var(--orange)}
+
+/* ── SECTION TITLES ── */
+.sec-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:6px;color:var(--dim);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--brd)}
+
+/* ── SUMMARY STATS ── */
+.summary-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.stat-card{flex:1;min-width:120px;background:var(--sur);border:1px solid var(--brd);border-radius:10px;padding:14px;text-align:center}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--amber);line-height:1}
+.stat-val.green{color:var(--green)}.stat-val.red{color:var(--red)}.stat-val.purple{color:var(--purple)}
+.stat-lbl{font-family:'Space Mono',monospace;font-size:.55rem;color:var(--dim);letter-spacing:2px;margin-top:3px}
+
+/* ── GROUP LEADERBOARD ── */
+.lb-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+.lb-row{background:var(--sur);border:1px solid var(--brd);border-radius:10px;padding:13px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;transition:border-color .2s}
+.lb-row::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px}
+.lb-row.rank-1::before{background:var(--gold)}
+.lb-row.rank-2::before{background:var(--silver)}
+.lb-row.rank-3::before{background:var(--bronze)}
+.lb-row.rank-other::before{background:var(--brd2)}
+.lb-row.rank-1{border-color:rgba(245,200,66,.25)}
+.lb-rank{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;min-width:36px;text-align:center;line-height:1}
+.lb-row.rank-1 .lb-rank{color:var(--gold)}
+.lb-row.rank-2 .lb-rank{color:var(--silver)}
+.lb-row.rank-3 .lb-rank{color:var(--bronze)}
+.lb-row.rank-other .lb-rank{color:var(--dim)}
+.lb-info{flex:1}
+.lb-name{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:4px;color:var(--amber);margin-bottom:3px}
+.lb-members{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:5px}
+.mb-tag{font-size:.63rem;padding:1px 5px;border-radius:3px;font-family:'Space Mono',monospace}
+.mb-tag.alive{background:rgba(61,186,106,.1);border:1px solid rgba(61,186,106,.3);color:var(--green)}
+.mb-tag.dead{background:rgba(232,64,64,.07);border:1px solid rgba(232,64,64,.2);color:var(--dim);text-decoration:line-through;opacity:.5}
+.lb-pool{display:flex;flex-wrap:wrap;gap:3px}
+.lb-chip{display:flex;align-items:center;gap:2px;font-family:'Space Mono',monospace;font-size:.6rem;padding:1px 5px;border-radius:3px;background:var(--sur2);border:1px solid var(--brd2)}
+.lb-chip-val{color:var(--amber);font-weight:700}
+.lb-score{text-align:right;min-width:80px}
+.lb-score-main{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;line-height:1}
+.lb-score-sub{font-family:'Space Mono',monospace;font-size:.55rem;color:var(--dim);margin-top:1px}
+.lb-row.rank-1 .lb-score-main{color:var(--gold)}
+.lb-row.rank-2 .lb-score-main{color:var(--silver)}
+.lb-row.rank-3 .lb-score-main{color:var(--bronze)}
+.lb-row.rank-other .lb-score-main{color:var(--txt)}
+.lb-badge{font-family:'Space Mono',monospace;font-size:.55rem;font-weight:700;padding:2px 6px;border-radius:10px;display:inline-block}
+.lb-badge.win{background:rgba(61,186,106,.15);color:var(--green);border:1px solid rgba(61,186,106,.3)}
+.lb-badge.lose{background:rgba(232,64,64,.1);color:var(--red);border:1px solid rgba(232,64,64,.25)}
+
+/* ── PLAYER LEADERBOARD ── */
+.pl-table{width:100%;border-collapse:collapse;font-size:.78rem;margin-bottom:24px}
+.pl-table th{font-family:'Space Mono',monospace;font-size:.54rem;letter-spacing:1px;color:var(--dim);text-align:left;padding:6px 10px;border-bottom:1px solid var(--brd);background:var(--sur);position:sticky;top:0}
+.pl-table td{padding:6px 10px;border-bottom:1px solid rgba(30,48,64,.4);vertical-align:middle}
+.pl-table tr.alive-row:hover{background:rgba(245,166,35,.04)}
+.pl-table tr.dead-row{opacity:.35}
+.dept-tag{font-family:'Space Mono',monospace;font-size:.56rem;padding:1px 5px;border-radius:3px;font-weight:700}
+.hp-mini{display:flex;gap:1px;flex-wrap:wrap}
+.pip-s{width:7px;height:7px;border-radius:50%;display:inline-block}
+
+/* ── EVENT TIMELINE ── */
+.timeline{display:flex;flex-direction:column;gap:6px;margin-bottom:24px}
+.tl-row{background:var(--sur);border:1px solid var(--brd);border-radius:8px;padding:10px 14px;position:relative;overflow:hidden}
+.tl-row::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px}
+.tl-row.pass::before{background:var(--green)}
+.tl-row.fail::before{background:var(--red)}
+.tl-row.partial::before{background:var(--amber)}
+.tl-row.regroup::before{background:var(--purple)}
+.tl-row.pending::before{background:var(--brd2)}
+.tl-header{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.tl-num{font-family:'Space Mono',monospace;font-size:.55rem;color:var(--dim);min-width:60px}
+.tl-emoji{font-size:1.1rem}
+.tl-name{font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:3px;flex:1}
+.tl-row.pass .tl-name{color:var(--green)}.tl-row.fail .tl-name{color:var(--red)}.tl-row.partial .tl-name{color:var(--amber)}.tl-row.regroup .tl-name{color:var(--purple)}.tl-row.pending .tl-name{color:var(--dim)}
+.tl-result{font-family:'Space Mono',monospace;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:10px}
+.tl-result.ok{background:rgba(61,186,106,.12);color:var(--green);border:1px solid rgba(61,186,106,.3)}
+.tl-result.bad{background:rgba(232,64,64,.1);color:var(--red);border:1px solid rgba(232,64,64,.3)}
+.tl-result.mid{background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.3)}
+.tl-result.dim{background:var(--sur2);color:var(--dim);border:1px solid var(--brd)}
+.tl-groups{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.tl-g{font-family:'Space Mono',monospace;font-size:.58rem;padding:1px 5px;border-radius:3px}
+.tl-g.pass{background:rgba(61,186,106,.1);color:var(--green);border:1px solid rgba(61,186,106,.3)}
+.tl-g.fail{background:rgba(232,64,64,.08);color:var(--red);border:1px solid rgba(232,64,64,.25)}
+
+/* ── LOADING / EMPTY ── */
+.loading{text-align:center;padding:40px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--dim)}
+.refresh-hint{text-align:center;font-family:'Space Mono',monospace;font-size:.58rem;color:var(--dim);margin-top:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <div class="hdr-badge"><div class="pdot" id="conn-dot"></div><span id="conn-txt">connecting...</span></div>
+    <div class="hdr-title">🏆 SCOREBOARD</div>
+    <div class="hdr-sub">SURVIVAL SIMULATOR · TMT</div>
+  </div>
+
+  <div id="board"><div class="loading">⏳ กำลังโหลดข้อมูล...</div></div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, off } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDEuYNbzokspK53qc2wZ8t_35e_KLl_8HA",
+  authDomain: "survival-collab.firebaseapp.com",
+  databaseURL: "https://survival-collab-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "survival-collab",
+  storageBucket: "survival-collab.firebasestorage.app",
+  messagingSenderId: "232280589644",
+  appId: "1:232280589644:web:5a32f52e5d4c4cf2f5fbe9"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+
+const DEPTS = {
+  PD1:{item:'เข็มทิศ',icon:'🧭',color:'#4fc3f7'},
+  PD2:{item:'ข้อมูล',icon:'📋',color:'#81c784'},
+  PD3:{item:'อาหาร',icon:'🍖',color:'#ffd54f'},
+  QA:{item:'เงิน',icon:'💰',color:'#f06292'},
+  EN:{item:'ยา',icon:'💊',color:'#ce93d8'},
+  MN:{item:'เครื่องมือ',icon:'🔧',color:'#ff8a65'}
+};
+const DK = ['PD1','PD2','PD3','QA','EN','MN'];
+const GN = ['ALPHA','BETA','GAMMA','DELTA','EPSILON','ZETA','ETA','THETA','IOTA','KAPPA','LAMBDA','MU','NU','XI','OMICRON','PI','RHO','SIGMA','TAU','UPSILON'];
+const DEFAULT_EVENTS = [
+  {id:1,name:'หลงทาง',emoji:'🗺',type:'global_per'},
+  {id:2,name:'หิวโหย',emoji:'🍖',type:'global_per'},
+  {id:3,name:'บาดเจ็บ',emoji:'🩹',type:'global_per'},
+  {id:4,name:'แผ่นดินไหว',emoji:'🌋',type:'regroup'},
+  {id:5,name:'สร้างแพ',emoji:'🛖',type:'people_var'},
+  {id:6,name:'สถานการณ์ฉุกเฉิน',emoji:'⚖',type:'discard'},
+  {id:7,name:'หนาวจัด',emoji:'🥶',type:'global_per'},
+  {id:8,name:'ไฟป่า',emoji:'🔥',type:'regroup'},
+  {id:9,name:'โรคระบาด',emoji:'🦠',type:'global_all'},
+  {id:10,name:'หนีรอด',emoji:'🚁',type:'global_all'},
+];
+
+let D = { gs:null, players:{}, eventHistory:{} };
+
+function h(tag, attrs, inner) {
+  return '<'+tag+(attrs?' '+attrs:'')+'>'+( inner!==undefined?inner:'')+'</'+tag+'>';
+}
+
+// ============================================================
+//  FIREBASE
+// ============================================================
+onValue(ref(db, '.info/connected'), snap => {
+  const c = snap.val();
+  const dot = document.getElementById('conn-dot'); if (dot) dot.className='pdot'+(c?'':' off');
+  const txt = document.getElementById('conn-txt'); if (txt) txt.textContent=c?'live':'offline';
+});
+
+onValue(ref(db, 'game/state'), snap => { D.gs=snap.val(); render(); });
+onValue(ref(db, 'players'), snap => { D.players=snap.val()||{}; render(); });
+onValue(ref(db, 'game/eventHistory'), snap => { D.eventHistory=snap.val()||{}; render(); });
+
+// ============================================================
+//  COMPUTE
+// ============================================================
+function buildGroups() {
+  const gs = D.gs||{};
+  const gc = gs.groupCount||8, names = gs.groupNames||GN;
+  const playerArr = Object.values(D.players);
+  return Array.from({length:gc}, (_,i) => {
+    const members = playerArr.filter(p => p.groupId==i || (p.originalGroupId==i));
+    // Use current groupId for post-game scoring
+    const curMembers = playerArr.filter(p => p.groupId==i);
+    const alive = curMembers.filter(p => p.alive);
+    const pool = {};
+    alive.forEach(p => { pool[p.dept]=(pool[p.dept]||0)+(p.items||0); });
+    const totalPool = DK.reduce((s,d)=>s+(pool[d]||0),0);
+    const totalHp = alive.reduce((s,p)=>s+(p.hp||0),0);
+    return { id:i, name:names[i]||('G'+(i+1)), members:curMembers, alive, pool, totalPool, totalHp };
+  });
+}
+
+function rankGroups(groups) {
+  return [...groups].sort((a,b) => {
+    if (b.alive.length !== a.alive.length) return b.alive.length - a.alive.length;
+    if (b.totalHp !== a.totalHp) return b.totalHp - a.totalHp;
+    return b.totalPool - a.totalPool;
+  });
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function render() {
+  const board = document.getElementById('board'); if (!board) return;
+  const gs = D.gs||{};
+  const phase = gs.phase||'lobby';
+  const evIdx = gs.currentEvent||0;
+  const playerArr = Object.values(D.players);
+  if (!playerArr.length) {
+    board.innerHTML = h('div','class="loading"','ยังไม่มีข้อมูลผู้เล่น');
+    return;
+  }
+
+  const groups = buildGroups();
+  const ranked = rankGroups(groups);
+  const alive = playerArr.filter(p=>p.alive);
+  const dead = playerArr.filter(p=>!p.alive);
+  const totalItems = alive.reduce((s,p)=>s+(p.items||0),0);
+  const eventsCompleted = Object.keys(D.eventHistory).length;
+
+  let out = '';
+
+  // ── LIVE BANNER (if game in progress) ──
+  if (phase !== 'result' && gs.gameStarted) {
+    const types=['','global_per','global_per','global_per','regroup','people_var','discard','global_per','regroup','global_all','global_all'];
+    let dotHtml='';
+    for(let i=0;i<10;i++){
+      const t=types[i+1]||'';let cls='evdot';
+      if(i<evIdx)cls+=' done';
+      else if(i===evIdx)cls+=(t==='regroup'?' cur-rg':t==='discard'?' cur-disc':' cur');
+      dotHtml+=h('div','class="'+cls+'" title="Event '+(i+1)+': '+DEFAULT_EVENTS[i]?.name+'"','');
+    }
+    out += h('div','class="live-banner"',
+      h('span','','🎮 เกมกำลังดำเนินอยู่ — Event '+(evIdx+1)+'/10')+
+      h('div','class="ev-progress"',dotHtml)
+    );
+  } else if (phase==='result') {
+    out += h('div','style="background:rgba(61,186,106,.07);border:1px solid rgba(61,186,106,.3);border-radius:10px;padding:14px 18px;margin-bottom:18px;text-align:center"',
+      h('span','style="font-family:\'Bebas Neue\',sans-serif;font-size:1.1rem;letter-spacing:5px;color:var(--green)"','🏁 เกมจบแล้ว! — ดูผลการแข่งขันด้านล่าง')
+    );
+  }
+
+  // ── SUMMARY STATS ──
+  out += h('div','class="summary-row"',
+    h('div','class="stat-card"',
+      h('div','class="stat-val"',playerArr.length)+h('div','class="stat-lbl"','PLAYERS')
+    )+
+    h('div','class="stat-card"',
+      h('div','class="stat-val green"',alive.length)+h('div','class="stat-lbl"','ALIVE')
+    )+
+    h('div','class="stat-card"',
+      h('div','class="stat-val red"',dead.length)+h('div','class="stat-lbl"','DEAD')
+    )+
+    h('div','class="stat-card"',
+      h('div','class="stat-val purple"',totalItems)+h('div','class="stat-lbl"','ITEMS LEFT')
+    )+
+    h('div','class="stat-card"',
+      h('div','class="stat-val"',eventsCompleted+'/10')+h('div','class="stat-lbl"','EVENTS DONE')
+    )
+  );
+
+  // ── GROUP LEADERBOARD ──
+  out += h('div','class="sec-title"','🏅 จัดอันดับกลุ่ม');
+  out += h('div','class="lb-grid"',
+    ranked.map((g, idx) => {
+      const rank = idx+1;
+      const rankClass = rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'rank-other';
+      const rankEmoji = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'#'+rank;
+      const isElim = g.alive.length===0;
+
+      const poolChips = DK.map(dk => h('div','class="lb-chip"',
+        (DEPTS[dk]?.icon||dk)+h('span','class="lb-chip-val"',g.pool[dk]||0)
+      )).join('');
+
+      const memberTags = g.members.map(m =>
+        h('span','class="mb-tag '+(m.alive?'alive':'dead')+'"',(DEPTS[m.dept]?.icon||'')+' '+m.name)
+      ).join('');
+
+      const survivalRate = g.members.length > 0 ? Math.round((g.alive.length/g.members.length)*100) : 0;
+
+      return h('div','class="lb-row '+rankClass+'"',
+        h('div','class="lb-rank"', typeof rankEmoji==='string'&&rankEmoji.startsWith('#') ? h('span','style="font-size:1rem"',rankEmoji) : rankEmoji)+
+        h('div','class="lb-info"',
+          h('div','style="display:flex;align-items:center;gap:8px;margin-bottom:4px"',
+            h('div','class="lb-name"',g.name)+
+            h('span','class="lb-badge '+(isElim?'lose':'win')+'"',isElim?'ELIMINATED':'SURVIVED')
+          )+
+          h('div','class="lb-members"',memberTags||h('span','style="font-size:.6rem;color:var(--dim)"','ไม่มีสมาชิก'))+
+          h('div','class="lb-pool"',poolChips)
+        )+
+        h('div','class="lb-score"',
+          h('div','class="lb-score-main"',g.alive.length+h('span','style="font-size:.8rem"','/'+g.members.length))+
+          h('div','class="lb-score-sub"','ALIVE · '+survivalRate+'%')+
+          h('div','class="lb-score-sub" style="margin-top:2px"','HP: '+g.totalHp+'  Items: '+g.totalPool)
+        )
+      );
+    }).join('')
+  );
+
+  // ── PLAYER TABLE ──
+  const sortedPlayers = [...playerArr].sort((a,b) => {
+    if (a.alive!==b.alive) return a.alive?-1:1;
+    if ((b.hp||0)!==(a.hp||0)) return (b.hp||0)-(a.hp||0);
+    return (b.items||0)-(a.items||0);
+  });
+
+  out += h('div','class="sec-title"','👥 ผู้เล่นทั้งหมด');
+  out += h('div','style="overflow-x:auto;border:1px solid var(--brd);border-radius:9px;margin-bottom:24px"',
+    h('table','class="pl-table"',
+      h('thead','',h('tr','',
+        h('th','','อันดับ')+h('th','','ชื่อ')+h('th','','แผนก')+h('th','','กลุ่ม')+h('th','','HP')+h('th','','Items')+h('th','','สถานะ')
+      ))+
+      h('tbody','',
+        sortedPlayers.map((p,idx)=>{
+          const d = DEPTS[p.dept]||{};
+          const hc = p.hp<=2?'var(--red)':p.hp<=4?'#ff9800':'var(--green)';
+          const g = groups.find(x=>x.id==p.groupId);
+          const gs2 = D.gs||{}, names = gs2.groupNames||GN;
+          const gname = p.groupId>=0 ? (names[p.groupId]||('G'+p.groupId)) : '—';
+          let pips='';
+          for(let i=0;i<(p.maxHp||0);i++) pips+=h('span','class="pip-s" style="background:'+(i<(p.hp||0)?hc:'var(--brd2)')+';"','');
+          return h('tr','class="'+(p.alive?'alive-row':'dead-row')+'"',
+            h('td','style="font-family:monospace;font-size:.7rem;color:var(--dim);text-align:center"',p.alive?'#'+(idx+1):'—')+
+            h('td','style="font-weight:600"',p.name+(p.row?' ('+p.row+')':''))+
+            h('td','',h('span','class="dept-tag" style="background:'+d.color+'22;color:'+d.color+';border:1px solid '+d.color+'44"',d.icon+' '+p.dept))+
+            h('td','style="font-family:monospace;font-size:.68rem;color:var(--purple)"',gname)+
+            h('td','',h('div','class="hp-mini"',pips)+h('div','style="font-family:monospace;font-size:.6rem;color:'+hc+'"',(p.hp||0)+'/'+(p.maxHp||0)))+
+            h('td','style="font-family:monospace;font-size:.8rem;color:var(--amber);font-weight:700"',p.items||0)+
+            h('td','style="font-family:monospace;font-size:.62rem;color:'+(p.alive?'var(--green)':'var(--red)')+';"',p.alive?'✓ ALIVE':'✗ DEAD')
+          );
+        }).join('')
+      )
+    )
+  );
+
+  // ── EVENT TIMELINE ──
+  out += h('div','class="sec-title"','📅 Timeline Event');
+  out += h('div','class="timeline"',
+    DEFAULT_EVENTS.map((evDef, idx) => {
+      const hist = D.eventHistory[idx];
+      const isCompleted = !!hist;
+      const isCurrent = idx===evIdx && gs.gameStarted;
+      const isPending = !isCompleted && !isCurrent;
+
+      let rowClass = 'pending', resultLabel = '', resultClass = 'dim';
+      let groupResultsHtml = '';
+
+      if (isCompleted && hist.results) {
+        const results = Object.values(hist.results);
+        const passed = results.filter(r=>r.pass).length;
+        const total = results.length;
+        if (total===0||hist.type==='regroup'||hist.type==='discard') {
+          rowClass='pass'; resultLabel='ดำเนินการเสร็จ'; resultClass='ok';
+        } else if (passed===total) {
+          rowClass='pass'; resultLabel='ทุกกลุ่มผ่าน ✓'; resultClass='ok';
+        } else if (passed===0) {
+          rowClass='fail'; resultLabel='ไม่มีกลุ่มผ่าน ✗'; resultClass='bad';
+        } else {
+          rowClass='partial'; resultLabel=passed+'/'+total+' กลุ่มผ่าน'; resultClass='mid';
+        }
+
+        // Per-group results (for global_per, people_var)
+        if (hist.type!=='regroup'&&hist.type!=='discard'&&hist.type!=='global_all') {
+          groupResultsHtml = h('div','class="tl-groups"',
+            Object.values(hist.results).map(r =>
+              h('span','class="tl-g '+(r.pass?'pass':'fail')+'"', r.name+(r.pass?' ✓':' -'+r.dmg+'HP'))
+            ).join('')
+          );
+        } else if (hist.type==='global_all'&&hist.results?.global) {
+          const gr = hist.results.global;
+          groupResultsHtml = h('div','class="tl-groups"',
+            h('span','class="tl-g '+(gr.pass?'pass':'fail')+'"',
+              gr.pass?'Pool รวมผ่าน ✓':'Pool ไม่ผ่าน → ทุกคน -'+gr.dmg+'HP'+(gr.shortage?' (ขาด '+gr.shortage+')':gr.missingTypes?' (ขาด '+gr.missingTypes+' ประเภท)':''))
+          );
+        } else if (hist.type==='regroup') {
+          groupResultsHtml = h('div','class="tl-groups"',h('span','class="tl-g pass"','จัดกลุ่มใหม่สำเร็จ'));
+        }
+
+      } else if (isCurrent) {
+        rowClass = evDef.type==='regroup'?'regroup':'partial';
+        resultLabel='กำลังดำเนินการ...'; resultClass='mid';
+      }
+
+      const ts = hist?.ts ? new Date(hist.ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) : '';
+
+      return h('div','class="tl-row '+rowClass+'"',
+        h('div','class="tl-header"',
+          h('span','class="tl-num"','EVENT '+(idx+1)+(ts?' · '+ts:''))+
+          h('span','class="tl-emoji"',evDef.emoji)+
+          h('span','class="tl-name"',evDef.name)+
+          h('span','class="tl-result '+resultClass+'"',resultLabel||'รอ')
+        )+
+        groupResultsHtml
+      );
+    }).join('')
+  );
+
+  out += h('div','class="refresh-hint"','อัปเดตอัตโนมัติแบบ Real-time · '+new Date().toLocaleString('th-TH'));
+  board.innerHTML = out;
+}
+</script>
+</body>
+</html>

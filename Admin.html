@@ -13,8 +13,10 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .wrap{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:14px}
 .hdr{padding:11px 0 9px;margin-bottom:10px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
 .hdr-title{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:8px;color:var(--amber)}
-.hdr-right{display:flex;align-items:center;gap:8px}
+.hdr-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .badge-live{background:rgba(61,186,106,.1);color:var(--green);border:1px solid rgba(61,186,106,.3);padding:3px 10px;border-radius:20px;font-family:'Space Mono',monospace;font-size:.58rem;font-weight:700;display:flex;align-items:center;gap:4px}
+.badge-sync{background:rgba(245,166,35,.08);color:var(--amber);border:1px solid rgba(245,166,35,.2);padding:3px 10px;border-radius:20px;font-family:'Space Mono',monospace;font-size:.56rem;display:flex;align-items:center;gap:4px;transition:.3s}
+.badge-sync.flash{background:rgba(245,166,35,.25);border-color:rgba(245,166,35,.6)}
 .pdot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
 .pdot.off{background:var(--red);animation:none}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -25,15 +27,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .tst-lbl{font-family:'Space Mono',monospace;font-size:.5rem;color:var(--dim);letter-spacing:1px}
 .tdiv{width:1px;height:28px;background:var(--brd)}
 .evprog{display:flex;gap:2px;margin-bottom:8px}
-.ep{flex:1;height:5px;border-radius:3px;background:var(--brd2)}
+.ep{flex:1;height:5px;border-radius:3px;background:var(--brd2);cursor:default;position:relative}
 .ep-done{background:var(--green)}.ep-cur{background:var(--amber);box-shadow:0 0 6px rgba(245,166,35,.5)}
 .ep-rg-cur{background:var(--purple)}.ep-disc-cur{background:var(--orange)}
 .tabs{display:flex;border-bottom:1px solid var(--brd);margin-bottom:10px;flex-wrap:wrap}
-.tab{padding:7px 14px;font-family:'Space Mono',monospace;font-size:.63rem;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent}
+.tab{padding:7px 14px;font-family:'Space Mono',monospace;font-size:.63rem;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;transition:.15s}
+.tab:hover{color:var(--txt)}
 .tab-active{color:var(--amber);border-bottom-color:var(--amber)}
 .panel{display:none}.panel-on{display:block}
 .btn{padding:7px 16px;border-radius:6px;border:none;cursor:pointer;font-family:'Space Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:1px;transition:.15s}
 .btn:disabled{opacity:.5;cursor:not-allowed}
+.btn:active:not(:disabled){transform:scale(.97)}
 .btn-p{background:var(--amber);color:#000}.btn-s{background:transparent;color:var(--txt);border:1px solid var(--brd2)}
 .btn-r{background:rgba(232,64,64,.12);color:var(--red);border:1px solid rgba(232,64,64,.3)}
 .btn-g{background:rgba(61,186,106,.12);color:var(--green);border:1px solid rgba(61,186,106,.3)}
@@ -45,7 +49,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .atable td{padding:4px 7px;border-bottom:1px solid rgba(30,48,64,.4);vertical-align:middle}
 .tscroll{max-height:420px;overflow-y:auto;border:1px solid var(--brd);border-radius:7px}
 .ain{background:var(--sur2);border:1px solid var(--brd2);color:var(--txt);padding:3px 5px;border-radius:3px;font-family:'Space Mono',monospace;font-size:.68rem;text-align:center;width:52px}
-.ain:focus{outline:1px solid var(--amber)}
+.ain:focus{outline:1px solid var(--amber);background:var(--sur)}
 .dtag{font-family:'Space Mono',monospace;font-size:.54rem;padding:2px 5px;border-radius:3px;font-weight:700;display:inline-block}
 .ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px;margin-bottom:10px}
 .gcard{background:var(--sur);border:1px solid var(--brd);border-radius:9px;padding:10px;position:relative;overflow:hidden}
@@ -68,7 +72,10 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .lg{color:var(--green)}.lb{color:var(--red)}.lw{color:var(--amber)}.li{color:var(--dim)}.lp{color:var(--purple)}
 .rg-row{display:flex;align-items:center;justify-content:space-between;padding:4px 7px;background:var(--sur2);border-radius:4px;margin-bottom:3px;font-size:.68rem}
 .rg-row select{background:var(--sur);border:1px solid var(--brd2);color:var(--txt);padding:3px 5px;border-radius:3px;font-family:'Space Mono',monospace;font-size:.6rem;cursor:pointer}
-.toast{position:fixed;bottom:24px;right:24px;background:var(--sur);border:1px solid var(--amber);color:var(--amber);padding:8px 16px;border-radius:8px;font-family:'Space Mono',monospace;font-size:.68rem;z-index:500;display:none}
+.toast{position:fixed;bottom:24px;right:24px;padding:8px 16px;border-radius:8px;font-family:'Space Mono',monospace;font-size:.68rem;z-index:500;display:none;animation:slideUp .2s ease}
+@keyframes slideUp{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+.toast-ok{background:var(--sur);border:1px solid var(--amber);color:var(--amber)}
+.toast-err{background:rgba(232,64,64,.1);border:1px solid var(--red);color:var(--red)}
 .cfg-section{background:var(--sur);border:1px solid var(--brd);border-radius:8px;padding:13px;margin-bottom:9px}
 .cfg-section h3{font-weight:700;margin-bottom:9px;font-size:.88rem}
 .cfg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:7px}
@@ -82,6 +89,35 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .ev-cfg-table input{background:var(--sur2);border:1px solid var(--brd2);color:var(--txt);padding:2px 5px;border-radius:3px;font-family:'Space Mono',monospace;font-size:.68rem;text-align:center;width:50px}
 .ev-cfg-table input:focus{outline:1px solid var(--amber)}
 .unassigned-box{background:rgba(232,64,64,.05);border:1px solid rgba(232,64,64,.2);border-radius:7px;padding:10px;margin-top:8px}
+
+/* ── PHASE BANNER (Admin) ── */
+.phase-banner{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;margin-bottom:10px;font-family:'Space Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:1px}
+.phase-banner.lobby{background:rgba(80,96,112,.12);border:1px solid var(--brd2);color:var(--dim)}
+.phase-banner.playing{background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.25);color:var(--amber)}
+.phase-banner.pending{background:rgba(232,64,64,.07);border:1px solid rgba(232,64,64,.3);color:var(--red);animation:pBlink 1.5s ease infinite}
+.phase-banner.regrouping{background:rgba(206,147,216,.07);border:1px solid rgba(206,147,216,.3);color:var(--purple)}
+.phase-banner.result{background:rgba(61,186,106,.07);border:1px solid rgba(61,186,106,.3);color:var(--green)}
+@keyframes pBlink{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ── Confirm wait box ── */
+.confirm-box{background:rgba(232,64,64,.05);border:1px solid rgba(232,64,64,.25);border-radius:9px;padding:12px;margin-top:9px}
+.confirm-box-title{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--red);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.confirm-box-title::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulse 1.5s infinite}
+
+/* ── Scoreboard link ── */
+.btn-sb{background:rgba(61,186,106,.12);color:var(--green);border:1px solid rgba(61,186,106,.3);padding:5px 12px;border-radius:6px;font-family:'Space Mono',monospace;font-size:.62rem;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.btn-sb:hover{background:rgba(61,186,106,.22)}
+
+/* ── Pool summary for events ── */
+.pool-summary{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0;padding:8px;background:var(--sur2);border-radius:6px}
+.pool-chip{display:flex;align-items:center;gap:3px;font-family:'Space Mono',monospace;font-size:.62rem;padding:2px 7px;border-radius:4px;border:1px solid var(--brd2)}
+.pool-chip-val{color:var(--amber);font-weight:700}
+.pool-chip.ok{border-color:rgba(61,186,106,.5);background:rgba(61,186,106,.07)}
+.pool-chip.fail{border-color:rgba(232,64,64,.5);background:rgba(232,64,64,.07)}
+
+/* ── Row updated flash ── */
+@keyframes rowFlash{0%{background:rgba(245,166,35,.15)}100%{background:transparent}}
+.row-flash{animation:rowFlash .8s ease}
 </style>
 </head>
 <body>
@@ -89,10 +125,16 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="hdr">
     <div class="hdr-title">⚙️ SURVIVAL — ADMIN</div>
     <div class="hdr-right">
+      <div class="badge-sync" id="sync-badge">🔄 SYNC</div>
       <div class="badge-live"><div class="pdot" id="conn-dot"></div><span id="conn-txt">connecting...</span></div>
+      <a class="btn-sb" href="Scoreboard.html" target="_blank">🏆 Scoreboard</a>
       <button class="btn btn-r" id="btn-restart" onclick="doRestart()" style="font-size:.62rem;padding:5px 11px">🔄 Restart</button>
     </div>
   </div>
+
+  <!-- Phase Banner -->
+  <div class="phase-banner lobby" id="phase-banner">⏳ รอเริ่มเกม</div>
+
   <div class="topbar">
     <div class="tst"><div class="tst-val" id="tb-ev">—/10</div><div class="tst-lbl">EVENT</div></div>
     <div class="tdiv"></div>
@@ -103,8 +145,11 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="tst"><div class="tst-val-r" id="tb-de">0</div><div class="tst-lbl">DEAD</div></div>
     <div class="tdiv"></div>
     <div class="tst"><div class="tst-val" id="tb-gr">—</div><div class="tst-lbl">GROUPS</div></div>
+    <div class="tdiv"></div>
+    <div class="tst"><div class="tst-val" id="tb-items">0</div><div class="tst-lbl">ITEMS TOTAL</div></div>
   </div>
   <div class="evprog" id="evprog"></div>
+
   <div class="tabs">
     <div class="tab tab-active" id="tab-game"     onclick="switchTab('game')">🎮 GAME</div>
     <div class="tab" id="tab-players"  onclick="switchTab('players')">👥 PLAYERS</div>
@@ -113,19 +158,42 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="tab" id="tab-config"   onclick="switchTab('config')">⚙️ CONFIG</div>
     <div class="tab" id="tab-settings" onclick="switchTab('settings')">🚀 SETUP</div>
   </div>
-  <div class="panel panel-on" id="panel-game"><div id="game-content"><div style="text-align:center;padding:30px;font-family:monospace;color:var(--dim)">กำลังเชื่อมต่อ Firebase...</div></div></div>
-  <div class="panel" id="panel-players">
-    <div class="st">ผู้เล่น</div>
-    <div class="tscroll"><table class="atable"><thead><tr><th>แผนก</th><th>ชื่อ</th><th>Row</th><th>Items</th><th>HP</th><th>กลุ่ม</th><th>สถานะ</th></tr></thead><tbody id="players-body"></tbody></table></div>
+
+  <!-- GAME PANEL -->
+  <div class="panel panel-on" id="panel-game">
+    <div id="game-content"><div style="text-align:center;padding:30px;font-family:monospace;color:var(--dim)">กำลังเชื่อมต่อ Firebase...</div></div>
   </div>
+
+  <!-- PLAYERS PANEL -->
+  <div class="panel" id="panel-players">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+      <div class="st" style="margin:0">ผู้เล่น</div>
+      <div style="font-family:monospace;font-size:.6rem;color:var(--dim)" id="players-hint">แก้ไข Items/HP ได้โดยตรงในตาราง</div>
+    </div>
+    <div class="tscroll">
+      <table class="atable">
+        <thead><tr><th>แผนก</th><th>ชื่อ</th><th>Row</th><th>Items</th><th>HP</th><th>กลุ่ม</th><th>สถานะ</th></tr></thead>
+        <tbody id="players-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- GROUPS PANEL -->
   <div class="panel" id="panel-groups">
     <div class="st">กลุ่ม</div>
     <div class="ggrid" id="groups-grid"></div>
   </div>
+
+  <!-- LOG PANEL -->
   <div class="panel" id="panel-log">
-    <div class="st">Event Log</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+      <div class="st" style="margin:0">Event Log</div>
+      <button class="btn btn-s" onclick="clearLog()" style="font-size:.58rem;padding:4px 9px">🗑 Clear Log</button>
+    </div>
     <div class="logbox" id="full-log"></div>
   </div>
+
+  <!-- CONFIG PANEL -->
   <div class="panel" id="panel-config">
     <div class="st">ปรับเงื่อนไขเกม</div>
     <div class="cfg-section">
@@ -136,14 +204,18 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       </div>
     </div>
     <div class="cfg-section">
-      <h3>Event Config</h3>
+      <h3>Event Config <span style="font-weight:400;font-size:.7rem;color:var(--dim)">— บันทึกอัตโนมัติเมื่อเปลี่ยน</span></h3>
       <div class="tscroll" style="max-height:none">
-        <table class="ev-cfg-table"><thead><tr><th>ID</th><th>ชื่อ</th><th>Type</th><th>Req (JSON)</th><th>DMG</th><th>preDmg</th><th>poolCap</th></tr></thead>
-        <tbody id="ev-cfg-body"></tbody></table>
+        <table class="ev-cfg-table">
+          <thead><tr><th>ID</th><th>ชื่อ</th><th>Type</th><th>Req (JSON)</th><th>DMG</th><th>preDmg</th><th>poolCap</th></tr></thead>
+          <tbody id="ev-cfg-body"></tbody>
+        </table>
       </div>
-      <div style="margin-top:6px;font-family:monospace;font-size:.6rem;color:var(--dim)">Req ใส่เป็น JSON เช่น {"PD1":5} · บันทึกอัตโนมัติ</div>
+      <div style="margin-top:6px;font-family:monospace;font-size:.6rem;color:var(--dim)">Req ใส่เป็น JSON เช่น {"PD1":5,"EN":3}</div>
     </div>
   </div>
+
+  <!-- SETTINGS PANEL -->
   <div class="panel" id="panel-settings">
     <div class="st">Setup</div>
     <div class="cfg-section">
@@ -163,16 +235,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <button class="btn btn-p" id="btn-start" onclick="doStartGame()">▶ Start Game</button>
     </div>
     <div class="cfg-section" style="border-color:rgba(232,64,64,.3)">
-      <h3 style="color:var(--red)">Danger</h3>
+      <h3 style="color:var(--red)">Danger Zone</h3>
       <button class="btn btn-r" id="btn-restart2" onclick="doRestart()">🔄 Restart ล้างทั้งหมด</button>
     </div>
   </div>
 </div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getDatabase, ref, set, get, update, push, remove, onValue, off, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getDatabase, ref, set, get, update, push, remove, onValue, off } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDEuYNbzokspK53qc2wZ8t_35e_KLl_8HA",
@@ -187,6 +260,9 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
 
+// ============================================================
+//  CONSTANTS
+// ============================================================
 const DEPTS = {
   PD1:{item:'เข็มทิศ',icon:'🧭',color:'#4fc3f7'},
   PD2:{item:'ข้อมูล',icon:'📋',color:'#81c784'},
@@ -197,6 +273,7 @@ const DEPTS = {
 };
 const DK = ['PD1','PD2','PD3','QA','EN','MN'];
 const GN = ['ALPHA','BETA','GAMMA','DELTA','EPSILON','ZETA','ETA','THETA','IOTA','KAPPA','LAMBDA','MU','NU','XI','OMICRON','PI','RHO','SIGMA','TAU','UPSILON'];
+
 const DEFAULT_EVENTS = [
   {id:1,name:'หลงทาง',emoji:'🗺',type:'global_per',req:{PD1:5},dmg:2,desc:'แต่ละกลุ่มต้องมีเข็มทิศ 5 ชิ้น'},
   {id:2,name:'หิวโหย',emoji:'🍖',type:'global_per',req:{PD3:5},dmg:3,desc:'แต่ละกลุ่มต้องมีอาหาร 5 ชิ้น'},
@@ -210,206 +287,298 @@ const DEFAULT_EVENTS = [
   {id:10,name:'หนีรอด',emoji:'🚁',type:'global_all',req:{PD1:30,PD3:30,EN:20,PD2:20,QA:15,MN:15},dmgWho:'tiered_missing_types',dmgTiers:[{max:0,dmg:0},{max:2,dmg:1},{max:4,dmg:2},{max:6,dmg:3}],desc:'รวม Pool สุดท้าย'},
 ];
 
+// ============================================================
+//  STATE
+// ============================================================
 let S = { gs:null, players:{}, logs:[], groupStatus:[], activeTab:'game' };
 
+// ============================================================
+//  HELPERS
+// ============================================================
 function h(tag,attrs,inner){ return '<'+tag+(attrs?' '+attrs:'')+'>'+(inner!==undefined?inner:'')+'</'+tag+'>'; }
-function toast(msg,isErr){
-  const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';
-  t.style.borderColor=isErr?'var(--red)':'var(--amber)';t.style.color=isErr?'var(--red)':'var(--amber)';
-  clearTimeout(t._to);t._to=setTimeout(()=>{t.style.display='none';},3000);
+
+function toast(msg, isErr=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (isErr ? 'toast-err' : 'toast-ok');
+  t.style.display = 'block';
+  clearTimeout(t._to);
+  t._to = setTimeout(() => { t.style.display = 'none'; }, 3000);
 }
-function setBtn(id,txt,disabled){const b=document.getElementById(id);if(b){if(txt)b.textContent=txt;b.disabled=!!disabled;}}
+
+function setBtn(id, txt, disabled) {
+  const b = document.getElementById(id);
+  if (b) { if (txt !== null) b.textContent = txt; b.disabled = !!disabled; }
+}
+
+// Flash sync badge to show real-time update received
+function flashSync() {
+  const badge = document.getElementById('sync-badge');
+  if (!badge) return;
+  const now = new Date();
+  badge.textContent = '🔄 ' + now.toLocaleTimeString('th-TH', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  badge.classList.add('flash');
+  setTimeout(() => badge.classList.remove('flash'), 600);
+}
 
 // ============================================================
-//  FIREBASE LISTENERS — real-time, instant
+//  RENDER DEBOUNCE — prevents stale renders from racing updates
+//  แก้ bug: Admin เห็นข้อมูลค้าง เพราะ onValue หลายตัว fire พร้อมกัน
 // ============================================================
-onValue(ref(db,'game/state'), snap => {
+let _renderTimer = null;
+function scheduleRender() {
+  clearTimeout(_renderTimer);
+  _renderTimer = setTimeout(() => { buildGroupStatus(); renderActivePanel(); }, 60);
+}
+
+// ============================================================
+//  FIREBASE LISTENERS
+// ============================================================
+onValue(ref(db, 'game/state'), snap => {
   S.gs = snap.val();
-  buildGroupStatus();
+  flashSync();
   updateTopbar();
   updateEvProg();
-  renderActivePanel();
+  updatePhaseBanner();
+  scheduleRender();
 });
 
-onValue(ref(db,'players'), snap => {
+onValue(ref(db, 'players'), snap => {
   S.players = snap.val() || {};
-  buildGroupStatus();
+  flashSync();
   updateTopbar();
-  renderActivePanel();
+  scheduleRender();
 });
 
-onValue(ref(db,'game/logs'), snap => {
+onValue(ref(db, 'game/logs'), snap => {
   const raw = snap.val() || {};
   S.logs = Object.values(raw).sort((a,b)=>(a.ts||0)-(b.ts||0));
-  if (S.activeTab==='log') renderLogPanel();
-  // update mini log in game panel
+  if (S.activeTab === 'log') renderLogPanel();
   updateMiniLog();
 });
 
-// Connection status
-onValue(ref(db,'.info/connected'), snap => {
+onValue(ref(db, '.info/connected'), snap => {
   const connected = snap.val();
   const dot = document.getElementById('conn-dot');
   const txt = document.getElementById('conn-txt');
-  if (dot) dot.className = 'pdot'+(connected?'':' off');
-  if (txt) txt.textContent = connected?'live':'offline';
+  if (dot) dot.className = 'pdot' + (connected ? '' : ' off');
+  if (txt) txt.textContent = connected ? 'live' : 'offline';
 });
 
-function buildGroupStatus(){
+// ============================================================
+//  BUILD GROUP STATUS
+// ============================================================
+function buildGroupStatus() {
   const gs = S.gs || {};
-  const maxGS = gs.maxGroupSize||7; const minGS = gs.minGroupSize||5;
-  const gc = gs.groupCount||8; const names = gs.groupNames||GN;
+  const maxGS = gs.maxGroupSize||7, minGS = gs.minGroupSize||5;
+  const gc = gs.groupCount||8, names = gs.groupNames||GN;
   const playerArr = Object.values(S.players);
-  S.groupStatus = Array.from({length:gc},(_,i)=>{
-    const members = playerArr.filter(p=>p.groupId==i);
-    const pool={};
-    members.filter(p=>p.alive).forEach(p=>{ pool[p.dept]=(pool[p.dept]||0)+(p.items||0); });
-    return {id:i,name:names[i]||('G'+(i+1)),count:members.length,max:maxGS,min:minGS,full:members.length>=maxGS,members,pool};
+  S.groupStatus = Array.from({length:gc}, (_,i) => {
+    const members = playerArr.filter(p => p.groupId == i);
+    const pool = {};
+    members.filter(p => p.alive).forEach(p => { pool[p.dept] = (pool[p.dept]||0) + (p.items||0); });
+    return { id:i, name:names[i]||('G'+(i+1)), count:members.length, max:maxGS, min:minGS, full:members.length>=maxGS, members, pool };
   });
 }
 
-function updateTopbar(){
-  const gs=S.gs||{};const pa=Object.values(S.players);
-  const alive=pa.filter(p=>p.alive).length;
-  document.getElementById('tb-ev').textContent=Math.min((gs.currentEvent||0)+1,10)+'/10';
-  document.getElementById('tb-pl').textContent=pa.length;
-  document.getElementById('tb-al').textContent=alive;
-  document.getElementById('tb-de').textContent=pa.length-alive;
-  document.getElementById('tb-gr').textContent=gs.groupCount||'—';
+// ============================================================
+//  TOPBAR & PROGRESS
+// ============================================================
+function updateTopbar() {
+  const gs = S.gs||{}, pa = Object.values(S.players);
+  const alive = pa.filter(p => p.alive).length;
+  const totalItems = pa.filter(p => p.alive).reduce((s,p) => s+(p.items||0), 0);
+  document.getElementById('tb-ev').textContent = Math.min((gs.currentEvent||0)+1, 10)+'/10';
+  document.getElementById('tb-pl').textContent = pa.length;
+  document.getElementById('tb-al').textContent = alive;
+  document.getElementById('tb-de').textContent = pa.length - alive;
+  document.getElementById('tb-gr').textContent = gs.groupCount||'—';
+  document.getElementById('tb-items').textContent = totalItems;
 }
 
-function updateEvProg(){
-  const gs=S.gs||{};const cur=gs.currentEvent||0;
+function updateEvProg() {
+  const gs = S.gs||{}, cur = gs.currentEvent||0;
   const types=['','global_per','global_per','global_per','regroup','people_var','discard','global_per','regroup','global_all','global_all'];
-  let html='';
-  for(let i=0;i<10;i++){
-    const t=types[i+1]||'';let cls='ep';
-    if(i<cur)cls+=' ep-done';
-    else if(i===cur)cls+=(t==='regroup'?' ep-rg-cur':t==='discard'?' ep-disc-cur':' ep-cur');
-    html+='<div class="'+cls+'" title="Event '+(i+1)+'"></div>';
+  let html = '';
+  for (let i=0;i<10;i++) {
+    const t = types[i+1]||''; let cls = 'ep';
+    if (i < cur) cls += ' ep-done';
+    else if (i === cur) cls += (t==='regroup'?' ep-rg-cur':t==='discard'?' ep-disc-cur':' ep-cur');
+    html += `<div class="${cls}" title="Event ${i+1}: ${DEFAULT_EVENTS[i]?.name||''}"></div>`;
   }
-  document.getElementById('evprog').innerHTML=html;
+  document.getElementById('evprog').innerHTML = html;
 }
 
-function updateMiniLog(){
-  const lb=document.getElementById('mini-log');if(!lb)return;
-  lb.innerHTML=renderLogItems(S.logs.slice(-15));
-  lb.scrollTop=lb.scrollHeight;
+function updatePhaseBanner() {
+  const gs = S.gs||{}, phase = gs.phase||'lobby';
+  const pending = gs.pendingConfirm;
+  const banner = document.getElementById('phase-banner');
+  if (!banner) return;
+  const evIdx = gs.currentEvent||0;
+  const ev = DEFAULT_EVENTS[evIdx];
+
+  if (phase === 'lobby') {
+    banner.className = 'phase-banner lobby';
+    banner.innerHTML = '⏳ รอเริ่มเกม — ผู้เล่นกำลังเข้าร่วม';
+  } else if (phase === 'result') {
+    banner.className = 'phase-banner result';
+    banner.innerHTML = '🏁 เกมจบแล้ว — ดูผลลัพธ์ที่ Scoreboard';
+  } else if (phase === 'regrouping') {
+    banner.className = 'phase-banner regrouping';
+    banner.innerHTML = '🔀 Regrouping — รอผู้เล่นเลือกกลุ่มใหม่';
+  } else if (pending) {
+    banner.className = 'phase-banner pending';
+    banner.innerHTML = `⚡ Event ${evIdx+1}: ${ev?.emoji||''} ${ev?.name||''} — รอผู้เล่นใช้ Items แล้วกด Confirm`;
+  } else {
+    banner.className = 'phase-banner playing';
+    banner.innerHTML = `🎮 Event ${evIdx+1}/10 — กด "เปิด Event" เมื่อพร้อม`;
+  }
+}
+
+function updateMiniLog() {
+  const lb = document.getElementById('mini-log'); if (!lb) return;
+  lb.innerHTML = renderLogItems(S.logs.slice(-15));
+  lb.scrollTop = lb.scrollHeight;
 }
 
 // ============================================================
 //  TABS
 // ============================================================
-function switchTab(name){
-  S.activeTab=name;
-  ['game','players','groups','log','config','settings'].forEach(t=>{
-    document.getElementById('tab-'+t)?.setAttribute('class','tab'+(t===name?' tab-active':''));
-    const p=document.getElementById('panel-'+t);if(p)p.className='panel'+(t===name?' panel-on':'');
+function switchTab(name) {
+  S.activeTab = name;
+  ['game','players','groups','log','config','settings'].forEach(t => {
+    document.getElementById('tab-'+t)?.setAttribute('class', 'tab'+(t===name?' tab-active':''));
+    const p = document.getElementById('panel-'+t); if (p) p.className = 'panel'+(t===name?' panel-on':'');
   });
   renderActivePanel();
-  if(name==='config')renderEvCfgTable();
+  if (name === 'config') renderEvCfgTable();
 }
 
-function renderActivePanel(){
-  if(S.activeTab==='game')renderGamePanel();
-  else if(S.activeTab==='players')renderPlayersPanel();
-  else if(S.activeTab==='groups')renderGroupsPanel();
-  else if(S.activeTab==='log')renderLogPanel();
+function renderActivePanel() {
+  if (S.activeTab==='game') renderGamePanel();
+  else if (S.activeTab==='players') renderPlayersPanel();
+  else if (S.activeTab==='groups') renderGroupsPanel();
+  else if (S.activeTab==='log') renderLogPanel();
 }
 
 // ============================================================
 //  GAME PANEL
 // ============================================================
-function renderGamePanel(){
-  const el=document.getElementById('game-content');if(!el)return;
-  const gs=S.gs||{};const phase=gs.phase||'lobby';
+function renderGamePanel() {
+  const el = document.getElementById('game-content'); if (!el) return;
+  const gs = S.gs||{}, phase = gs.phase||'lobby';
 
-  if(phase==='lobby'){
-    const gsHtml=S.groupStatus.map(g=>{
-      const tags=g.members.map(m=>h('span','style="font-size:.66rem;padding:2px 5px;border-radius:3px;background:var(--sur2);font-family:monospace"',(DEPTS[m.dept]?.icon||'')+' '+m.name)).join('');
+  if (phase === 'lobby') {
+    const gsHtml = S.groupStatus.map(g => {
+      const tags = g.members.map(m => h('span','style="font-size:.66rem;padding:2px 5px;border-radius:3px;background:var(--sur2);font-family:monospace"',(DEPTS[m.dept]?.icon||'')+' '+m.name)).join('');
       return h('div','style="background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:8px 10px;margin-bottom:5px"',
         h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"',
           h('span','style="font-family:\'Bebas Neue\',sans-serif;letter-spacing:3px;color:var(--amber)"',g.name)+
           h('span','style="font-family:monospace;font-size:.58rem;color:'+(g.full?'var(--red)':'var(--dim)')+'"',g.count+'/'+g.max+(g.full?' FULL':''))
-        )+h('div','style="display:flex;flex-wrap:wrap;gap:3px"',tags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
+        ) + h('div','style="display:flex;flex-wrap:wrap;gap:3px"',tags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
       );
     }).join('');
-    el.innerHTML=gsHtml+h('div','style="margin-top:10px;display:flex;gap:8px"',h('button','id="btn-start" class="btn btn-p" onclick="doStartGame()"','▶ Start Game'));
+    el.innerHTML = gsHtml + h('div','style="margin-top:10px;display:flex;gap:8px"', h('button','id="btn-start" class="btn btn-p" onclick="doStartGame()"','▶ Start Game'));
     return;
   }
 
-  if(phase==='result'){
-    el.innerHTML='<div style="text-align:center;padding:40px"><div style="font-size:3rem">🏁</div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;letter-spacing:6px;color:var(--amber);margin-top:10px">จบเกม!</div></div>';return;
+  if (phase === 'result') {
+    const pa = Object.values(S.players);
+    const alive = pa.filter(p => p.alive);
+    el.innerHTML = h('div','style="text-align:center;padding:40px"',
+      h('div','style="font-size:3rem"','🏁')+
+      h('div','style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;letter-spacing:6px;color:var(--amber);margin-top:10px"','จบเกม!')+
+      h('div','style="font-family:monospace;font-size:.75rem;color:var(--dim);margin-top:10px"','รอด '+alive.length+'/'+pa.length+' คน')+
+      h('a','href="Scoreboard.html" target="_blank" style="display:inline-block;margin-top:14px;padding:10px 20px;background:var(--amber);color:#000;border-radius:8px;font-family:monospace;font-weight:700;font-size:.75rem;text-decoration:none"','🏆 ดู Scoreboard')
+    );
+    return;
   }
 
-  if(phase==='regrouping'){
-    el.innerHTML=renderRegroupingPanel();return;
+  if (phase === 'regrouping') {
+    el.innerHTML = renderRegroupingPanel(); return;
   }
 
   // playing
-  const evIdx=gs.currentEvent||0;const ev=getEffectiveEvent(evIdx);
-  const pending=gs.pendingConfirm;
-  let out='';
+  const evIdx = gs.currentEvent||0, ev = getEffectiveEvent(evIdx);
+  const pending = gs.pendingConfirm;
+  let out = '';
 
-  if(ev){
-    out+=h('div','class="ev-card"',
+  if (ev) {
+    // Pool summary for relevant events
+    let poolSummaryHtml = '';
+    if (ev.type==='global_per' || ev.type==='people_var') {
+      const poolSummary = S.groupStatus.map(g => {
+        const pool = g.pool||{};
+        let req = ev.req||{};
+        if (ev.reqMultiplier) {
+          const cnt = g.members.filter(m=>m.alive).length;
+          Object.entries(ev.reqMultiplier).forEach(([d,m2]) => { req[d] = cnt*m2; });
+        }
+        const hasReq = Object.keys(req).length > 0;
+        const pass = hasReq ? Object.entries(req).every(([d,n])=>(pool[d]||0)>=n) : true;
+        return h('span','style="font-size:.63rem;font-family:monospace;padding:2px 8px;border-radius:4px;border:1px solid '+(pass?'rgba(61,186,106,.4)':'rgba(232,64,64,.4)')+';background:'+(pass?'rgba(61,186,106,.07)':'rgba(232,64,64,.07)')+';color:'+(pass?'var(--green)':'var(--red)')+';"', g.name+' '+(pass?'✓':'✗'));
+      }).join('');
+      poolSummaryHtml = h('div','style="display:flex;flex-wrap:wrap;gap:3px;margin-top:7px"', poolSummary);
+    }
+
+    out += h('div','class="ev-card"',
       h('div','style="font-family:\'Space Mono\',monospace;font-size:.53rem;color:var(--dim);margin-bottom:3px"','EVENT '+(evIdx+1)+' / 10')+
       h('div','style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"',
         h('span','style="font-size:1.7rem"',ev.emoji)+
         h('div','',h('div','class="ev-title"',ev.name)+h('div','style="font-size:.8rem;margin-top:2px"',ev.desc))
-      )
+      )+poolSummaryHtml
     );
   }
 
-  if(!pending){
-    out+=h('div','style="margin-top:9px;display:flex;gap:7px;flex-wrap:wrap"',
+  if (!pending) {
+    out += h('div','style="margin-top:9px;display:flex;gap:7px;flex-wrap:wrap"',
       h('button','id="btn-run-ev" class="btn btn-p" onclick="doRunEvent()"','⚡ เปิด Event '+(evIdx+1)+(ev?' '+ev.emoji+' '+ev.name:''))
     );
   } else {
-    out+=h('div','style="background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.2);border-radius:7px;padding:11px;margin-top:9px"',
-      h('div','style="font-family:\'Space Mono\',monospace;font-size:.6rem;color:var(--amber);margin-bottom:7px"','⏳ รอ Players ใช้ items...')+
+    out += h('div','class="confirm-box"',
+      h('div','class="confirm-box-title"','รอผู้เล่นใช้ Items...')+
+      h('div','style="font-size:.75rem;margin-bottom:9px;color:var(--txt)"','ผู้เล่นกำลังเลือกว่าจะใช้ Items กี่ชิ้น หลังจากทุกคนพร้อมแล้วกด Confirm')+
       h('button','id="btn-conf-ev" class="btn btn-p" onclick="doConfirmEvent()"','✅ Confirm → Apply Damage')
     );
   }
 
-  out+=h('div','style="margin-top:10px"',
+  out += h('div','style="margin-top:10px"',
     h('div','class="st"','LOG')+
     h('div','class="logbox" id="mini-log"',renderLogItems(S.logs.slice(-15)))
   );
-  el.innerHTML=out;
+  el.innerHTML = out;
   updateMiniLog();
 }
 
-function renderRegroupingPanel(){
-  const gs=S.gs||{};const evIdx=gs.currentEvent||0;const ev=getEffectiveEvent(evIdx)||{};
-  const playerArr=Object.values(S.players);
-  const alive=playerArr.filter(p=>p.alive);
-  const assigned=alive.filter(p=>p.groupId>=0);
-  const unassigned=alive.filter(p=>p.groupId<0);
+function renderRegroupingPanel() {
+  const gs = S.gs||{}, evIdx = gs.currentEvent||0, ev = getEffectiveEvent(evIdx)||{};
+  const playerArr = Object.values(S.players);
+  const alive = playerArr.filter(p => p.alive);
+  const assigned = alive.filter(p => p.groupId >= 0);
+  const unassigned = alive.filter(p => p.groupId < 0);
 
-  const gsHtml=S.groupStatus.map(g=>{
-    const tags=g.members.map(m=>h('span','style="font-size:.66rem;padding:2px 5px;border-radius:3px;background:var(--sur2);font-family:monospace"',(DEPTS[m.dept]?.icon||'')+' '+m.name)).join('');
+  const gsHtml = S.groupStatus.map(g => {
+    const tags = g.members.map(m => h('span','style="font-size:.66rem;padding:2px 5px;border-radius:3px;background:var(--sur2);font-family:monospace"',(DEPTS[m.dept]?.icon||'')+' '+m.name)).join('');
     return h('div','style="background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:7px 9px;margin-bottom:4px"',
       h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"',
         h('span','style="font-family:\'Bebas Neue\',sans-serif;letter-spacing:3px;color:var(--purple)"',g.name)+
         h('span','style="font-family:monospace;font-size:.58rem;color:'+(g.full?'var(--red)':'var(--dim)')+'"',g.count+'/'+g.max+(g.full?' FULL':''))
-      )+h('div','style="display:flex;flex-wrap:wrap;gap:3px"',tags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
+      ) + h('div','style="display:flex;flex-wrap:wrap;gap:3px"',tags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
     );
   }).join('');
 
-  const unassignedHtml=unassigned.length?h('div','class="unassigned-box"',
+  const unassignedHtml = unassigned.length ? h('div','class="unassigned-box"',
     h('div','style="font-family:monospace;font-size:.6rem;color:var(--red);margin-bottom:5px"','⚠️ ยังไม่เลือก '+unassigned.length+' คน')+
-    unassigned.map(p=>{
-      const d=DEPTS[p.dept]||{};
-      const opts=S.groupStatus.map(g=>h('option','value="'+g.id+'"'+(g.full?' disabled':''),g.name+(g.full?' (เต็ม)':''))).join('');
+    unassigned.map(p => {
+      const d = DEPTS[p.dept]||{};
+      const opts = S.groupStatus.map(g => h('option','value="'+g.id+'"'+(g.full?' disabled':''),g.name+(g.full?' (เต็ม)':''))).join('');
       return h('div','style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(232,64,64,.1)"',
         h('span','style="font-size:.7rem"',d.icon+' '+p.name)+
         h('select','onchange="forceAssign(\''+p.id+'\',+this.value)" style="background:var(--sur);border:1px solid var(--brd2);color:var(--txt);padding:3px 5px;border-radius:4px;font-family:monospace;font-size:.6rem;cursor:pointer"',
-          h('option','value="-1"','เลือก...')+opts
-        )
+          h('option','value="-1"','เลือก...')+opts)
       );
     }).join('')
-  ):'';
+  ) : '';
 
   return h('div','class="ev-card regroup"',
     h('div','style="font-size:.53rem;font-family:monospace;color:var(--dim);margin-bottom:2px"','EVENT '+(evIdx+1)+' / 10')+
@@ -417,65 +586,88 @@ function renderRegroupingPanel(){
       h('span','style="font-size:1.5rem"',ev.emoji||'🔀')+
       h('div','class="ev-title regroup"',ev.name||'Regroup')
     )+
-    h('div','style="font-size:.78rem;margin-top:3px"','รอ Players เลือกกลุ่มใหม่ (5-7 คน)')+
-    h('div','style="font-family:monospace;font-size:.65rem;margin-top:5px"',
-      h('span','style="color:var(--green)"','✓ '+assigned.length+' คน')+
-      h('span','style="color:var(--dim)">  /  '+alive.length)+
-      h('span','style="color:'+(unassigned.length?'var(--red)':'var(--dim)')+'"','  ยังไม่เลือก '+unassigned.length)
+    h('div','style="font-size:.78rem;margin-top:3px"','รอ Players เลือกกลุ่มใหม่')+
+    h('div','style="font-family:monospace;font-size:.65rem;margin-top:5px;display:flex;gap:10px"',
+      h('span','style="color:var(--green)"','✓ '+assigned.length+' คน เลือกแล้ว')+
+      h('span','style="color:'+(unassigned.length?'var(--red)':'var(--dim)')+'"','⏳ รออีก '+unassigned.length+' คน')
     )
   )+
   h('div','style="margin-top:8px"',gsHtml)+
   unassignedHtml+
   h('div','style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap"',
     h('button','id="btn-conf-rg" class="btn btn-p" onclick="doConfirmRegroup()"','✅ Confirm Regroup ('+assigned.length+'/'+alive.length+')')+
-    h('button','class="btn btn-s" onclick="renderGamePanel()"','🔄 Refresh')
+    h('button','class="btn btn-s" onclick="scheduleRender()"','🔄 Refresh')
   );
 }
 
 // ============================================================
-//  PLAYERS PANEL
+//  PLAYERS PANEL — ใช้ data-pid เพื่อ preserve focus หลัง re-render
 // ============================================================
-function renderPlayersPanel(){
-  const tbody=document.getElementById('players-body');if(!tbody)return;
-  const playerArr=Object.values(S.players);
-  if(!playerArr.length){tbody.innerHTML=h('tr','',h('td','colspan="7" style="text-align:center;padding:16px;font-family:monospace;font-size:.7rem;color:var(--dim)"','ยังไม่มีผู้เล่น'));return;}
-  tbody.innerHTML=playerArr.map(p=>{
-    const d=DEPTS[p.dept]||{};
-    const g=S.groupStatus.find(x=>x.id==p.groupId);
-    const hc=p.hp<=2?'var(--red)':p.hp<=4?'#ff9800':'var(--green)';
+function renderPlayersPanel() {
+  const tbody = document.getElementById('players-body'); if (!tbody) return;
+  const playerArr = Object.values(S.players);
+
+  // Track focused element to restore after render
+  const focused = document.activeElement;
+  const focusedPid = focused?.dataset?.pid;
+  const focusedField = focused?.dataset?.field;
+  const focusedVal = focused?.value;
+
+  if (!playerArr.length) {
+    tbody.innerHTML = h('tr','',h('td','colspan="7" style="text-align:center;padding:16px;font-family:monospace;font-size:.7rem;color:var(--dim)"','ยังไม่มีผู้เล่น'));
+    return;
+  }
+
+  tbody.innerHTML = playerArr.map(p => {
+    const d = DEPTS[p.dept]||{};
+    const g = S.groupStatus.find(x => x.id == p.groupId);
+    const hc = p.hp<=2?'var(--red)':p.hp<=4?'#ff9800':'var(--green)';
     return h('tr',!p.alive?'style="opacity:.35"':'',
       h('td','',h('div','class="dtag" style="background:'+d.color+'22;color:'+d.color+';border:1px solid '+d.color+'44"',d.icon+' '+p.dept))+
       h('td','style="font-size:.76rem"',p.name)+
       h('td','style="font-family:monospace;font-size:.6rem;color:var(--dim)"',p.row||'—')+
-      h('td','',h('input','class="ain" type="number" min="0" max="999" value="'+(p.items||0)+'" onblur="adminSetItems(\''+p.id+'\',+this.value)"',''))+
-      h('td','',h('input','class="ain" type="number" min="0" max="'+(p.maxHp||8)+'" value="'+(p.hp||0)+'" style="color:'+hc+'" onblur="adminSetHP(\''+p.id+'\',+this.value)"',''))+
+      h('td','',h('input','class="ain" type="number" min="0" max="999" value="'+(p.items||0)+'" data-pid="'+p.id+'" data-field="items" onblur="adminSetItems(\''+p.id+'\',+this.value)"',''))+
+      h('td','',h('input','class="ain" type="number" min="0" max="'+(p.maxHp||8)+'" value="'+(p.hp||0)+'" style="color:'+hc+'" data-pid="'+p.id+'" data-field="hp" onblur="adminSetHP(\''+p.id+'\',+this.value)"',''))+
       h('td','style="font-family:monospace;font-size:.6rem;color:var(--purple)"',g?g.name:'—')+
-      h('td','style="font-family:monospace;font-size:.58rem;color:'+(p.alive?'var(--green)':'var(--red)')+';"',p.alive?'ALIVE':'DEAD')
+      h('td','style="font-family:monospace;font-size:.58rem;color:'+(p.alive?'var(--green)':'var(--red)')+';"',p.alive?'✓ ALIVE':'✗ DEAD')
     );
   }).join('');
+
+  // Restore focus after render
+  if (focusedPid && focusedField) {
+    const inp = tbody.querySelector(`input[data-pid="${focusedPid}"][data-field="${focusedField}"]`);
+    if (inp) { inp.value = focusedVal; inp.focus(); inp.select(); }
+  }
 }
 
 // ============================================================
 //  GROUPS PANEL
 // ============================================================
-function renderGroupsPanel(){
-  const grid=document.getElementById('groups-grid');if(!grid)return;
-  if(!S.groupStatus.length){grid.innerHTML=h('div','style="font-family:monospace;font-size:.75rem;color:var(--dim);padding:20px"','ยังไม่มีกลุ่ม');return;}
-  grid.innerHTML=S.groupStatus.map(g=>{
-    const pool=g.pool||{};
-    const alive=g.members.filter(p=>p.alive);
-    const poolHtml=DK.map(dk=>h('div','class="ib"',(DEPTS[dk]?.icon||dk)+h('span','class="iv"',pool[dk]||0))).join('');
-    const mHtml=g.members.map(m=>{
-      const md=DEPTS[m.dept]||{};const mc=m.hp<=2?'var(--red)':m.hp<=4?'#ff9800':'var(--green)';
-      let mpips='';for(let i=0;i<(m.maxHp||0);i++)mpips+=h('span','style="width:6px;height:6px;border-radius:50%;display:inline-block;background:'+(i<(m.hp||0)?mc:'var(--brd2)')+';"','');
+function renderGroupsPanel() {
+  const grid = document.getElementById('groups-grid'); if (!grid) return;
+  if (!S.groupStatus.length) { grid.innerHTML = h('div','style="font-family:monospace;font-size:.75rem;color:var(--dim);padding:20px"','ยังไม่มีกลุ่ม'); return; }
+  grid.innerHTML = S.groupStatus.map(g => {
+    const pool = g.pool||{};
+    const alive = g.members.filter(p => p.alive);
+    const poolHtml = DK.map(dk => h('div','class="ib"',(DEPTS[dk]?.icon||dk)+h('span','class="iv"',pool[dk]||0))).join('');
+    const mHtml = g.members.map(m => {
+      const md = DEPTS[m.dept]||{}, mc = m.hp<=2?'var(--red)':m.hp<=4?'#ff9800':'var(--green)';
+      let mpips = '';
+      for (let i=0; i<(m.maxHp||0); i++) mpips += h('span','style="width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:1px;background:'+(i<(m.hp||0)?mc:'var(--brd2)')+';"','');
       return h('div','class="mrow'+(m.alive?'':' mrow-dead')+'"',
-        h('div','style="display:flex;align-items:center;gap:4px"',h('div','class="dtag" style="background:'+md.color+'22;color:'+md.color+';border:1px solid '+md.color+'44;font-size:.5rem"',m.dept)+h('span','style="font-size:.66rem"',m.name+(m.row?' '+m.row:'')))+
-        h('div','style="display:flex;align-items:center;gap:4px"',h('span','style="font-family:monospace;font-size:.6rem;color:'+(md.color||'var(--dim)')+';"',m.items||0)+mpips)
+        h('div','style="display:flex;align-items:center;gap:4px"',
+          h('div','class="dtag" style="background:'+md.color+'22;color:'+md.color+';border:1px solid '+md.color+'44;font-size:.5rem"',m.dept)+
+          h('span','style="font-size:.66rem"',m.name+(m.row?' '+m.row:''))
+        )+
+        h('div','style="display:flex;align-items:center;gap:4px"',
+          h('span','style="font-family:monospace;font-size:.6rem;color:'+(md.color||'var(--dim)')+';"',m.items||0)+mpips
+        )
       );
     }).join('');
     return h('div','class="gcard"',
       h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"',
-        h('div','class="gname"',g.name)+h('div','style="font-family:monospace;font-size:.58rem;color:var(--dim);background:var(--sur2);padding:2px 6px;border-radius:10px"',alive.length+'/'+g.members.length+' alive')
+        h('div','class="gname"',g.name)+
+        h('div','style="font-family:monospace;font-size:.58rem;color:var(--dim);background:var(--sur2);padding:2px 6px;border-radius:10px"',alive.length+'/'+g.members.length+' alive')
       )+h('div','class="pool-row"',poolHtml)+h('div','class="mlist-a"',mHtml)
     );
   }).join('');
@@ -484,27 +676,35 @@ function renderGroupsPanel(){
 // ============================================================
 //  LOG PANEL
 // ============================================================
-function renderLogPanel(){
-  const lb=document.getElementById('full-log');if(!lb)return;
-  lb.innerHTML=renderLogItems(S.logs);lb.scrollTop=lb.scrollHeight;
+function renderLogPanel() {
+  const lb = document.getElementById('full-log'); if (!lb) return;
+  lb.innerHTML = renderLogItems(S.logs);
+  lb.scrollTop = lb.scrollHeight;
 }
-function renderLogItems(logs){
-  if(!logs||!logs.length)return h('div','class="le li"','// รอเหตุการณ์...');
-  return logs.map(l=>h('div','class="le l'+(l.type||'i')+'"','&gt; '+l.msg)).join('');
+
+function renderLogItems(logs) {
+  if (!logs||!logs.length) return h('div','class="le li"','// รอเหตุการณ์...');
+  return logs.map(l => h('div','class="le l'+(l.type||'i')+'"','&gt; '+l.msg)).join('');
+}
+
+async function clearLog() {
+  if (!confirm('ล้าง Log ทั้งหมด?')) return;
+  await set(ref(db,'game/logs'), null);
+  toast('🗑 ล้าง Log แล้ว');
 }
 
 // ============================================================
 //  CONFIG
 // ============================================================
-function renderEvCfgTable(){
-  const body=document.getElementById('ev-cfg-body');if(!body)return;
-  const gs=S.gs||{};const cfg=gs.eventConfig||{};
-  body.innerHTML=DEFAULT_EVENTS.map(ev=>{
-    const c=cfg[ev.id]||{};
-    const reqVal=JSON.stringify(c.req||ev.req||{});
+function renderEvCfgTable() {
+  const body = document.getElementById('ev-cfg-body'); if (!body) return;
+  const gs = S.gs||{}, cfg = gs.eventConfig||{};
+  body.innerHTML = DEFAULT_EVENTS.map(ev => {
+    const c = cfg[ev.id]||{};
+    const reqVal = JSON.stringify(c.req||ev.req||{});
     return h('tr','',
       h('td','style="font-family:monospace;font-size:.62rem"',ev.id)+
-      h('td','style="font-size:.7rem"',ev.name)+
+      h('td','style="font-size:.7rem"',ev.emoji+' '+ev.name)+
       h('td','style="font-family:monospace;font-size:.58rem;color:var(--dim)"',ev.type)+
       h('td','',h('input','style="width:140px" type="text" value=\''+reqVal+'\' onblur="saveEvReq('+ev.id+',this.value)"',''))+
       h('td','',h('input','class="ain" type="number" min="0" max="20" value="'+(c.dmg!==undefined?c.dmg:(ev.dmg||0))+'" onchange="saveEvCfg('+ev.id+',\'dmg\',+this.value)"',''))+
@@ -514,270 +714,279 @@ function renderEvCfgTable(){
   }).join('');
 }
 
-async function saveEvReq(evId,val){
-  try{
-    const obj=JSON.parse(val);
-    const gs=S.gs||{};const cfg={...(gs.eventConfig||{})};
-    if(!cfg[evId])cfg[evId]={};cfg[evId].req=obj;
-    await update(ref(db,'game/state'),{eventConfig:cfg});
+async function saveEvReq(evId, val) {
+  try {
+    const obj = JSON.parse(val);
+    const gs = S.gs||{}; const cfg = {...(gs.eventConfig||{})};
+    if (!cfg[evId]) cfg[evId] = {}; cfg[evId].req = obj;
+    await update(ref(db,'game/state'), {eventConfig:cfg});
     toast('✅ บันทึก Req Event '+evId);
-  }catch(e){toast('❌ JSON ไม่ถูกต้อง',true);}
+  } catch(e) { toast('❌ JSON ไม่ถูกต้อง', true); }
 }
 
-async function saveEvCfg(evId,field,val){
-  const gs=S.gs||{};const cfg={...(gs.eventConfig||{})};
-  if(!cfg[evId])cfg[evId]={};cfg[evId][field]=val;
-  await update(ref(db,'game/state'),{eventConfig:cfg});
+async function saveEvCfg(evId, field, val) {
+  const gs = S.gs||{}; const cfg = {...(gs.eventConfig||{})};
+  if (!cfg[evId]) cfg[evId] = {}; cfg[evId][field] = val;
+  await update(ref(db,'game/state'), {eventConfig:cfg});
 }
 
-async function saveGlobalCfg(field,val){
-  await update(ref(db,'game/state/globalConfig'),{[field]:val});
+async function saveGlobalCfg(field, val) {
+  await update(ref(db,'game/state/globalConfig'), {[field]:val});
   toast('✅ บันทึก '+field);
 }
 
 // ============================================================
 //  GAME ACTIONS
 // ============================================================
-function getEffectiveEvent(idx){
-  const ev={...DEFAULT_EVENTS[idx]};
-  const cfg=(S.gs?.eventConfig||{})[ev.id]||{};
-  if(cfg.req)ev.req=cfg.req;
-  if(cfg.dmg!==undefined)ev.dmg=cfg.dmg;
-  if(cfg.preDmg!==undefined)ev.preDmg=cfg.preDmg;
-  if(cfg.poolCap!==undefined)ev.poolCap=cfg.poolCap;
+function getEffectiveEvent(idx) {
+  const ev = {...DEFAULT_EVENTS[idx]};
+  const cfg = (S.gs?.eventConfig||{})[ev.id]||{};
+  if (cfg.req) ev.req = cfg.req;
+  if (cfg.dmg !== undefined) ev.dmg = cfg.dmg;
+  if (cfg.preDmg !== undefined) ev.preDmg = cfg.preDmg;
+  if (cfg.poolCap !== undefined) ev.poolCap = cfg.poolCap;
   return ev;
 }
 
-async function doInitGame(){
-  if(!confirm('Init Game จะล้างผู้เล่นทั้งหมด ยืนยัน?'))return;
-  setBtn('btn-init','⏳...',true);
-  const gc=+document.getElementById('s-gcount').value||8;
-  const mn=+document.getElementById('s-min').value||5;
-  const mx=+document.getElementById('s-max').value||7;
-  const hp=+document.getElementById('s-hp').value||8;
-  await set(ref(db,'game'),{
-    state:{
-      gameStarted:false,phase:'lobby',currentEvent:0,
-      pendingConfirm:false,groupCount:gc,minGroupSize:mn,maxGroupSize:mx,
-      defaultHp:hp,groupNames:GN,eventConfig:{},globalConfig:{poolCap:35}
-    }
+async function doInitGame() {
+  if (!confirm('Init Game จะล้างผู้เล่นทั้งหมด ยืนยัน?')) return;
+  setBtn('btn-init', '⏳...', true);
+  const gc = +document.getElementById('s-gcount').value||8;
+  const mn = +document.getElementById('s-min').value||5;
+  const mx = +document.getElementById('s-max').value||7;
+  const hp = +document.getElementById('s-hp').value||8;
+  await set(ref(db,'game'), {
+    state: { gameStarted:false, phase:'lobby', currentEvent:0, pendingConfirm:false, groupCount:gc, minGroupSize:mn, maxGroupSize:mx, defaultHp:hp, groupNames:GN, eventConfig:{}, globalConfig:{poolCap:35} },
+    logs: { [Date.now()]: {ts:Date.now(),type:'i',msg:'ระบบพร้อมแล้ว รอผู้เล่นเข้าร่วม'} }
   });
-  await set(ref(db,'players'),null);
-  await push(ref(db,'game/logs'),{ts:Date.now(),type:'i',msg:'ระบบพร้อมแล้ว รอผู้เล่นเข้าร่วม'});
-  setBtn('btn-init','⚡ Init Game',false);
+  await set(ref(db,'players'), null);
+  setBtn('btn-init', '⚡ Init Game', false);
   toast('✅ Init สำเร็จ');
 }
 
-async function doStartGame(){
-  setBtn('btn-start','⏳...',true);
-  const pa=Object.values(S.players);
-  const unassigned=pa.filter(p=>p.groupId<0).length;
-  if(unassigned>0)await push(ref(db,'game/logs'),{ts:Date.now(),type:'w',msg:unassigned+' คนยังไม่ได้เลือกกลุ่ม'});
-  await update(ref(db,'game/state'),{gameStarted:true,phase:'playing',currentEvent:0});
-  await push(ref(db,'game/logs'),{ts:Date.now(),type:'g',msg:'เกมเริ่มต้นแล้ว! '+pa.length+' คน'});
-  setBtn('btn-start','▶ Start Game',false);
+async function doStartGame() {
+  setBtn('btn-start', '⏳...', true);
+  const pa = Object.values(S.players);
+  const unassigned = pa.filter(p => p.groupId < 0).length;
+  if (unassigned > 0) await push(ref(db,'game/logs'), {ts:Date.now(),type:'w',msg:unassigned+' คนยังไม่ได้เลือกกลุ่ม'});
+  await update(ref(db,'game/state'), {gameStarted:true, phase:'playing', currentEvent:0});
+  await push(ref(db,'game/logs'), {ts:Date.now(),type:'g',msg:'🎮 เกมเริ่มต้นแล้ว! '+pa.length+' คน'});
+  setBtn('btn-start', '▶ Start Game', false);
   toast('🎮 เกมเริ่มแล้ว!');
 }
 
-async function doRunEvent(){
-  setBtn('btn-run-ev','⏳...',true);
-  const gs=S.gs||{};const evIdx=gs.currentEvent||0;
-  const ev=getEffectiveEvent(evIdx);
-  if(!ev){toast('❌ ไม่พบ event',true);setBtn('btn-run-ev',null,false);return;}
+async function doRunEvent() {
+  setBtn('btn-run-ev', '⏳...', true);
+  const gs = S.gs||{}, evIdx = gs.currentEvent||0;
+  const ev = getEffectiveEvent(evIdx);
+  if (!ev) { toast('❌ ไม่พบ event', true); setBtn('btn-run-ev',null,false); return; }
 
-  const playerArr=Object.values(S.players);
-  const poolCap=(gs.globalConfig?.poolCap)||35;
+  const playerArr = Object.values(S.players);
+  const poolCap = (gs.globalConfig?.poolCap)||35;
 
-  if(ev.type==='regroup'){
-    // preDmg
-    const preDmg=ev.preDmg||0;
-    const updates={};
-    if(preDmg>0){
-      playerArr.filter(p=>p.alive).forEach(p=>{
-        const newHp=Math.max(0,(p.hp||0)-preDmg);
-        updates['players/'+p.id+'/hp']=newHp;
-        if(newHp<=0)updates['players/'+p.id+'/alive']=false;
+  if (ev.type === 'regroup') {
+    const preDmg = ev.preDmg||0;
+    const updates = {};
+    if (preDmg > 0) {
+      playerArr.filter(p=>p.alive).forEach(p => {
+        const newHp = Math.max(0,(p.hp||0)-preDmg);
+        updates['players/'+p.id+'/hp'] = newHp;
+        if (newHp <= 0) updates['players/'+p.id+'/alive'] = false;
       });
-      if(preDmg>0)updates['game/logs/'+Date.now()+'a']={ts:Date.now(),type:'b',msg:'Pre-damage: ทุกคน -'+preDmg+' HP'};
+      updates['game/logs/'+Date.now()+'a'] = {ts:Date.now(),type:'b',msg:'Pre-damage: ทุกคน -'+preDmg+' HP'};
     }
-    // Reset all groupIds
-    playerArr.filter(p=>p.alive).forEach(p=>{ updates['players/'+p.id+'/groupId']=-1; });
-    updates['game/state/phase']='regrouping';
-    updates['game/state/pendingConfirm']=true;
-    updates['game/state/pendingEventId']=ev.id;
-    updates['game/logs/'+Date.now()+'b']={ts:Date.now(),type:'w',msg:'Event '+ev.id+': '+ev.emoji+' '+ev.name+' — เปิดให้เลือกกลุ่มใหม่'};
-    await update(ref(db),updates);
-    setBtn('btn-run-ev',null,false);
+    playerArr.filter(p=>p.alive).forEach(p => { updates['players/'+p.id+'/groupId'] = -1; });
+    updates['game/state/phase'] = 'regrouping';
+    updates['game/state/pendingConfirm'] = true;
+    updates['game/state/pendingEventId'] = ev.id;
+    updates['game/logs/'+Date.now()+'b'] = {ts:Date.now(),type:'w',msg:'Event '+ev.id+': '+ev.emoji+' '+ev.name+' — เปิดให้เลือกกลุ่มใหม่'};
+    await update(ref(db), updates);
+    setBtn('btn-run-ev', null, false);
     toast('🔀 Regroup เปิดแล้ว');
     return;
   }
 
-  // Auto-discard event 6
-  if(ev.type==='discard'){
-    const cap=ev.poolCap||poolCap;
-    const updates={};
-    const groupIds=[...new Set(playerArr.filter(p=>p.alive).map(p=>p.groupId))].filter(id=>id>=0);
-    for(const gid of groupIds){
-      const members=playerArr.filter(p=>p.alive&&p.groupId==gid);
-      const total=members.reduce((s,m)=>s+(m.items||0),0);
-      if(total>cap){
-        let excess=total-cap;
-        const sorted=[...members].sort((a,b)=>(b.items||0)-(a.items||0));
-        for(const m of sorted){
-          if(excess<=0)break;
-          const cut=Math.min(excess,m.items||0);
-          updates['players/'+m.id+'/items']=(m.items||0)-cut;
-          excess-=cut;
-          updates['game/logs/'+Date.now()+'_'+m.id]={ts:Date.now(),type:'w',msg:m.name+' [auto-discard] ทิ้ง '+cut+' ชิ้น'};
+  if (ev.type === 'discard') {
+    const cap = ev.poolCap||poolCap;
+    const updates = {};
+    const groupIds = [...new Set(playerArr.filter(p=>p.alive).map(p=>p.groupId))].filter(id=>id>=0);
+    for (const gid of groupIds) {
+      const members = playerArr.filter(p => p.alive && p.groupId==gid);
+      const total = members.reduce((s,m)=>s+(m.items||0),0);
+      if (total > cap) {
+        let excess = total - cap;
+        const sorted = [...members].sort((a,b)=>(b.items||0)-(a.items||0));
+        for (const m of sorted) {
+          if (excess <= 0) break;
+          const cut = Math.min(excess, m.items||0);
+          updates['players/'+m.id+'/items'] = (m.items||0) - cut;
+          excess -= cut;
+          updates['game/logs/'+Date.now()+'_'+m.id] = {ts:Date.now(),type:'w',msg:m.name+' [auto-discard] ทิ้ง '+cut+' ชิ้น'};
         }
       }
     }
-    if(Object.keys(updates).length)await update(ref(db),updates);
+    if (Object.keys(updates).length) await update(ref(db), updates);
   }
 
-  await update(ref(db,'game/state'),{pendingConfirm:true,pendingEventId:ev.id});
-  await push(ref(db,'game/logs'),{ts:Date.now(),type:'w',msg:'Event '+ev.id+': '+ev.emoji+' '+ev.name});
-  setBtn('btn-run-ev',null,false);
-  toast('⚡ Event เปิดแล้ว รอ Players');
+  await update(ref(db,'game/state'), {pendingConfirm:true, pendingEventId:ev.id});
+  await push(ref(db,'game/logs'), {ts:Date.now(),type:'w',msg:'Event '+ev.id+': '+ev.emoji+' '+ev.name+' — รอผู้เล่นใช้ Items'});
+  setBtn('btn-run-ev', null, false);
+  toast('⚡ Event เปิดแล้ว');
 }
 
-async function doConfirmEvent(){
-  setBtn('btn-conf-ev','⏳...',true);
-  const gs=S.gs||{};const evIdx=gs.currentEvent||0;
-  const ev=getEffectiveEvent(evIdx);
-  const playerArr=Object.values(S.players);
-  const poolCap=(gs.globalConfig?.poolCap)||35;
+async function doConfirmEvent() {
+  setBtn('btn-conf-ev', '⏳...', true);
+  const gs = S.gs||{}, evIdx = gs.currentEvent||0;
+  const ev = getEffectiveEvent(evIdx);
+  const playerArr = Object.values(S.players);
+  const poolCap = (gs.globalConfig?.poolCap)||35;
 
-  // Build pool map
-  const poolMap={};
-  playerArr.forEach(p=>{
-    if(p.alive&&p.groupId>=0){
-      if(!poolMap[p.groupId])poolMap[p.groupId]={};
-      poolMap[p.groupId][p.dept]=(poolMap[p.groupId][p.dept]||0)+(p.items||0);
+  const poolMap = {};
+  playerArr.forEach(p => {
+    if (p.alive && p.groupId >= 0) {
+      if (!poolMap[p.groupId]) poolMap[p.groupId] = {};
+      poolMap[p.groupId][p.dept] = (poolMap[p.groupId][p.dept]||0) + (p.items||0);
     }
   });
 
-  // Apply damage
-  const dmgLogs=[];
-  const updates={};
-  applyDamage(ev,playerArr,poolMap,gs,poolCap,updates,dmgLogs);
+  const dmgLogs = [];
+  const updates = {};
+  const groupResults = {}; // สำหรับ Scoreboard
 
-  // Advance event
-  const nextEv=evIdx+1;
-  updates['game/state/pendingConfirm']=false;
-  updates['game/state/currentEvent']=nextEv;
-  updates['game/state/phase']=nextEv>=10?'result':'playing';
+  applyDamage(ev, playerArr, poolMap, gs, poolCap, updates, dmgLogs, groupResults);
 
-  // Write damage logs
-  dmgLogs.forEach((l,i)=>{ updates['game/logs/'+(Date.now()+i)+'_dl']={ts:Date.now()+i,...l}; });
+  const nextEv = evIdx + 1;
+  updates['game/state/pendingConfirm'] = false;
+  updates['game/state/currentEvent'] = nextEv;
+  updates['game/state/phase'] = nextEv >= 10 ? 'result' : 'playing';
 
-  await update(ref(db),updates);
-  setBtn('btn-conf-ev',null,false);
-  toast('✅ Event สรุปแล้ว');
+  // บันทึกผลลัพธ์ event เพื่อ Scoreboard
+  updates['game/eventHistory/'+evIdx] = {
+    id: ev.id, name: ev.name, emoji: ev.emoji, type: ev.type,
+    ts: Date.now(), results: groupResults
+  };
+
+  dmgLogs.forEach((l,i) => { updates['game/logs/'+(Date.now()+i)+'_dl'] = {ts:Date.now()+i,...l}; });
+
+  await update(ref(db), updates);
+  setBtn('btn-conf-ev', null, false);
+  toast('✅ Event '+ev.id+' สรุปแล้ว');
 }
 
-async function doConfirmRegroup(){
-  setBtn('btn-conf-rg','⏳...',true);
-  const gs=S.gs||{};const evIdx=gs.currentEvent||0;
-  const nextEv=evIdx+1;
-  await update(ref(db,'game/state'),{
-    phase:nextEv>=10?'result':'playing',
-    pendingConfirm:false,
-    currentEvent:nextEv
+async function doConfirmRegroup() {
+  setBtn('btn-conf-rg', '⏳...', true);
+  const gs = S.gs||{}, evIdx = gs.currentEvent||0;
+  const nextEv = evIdx + 1;
+  await update(ref(db,'game/state'), {
+    phase: nextEv >= 10 ? 'result' : 'playing',
+    pendingConfirm: false,
+    currentEvent: nextEv
   });
-  await push(ref(db,'game/logs'),{ts:Date.now(),type:'p',msg:'Regroup เสร็จสิ้น — Event '+(nextEv+1)+' พร้อมแล้ว'});
-  setBtn('btn-conf-rg',null,false);
+  await push(ref(db,'game/logs'), {ts:Date.now(),type:'p',msg:'🔀 Regroup เสร็จสิ้น — Event '+(nextEv+1)+' พร้อมแล้ว'});
+  setBtn('btn-conf-rg', null, false);
   toast('✅ Regroup สรุปแล้ว');
 }
 
-async function forceAssign(playerId,groupId){
-  if(groupId<0)return;
-  const gs=S.gs||{};
-  const g=S.groupStatus.find(x=>x.id==groupId);
-  if(g&&g.full){toast('❌ กลุ่มเต็ม',true);return;}
-  await update(ref(db,'players/'+playerId),{groupId:+groupId});
-  const gname=(gs.groupNames||GN)[groupId]||('G'+groupId);
-  const p=S.players[playerId];
-  await push(ref(db,'game/logs'),{ts:Date.now(),type:'w',msg:'Admin ย้าย '+(p?.name||playerId)+' ไปกลุ่ม '+gname});
+async function forceAssign(playerId, groupId) {
+  if (groupId < 0) return;
+  const gs = S.gs||{};
+  const g = S.groupStatus.find(x => x.id == groupId);
+  if (g && g.full) { toast('❌ กลุ่มเต็ม', true); return; }
+  await update(ref(db,'players/'+playerId), {groupId:+groupId});
+  const gname = (gs.groupNames||GN)[groupId]||('G'+groupId);
+  const p = S.players[playerId];
+  await push(ref(db,'game/logs'), {ts:Date.now(),type:'w',msg:'Admin ย้าย '+(p?.name||playerId)+' ไปกลุ่ม '+gname});
 }
 
-async function adminSetHP(playerId,hp){
-  const p=S.players[playerId];if(!p)return;
-  const newHp=Math.max(0,Math.min(hp,p.maxHp||8));
-  await update(ref(db,'players/'+playerId),{hp:newHp,alive:newHp>0});
-}
-async function adminSetItems(playerId,items){
-  await update(ref(db,'players/'+playerId),{items:Math.max(0,items)});
+async function adminSetHP(playerId, hp) {
+  const p = S.players[playerId]; if (!p) return;
+  const newHp = Math.max(0, Math.min(hp, p.maxHp||8));
+  await update(ref(db,'players/'+playerId), {hp:newHp, alive:newHp>0});
+  toast('💊 HP อัปเดต: '+p.name+' → '+newHp);
 }
 
-async function doRestart(){
-  if(!confirm('⚠️ Restart จะล้างข้อมูลทั้งหมด ยืนยัน?'))return;
-  await set(ref(db),{
-    game:{state:{gameStarted:false,phase:'lobby',currentEvent:0,pendingConfirm:false,groupCount:8,minGroupSize:5,maxGroupSize:7,defaultHp:8,groupNames:GN,eventConfig:{},globalConfig:{poolCap:35}},
-      logs:{[Date.now()]:{ts:Date.now(),type:'w',msg:'Restart — ระบบพร้อมใหม่'}}
+async function adminSetItems(playerId, items) {
+  await update(ref(db,'players/'+playerId), {items:Math.max(0,items)});
+}
+
+async function doRestart() {
+  if (!confirm('⚠️ Restart จะล้างข้อมูลทั้งหมด ยืนยัน?')) return;
+  await set(ref(db), {
+    game: {
+      state: {gameStarted:false,phase:'lobby',currentEvent:0,pendingConfirm:false,groupCount:8,minGroupSize:5,maxGroupSize:7,defaultHp:8,groupNames:GN,eventConfig:{},globalConfig:{poolCap:35}},
+      logs: {[Date.now()]:{ts:Date.now(),type:'w',msg:'🔄 Restart — ระบบพร้อมใหม่'}}
     }
   });
   toast('🔄 Restart แล้ว');
 }
 
 // ============================================================
-//  DAMAGE ENGINE (client-side, called by admin)
+//  DAMAGE ENGINE
 // ============================================================
-function applyDamage(ev,playerArr,poolMap,gs,poolCap,updates,logs){
-  const alive=p=>p.alive;
-  const dmgPlayer=(p,dmg)=>{
-    const newHp=Math.max(0,(p.hp||0)-dmg);
-    updates['players/'+p.id+'/hp']=newHp;
-    if(newHp<=0){updates['players/'+p.id+'/alive']=false;logs.push({type:'b',msg:p.name+' ถูกตัดออก'});}
+function applyDamage(ev, playerArr, poolMap, gs, poolCap, updates, logs, groupResults={}) {
+  const alive = p => p.alive;
+  const dmgPlayer = (p, dmg) => {
+    const newHp = Math.max(0, (p.hp||0) - dmg);
+    updates['players/'+p.id+'/hp'] = newHp;
+    if (newHp <= 0) { updates['players/'+p.id+'/alive'] = false; logs.push({type:'b',msg:'💀 '+p.name+' ถูกตัดออก'}); }
   };
 
-  if(ev.type==='global_per'||ev.type==='people_var'){
-    const groupIds=[...new Set(playerArr.filter(alive).map(p=>p.groupId))].filter(id=>id>=0);
-    groupIds.forEach(gid=>{
-      const pool=poolMap[gid]||{};
-      let req={};
-      if(ev.req)req=ev.req;
-      else if(ev.reqMultiplier){
-        const cnt=playerArr.filter(p=>p.groupId==gid&&p.alive).length;
-        Object.entries(ev.reqMultiplier).forEach(([d,m])=>{req[d]=cnt*m;});
+  if (ev.type==='global_per' || ev.type==='people_var') {
+    const groupIds = [...new Set(playerArr.filter(alive).map(p=>p.groupId))].filter(id=>id>=0);
+    groupIds.forEach(gid => {
+      const pool = poolMap[gid]||{};
+      let req = {};
+      if (ev.req) req = ev.req;
+      else if (ev.reqMultiplier) {
+        const cnt = playerArr.filter(p=>p.groupId==gid&&p.alive).length;
+        Object.entries(ev.reqMultiplier).forEach(([d,m]) => { req[d] = cnt*m; });
       }
-      const met=Object.entries(req).every(([d,n])=>(pool[d]||0)>=n);
-      const gname=(gs.groupNames||GN)[gid]||('G'+gid);
-      if(met){logs.push({type:'g',msg:gname+': ผ่าน ✓'});}
-      else{
-        const dmg=ev.dmg||0;
-        playerArr.filter(p=>p.groupId==gid&&p.alive).forEach(p=>dmgPlayer(p,dmg));
-        const missing=Object.entries(req).filter(([d,n])=>(pool[d]||0)<n).map(([d,n])=>(DEPTS[d]?.icon||d)+(pool[d]||0)+'/'+n).join(' ');
+      const met = Object.entries(req).every(([d,n]) => (pool[d]||0) >= n);
+      const gname = (gs.groupNames||GN)[gid]||('G'+gid);
+      groupResults[gid] = { name:gname, pass:met, dmg: met?0:(ev.dmg||0) };
+      if (met) { logs.push({type:'g',msg:gname+': ผ่าน ✓'}); }
+      else {
+        const dmg = ev.dmg||0;
+        playerArr.filter(p=>p.groupId==gid&&p.alive).forEach(p => dmgPlayer(p,dmg));
+        const missing = Object.entries(req).filter(([d,n])=>(pool[d]||0)<n).map(([d,n])=>(DEPTS[d]?.icon||d)+(pool[d]||0)+'/'+n).join(' ');
         logs.push({type:'b',msg:gname+': ไม่ผ่าน ['+missing+'] → -'+dmg+' HP'});
       }
     });
-  } else if(ev.type==='global_all'){
-    const total={};
-    Object.values(poolMap).forEach(pool=>{DK.forEach(d=>{total[d]=(total[d]||0)+(pool[d]||0);});});
-    if(ev.dmgWho==='tiered_shortage'&&ev.req){
-      let shortage=0;Object.entries(ev.req).forEach(([d,n])=>{shortage+=Math.max(0,n-(total[d]||0));});
-      const tier=ev.dmgTiers.find(t=>shortage<=t.max)||ev.dmgTiers[ev.dmgTiers.length-1];
-      if(tier.dmg>0){playerArr.filter(alive).forEach(p=>dmgPlayer(p,tier.dmg));logs.push({type:'b',msg:'Pool ขาด '+shortage+' → ทุกคน -'+tier.dmg+' HP'});}
-      else logs.push({type:'g',msg:'Pool ผ่าน!'});
-    } else if(ev.dmgWho==='tiered_missing_types'&&ev.req){
-      const missing=Object.entries(ev.req).filter(([d,n])=>(total[d]||0)<n).length;
-      const tier=ev.dmgTiers.find(t=>missing<=t.max)||ev.dmgTiers[ev.dmgTiers.length-1];
-      if(tier.dmg>0){playerArr.filter(alive).forEach(p=>dmgPlayer(p,tier.dmg));logs.push({type:'b',msg:'ขาด '+missing+' ประเภท → ทุกคน -'+tier.dmg+' HP'});}
-      else logs.push({type:'g',msg:'ผ่านทุกประเภท!'});
+  } else if (ev.type === 'global_all') {
+    const total = {};
+    Object.values(poolMap).forEach(pool => { DK.forEach(d => { total[d] = (total[d]||0) + (pool[d]||0); }); });
+    if (ev.dmgWho==='tiered_shortage' && ev.req) {
+      let shortage = 0;
+      Object.entries(ev.req).forEach(([d,n]) => { shortage += Math.max(0,n-(total[d]||0)); });
+      const tier = ev.dmgTiers.find(t=>shortage<=t.max)||ev.dmgTiers[ev.dmgTiers.length-1];
+      groupResults['global'] = { pass:tier.dmg===0, dmg:tier.dmg, shortage };
+      if (tier.dmg > 0) {
+        playerArr.filter(alive).forEach(p => dmgPlayer(p,tier.dmg));
+        logs.push({type:'b',msg:'Pool ขาด '+shortage+' → ทุกคน -'+tier.dmg+' HP'});
+      } else logs.push({type:'g',msg:'Pool รวมผ่าน!'});
+    } else if (ev.dmgWho==='tiered_missing_types' && ev.req) {
+      const missing = Object.entries(ev.req).filter(([d,n])=>(total[d]||0)<n).length;
+      const tier = ev.dmgTiers.find(t=>missing<=t.max)||ev.dmgTiers[ev.dmgTiers.length-1];
+      groupResults['global'] = { pass:tier.dmg===0, dmg:tier.dmg, missingTypes:missing };
+      if (tier.dmg > 0) {
+        playerArr.filter(alive).forEach(p => dmgPlayer(p,tier.dmg));
+        logs.push({type:'b',msg:'ขาด '+missing+' ประเภท → ทุกคน -'+tier.dmg+' HP'});
+      } else logs.push({type:'g',msg:'ผ่านทุกประเภท!'});
     }
-  } else if(ev.type==='discard'){
+  } else if (ev.type === 'discard') {
     logs.push({type:'w',msg:'Discard event สิ้นสุด'});
+    groupResults['global'] = { pass:true, dmg:0 };
   }
 }
 
 // expose to onclick
-window.switchTab=switchTab;window.renderGamePanel=renderGamePanel;
-window.doInitGame=doInitGame;window.doStartGame=doStartGame;
-window.doRunEvent=doRunEvent;window.doConfirmEvent=doConfirmEvent;
-window.doConfirmRegroup=doConfirmRegroup;window.forceAssign=forceAssign;
-window.doRestart=doRestart;window.adminSetHP=adminSetHP;window.adminSetItems=adminSetItems;
-window.saveEvReq=saveEvReq;window.saveEvCfg=saveEvCfg;window.saveGlobalCfg=saveGlobalCfg;
-window.renderEvCfgTable=renderEvCfgTable;
+window.switchTab=switchTab; window.renderGamePanel=renderGamePanel;
+window.doInitGame=doInitGame; window.doStartGame=doStartGame;
+window.doRunEvent=doRunEvent; window.doConfirmEvent=doConfirmEvent;
+window.doConfirmRegroup=doConfirmRegroup; window.forceAssign=forceAssign;
+window.doRestart=doRestart; window.adminSetHP=adminSetHP; window.adminSetItems=adminSetItems;
+window.saveEvReq=saveEvReq; window.saveEvCfg=saveEvCfg; window.saveGlobalCfg=saveGlobalCfg;
+window.renderEvCfgTable=renderEvCfgTable; window.scheduleRender=scheduleRender; window.clearLog=clearLog;
 </script>
 </body>
 </html>
