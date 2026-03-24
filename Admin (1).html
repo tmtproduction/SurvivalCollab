@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Survival — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080c10;--sur:#0f1820;--sur2:#162030;--brd:#1e3040;--brd2:#2a4050;--txt:#c0d0e0;--dim:#506070;--amber:#f5a623;--green:#3dba6a;--red:#e84040;--orange:#ff6b35;--purple:#ce93d8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Sarabun',sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(30,48,64,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(30,48,64,.18) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:14px}
+.hdr{padding:11px 0 9px;margin-bottom:10px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.hdr-title{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:8px;color:var(--amber)}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.badge-live{background:rgba(61,186,106,.1);color:var(--green);border:1px solid rgba(61,186,106,.3);padding:3px 10px;border-radius:20px;font-family:'Space Mono',monospace;font-size:.58rem;font-weight:700;display:flex;align-items:center;gap:4px}
+.pdot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+.pdot.off{background:var(--red);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.topbar{display:flex;gap:8px;flex-wrap:wrap;padding:8px 12px;background:var(--sur);border:1px solid var(--brd);border-radius:8px;margin-bottom:10px;align-items:center}
+.tst{display:flex;flex-direction:column;align-items:center;gap:1px}
+.tst-val{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--amber)}
+.tst-val-r{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--red)}
+.tst-lbl{font-family:'Space Mono',monospace;font-size:.5rem;color:var(--dim);letter-spacing:1px}
+.tdiv{width:1px;height:28px;background:var(--brd)}
+.evprog{display:flex;gap:2px;margin-bottom:8px}
+.ep{flex:1;height:5px;border-radius:3px;background:var(--brd2)}
+.ep-done{background:var(--green)}.ep-cur{background:var(--amber);box-shadow:0 0 6px rgba(245,166,35,.5)}
+.ep-rg-cur{background:var(--purple)}.ep-disc-cur{background:var(--orange)}
+.tabs{display:flex;border-bottom:1px solid var(--brd);margin-bottom:10px;flex-wrap:wrap}
+.tab{padding:7px 14px;font-family:'Space Mono',monospace;font-size:.63rem;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent}
+.tab-active{color:var(--amber);border-bottom-color:var(--amber)}
+.panel{display:none}.panel-on{display:block}
+.btn{padding:7px 16px;border-radius:6px;border:none;cursor:pointer;font-family:'Space Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:1px;transition:.15s}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-p{background:var(--amber);color:#000}.btn-s{background:transparent;color:var(--txt);border:1px solid var(--brd2)}
+.btn-r{background:rgba(232,64,64,.12);color:var(--red);border:1px solid rgba(232,64,64,.3)}
+.btn-g{background:rgba(61,186,106,.12);color:var(--green);border:1px solid rgba(61,186,106,.3)}
+.btn-pu{background:rgba(206,147,216,.12);color:var(--purple);border:1px solid rgba(206,147,216,.3)}
+.st{font-family:'Bebas Neue',sans-serif;font-size:.82rem;letter-spacing:5px;color:var(--dim);margin-bottom:7px;display:flex;align-items:center;gap:8px}
+.st::after{content:'';flex:1;height:1px;background:var(--brd)}
+.atable{width:100%;border-collapse:collapse;font-size:.74rem}
+.atable th{font-family:'Space Mono',monospace;font-size:.54rem;letter-spacing:1px;color:var(--dim);text-align:left;padding:4px 7px;border-bottom:1px solid var(--brd);position:sticky;top:0;background:var(--sur)}
+.atable td{padding:4px 7px;border-bottom:1px solid rgba(30,48,64,.4);vertical-align:middle}
+.tscroll{max-height:420px;overflow-y:auto;border:1px solid var(--brd);border-radius:7px}
+.ain{background:var(--sur2);border:1px solid var(--brd2);color:var(--txt);padding:3px 5px;border-radius:3px;font-family:'Space Mono',monospace;font-size:.68rem;text-align:center;width:52px}
+.ain:focus{outline:1px solid var(--amber)}
+.dtag{font-family:'Space Mono',monospace;font-size:.54rem;padding:2px 5px;border-radius:3px;font-weight:700;display:inline-block}
+.ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px;margin-bottom:10px}
+.gcard{background:var(--sur);border:1px solid var(--brd);border-radius:9px;padding:10px;position:relative;overflow:hidden}
+.gcard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--amber),transparent)}
+.gname{font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:3px;color:var(--amber)}
+.pool-row{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0 6px}
+.ib{display:flex;align-items:center;gap:2px;border:1px solid var(--brd2);border-radius:3px;padding:2px 5px;font-size:.63rem;font-family:'Space Mono',monospace;background:var(--sur2)}
+.iv{font-weight:700;color:var(--amber)}
+.mlist-a{display:flex;flex-direction:column;gap:2px;max-height:140px;overflow-y:auto}
+.mrow{display:flex;align-items:center;justify-content:space-between;padding:2px 5px;background:var(--sur2);border-radius:3px;font-size:.67rem}
+.mrow-dead{opacity:.22;text-decoration:line-through}
+.ev-card{background:rgba(245,166,35,.05);border:1px solid rgba(245,166,35,.2);border-radius:9px;padding:13px;margin-bottom:10px;position:relative;overflow:hidden}
+.ev-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--amber),transparent)}
+.ev-card.regroup{background:rgba(206,147,216,.05);border-color:rgba(206,147,216,.25)}
+.ev-card.regroup::before{background:linear-gradient(90deg,var(--purple),transparent)}
+.ev-title{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:4px;color:var(--amber)}
+.ev-title.regroup{color:var(--purple)}
+.logbox{background:var(--sur);border:1px solid var(--brd);border-radius:7px;padding:8px;max-height:200px;overflow-y:auto;font-family:'Space Mono',monospace;font-size:.63rem;line-height:1.9}
+.le{padding:1px 0;border-bottom:1px solid rgba(30,48,64,.4)}.le:last-child{border:none}
+.lg{color:var(--green)}.lb{color:var(--red)}.lw{color:var(--amber)}.li{color:var(--dim)}.lp{color:var(--purple)}
+.rg-row{display:flex;align-items:center;justify-content:space-between;padding:4px 7px;background:var(--sur2);border-radius:4px;margin-bottom:3px;font-size:.68rem}
+.rg-row select{background:var(--sur);border:1px solid var(--brd2);color:var(--txt);padding:3px 5px;border-radius:3px;font-family:'Space Mono',monospace;font-size:.6rem;cursor:pointer}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--sur);border:1px solid var(--amber);color:var(--amber);padding:8px 16px;border-radius:8px;font-family:'Space Mono',monospace;font-size:.68rem;z-index:500;display:none}
+.cfg-section{background:var(--sur);border:1px solid var(--brd);border-radius:8px;padding:13px;margin-bottom:9px}
+.cfg-section h3{font-weight:700;margin-bottom:9px;font-size:.88rem}
+.cfg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:7px}
+.cfg-row{display:flex;flex-direction:column;gap:3px}
+.cfg-lbl{font-family:'Space Mono',monospace;font-size:.56rem;color:var(--dim);letter-spacing:1px}
+.cfg-row input,.cfg-row select{background:var(--sur2);border:1px solid var(--brd2);color:var(--txt);padding:5px 8px;border-radius:5px;font-family:'Space Mono',monospace;font-size:.73rem;outline:none}
+.cfg-row input:focus{border-color:var(--amber)}
+.ev-cfg-table{width:100%;border-collapse:collapse;font-size:.7rem}
+.ev-cfg-table th{font-family:'Space Mono',monospace;font-size:.53rem;color:var(--dim);text-align:left;padding:4px 5px;border-bottom:1px solid var(--brd)}
+.ev-cfg-table td{padding:4px 5px;border-bottom:1px solid rgba(30,48,64,.4);vertical-align:middle}
+.ev-cfg-table input{background:var(--sur2);border:1px solid var(--brd2);color:var(--txt);padding:2px 5px;border-radius:3px;font-family:'Space Mono',monospace;font-size:.68rem;text-align:center;width:50px}
+.ev-cfg-table input:focus{outline:1px solid var(--amber)}
+.unassigned-box{background:rgba(232,64,64,.05);border:1px solid rgba(232,64,64,.2);border-radius:7px;padding:10px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <div class="hdr-title">⚙️ SURVIVAL — ADMIN</div>
+    <div class="hdr-right">
+      <div class="badge-live"><div class="pdot" id="conn-dot"></div><span id="conn-txt">connecting...</span></div>
+      <button class="btn btn-r" id="btn-restart" onclick="doRestart()" style="font-size:.62rem;padding:5px 11px">🔄 Restart</button>
+    </div>
+  </div>
+  <div class="topbar">
+    <div class="tst"><div class="tst-val" id="tb-ev">—/10</div><div class="tst-lbl">EVENT</div></div>
+    <div class="tdiv"></div>
+    <div class="tst"><div class="tst-val" id="tb-pl">0</div><div class="tst-lbl">PLAYERS</div></div>
+    <div class="tdiv"></div>
+    <div class="tst"><div class="tst-val" id="tb-al">0</div><div class="tst-lbl">ALIVE</div></div>
+    <div class="tdiv"></div>
+    <div class="tst"><div class="tst-val-r" id="tb-de">0</div><div class="tst-lbl">DEAD</div></div>
+    <div class="tdiv"></div>
+    <div class="tst"><div class="tst-val" id="tb-gr">—</div><div class="tst-lbl">GROUPS</div></div>
+  </div>
+  <div class="evprog" id="evprog"></div>
+  <div class="tabs">
+    <div class="tab tab-active" id="tab-game"     onclick="switchTab('game')">🎮 GAME</div>
+    <div class="tab" id="tab-players"  onclick="switchTab('players')">👥 PLAYERS</div>
+    <div class="tab" id="tab-groups"   onclick="switchTab('groups')">🔀 GROUPS</div>
+    <div class="tab" id="tab-log"      onclick="switchTab('log')">📋 LOG</div>
+    <div class="tab" id="tab-config"   onclick="switchTab('config')">⚙️ CONFIG</div>
+    <div class="tab" id="tab-settings" onclick="switchTab('settings')">🚀 SETUP</div>
+  </div>
+  <div class="panel panel-on" id="panel-game"><div id="game-content"><div style="text-align:center;padding:30px;font-family:monospace;color:var(--dim)">กำลังเชื่อมต่อ Firebase...</div></div></div>
+  <div class="panel" id="panel-players">
+    <div class="st">ผู้เล่น</div>
+    <div class="tscroll"><table class="atable"><thead><tr><th>แผนก</th><th>ชื่อ</th><th>Row</th><th>Items</th><th>HP</th><th>กลุ่ม</th><th>สถานะ</th></tr></thead><tbody id="players-body"></tbody></table></div>
+  </div>
+  <div class="panel" id="panel-groups">
+    <div class="st">กลุ่ม</div>
+    <div class="ggrid" id="groups-grid"></div>
+  </div>
+  <div class="panel" id="panel-log">
+    <div class="st">Event Log</div>
+    <div class="logbox" id="full-log"></div>
+  </div>
+  <div class="panel" id="panel-config">
+    <div class="st">ปรับเงื่อนไขเกม</div>
+    <div class="cfg-section">
+      <h3>Global Config</h3>
+      <div class="cfg-grid">
+        <div class="cfg-row"><div class="cfg-lbl">Pool Cap (Event 6)</div><input id="cfg-poolcap" type="number" min="1" max="999" value="35" onchange="saveGlobalCfg('poolCap',+this.value)"></div>
+        <div class="cfg-row"><div class="cfg-lbl">HP เริ่มต้น</div><input id="cfg-hp" type="number" min="1" max="30" value="8" onchange="saveGlobalCfg('defaultHp',+this.value)"></div>
+      </div>
+    </div>
+    <div class="cfg-section">
+      <h3>Event Config</h3>
+      <div class="tscroll" style="max-height:none">
+        <table class="ev-cfg-table"><thead><tr><th>ID</th><th>ชื่อ</th><th>Type</th><th>Req (JSON)</th><th>DMG</th><th>preDmg</th><th>poolCap</th></tr></thead>
+        <tbody id="ev-cfg-body"></tbody></table>
+      </div>
+      <div style="margin-top:6px;font-family:monospace;font-size:.6rem;color:var(--dim)">Req ใส่เป็น JSON เช่น {"PD1":5} · บันทึกอัตโนมัติ</div>
+    </div>
+  </div>
+  <div class="panel" id="panel-settings">
+    <div class="st">Setup</div>
+    <div class="cfg-section">
+      <h3>Init Game</h3>
+      <div class="cfg-grid" style="margin-bottom:10px">
+        <div class="cfg-row"><div class="cfg-lbl">จำนวนกลุ่ม</div>
+          <select id="s-gcount"><option value="6">6</option><option value="7">7</option><option value="8" selected>8</option><option value="10">10</option><option value="14">14</option><option value="20">20</option></select>
+        </div>
+        <div class="cfg-row"><div class="cfg-lbl">Min คน/กลุ่ม</div><input id="s-min" type="number" min="2" max="10" value="5"></div>
+        <div class="cfg-row"><div class="cfg-lbl">Max คน/กลุ่ม</div><input id="s-max" type="number" min="3" max="20" value="7"></div>
+        <div class="cfg-row"><div class="cfg-lbl">HP เริ่มต้น</div><input id="s-hp" type="number" min="1" max="30" value="8"></div>
+      </div>
+      <button class="btn btn-p" id="btn-init" onclick="doInitGame()">⚡ Init Game</button>
+    </div>
+    <div class="cfg-section">
+      <h3>Start Game</h3>
+      <button class="btn btn-p" id="btn-start" onclick="doStartGame()">▶ Start Game</button>
+    </div>
+    <div class="cfg-section" style="border-color:rgba(232,64,64,.3)">
+      <h3 style="color:var(--red)">Danger</h3>
+      <button class="btn btn-r" id="btn-restart2" onclick="doRestart()">🔄 Restart ล้างทั้งหมด</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, get, update, push, remove, onValue, off, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDEuYNbzokspK53qc2wZ8t_35e_KLl_8HA",
+  authDomain: "survival-collab.firebaseapp.com",
+  databaseURL: "https://survival-collab-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "survival-collab",
+  storageBucket: "survival-collab.firebasestorage.app",
+  messagingSenderId: "232280589644",
+  appId: "1:232280589644:web:5a32f52e5d4c4cf2f5fbe9"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+
+const DEPTS = {
+  PD1:{item:'เข็มทิศ',icon:'🧭',color:'#4fc3f7'},
+  PD2:{item:'ข้อมูล',icon:'📋',color:'#81c784'},
+  PD3:{item:'อาหาร',icon:'🍖',color:'#ffd54f'},
+  QA:{item:'เงิน',icon:'💰',color:'#f06292'},
+  EN:{item:'ยา',icon:'💊',color:'#ce93d8'},
+  MN:{item:'เครื่องมือ',icon:'🔧',color:'#ff8a65'}
+};
+const DK = ['PD1','PD2','PD3','QA','EN','MN'];
+const GN = ['ALPHA','BETA','GAMMA','DELTA','EPSILON','ZETA','ETA','THETA','IOTA','KAPPA','LAMBDA','MU','NU','XI','OMICRON','PI','RHO','SIGMA','TAU','UPSILON'];
+const DEFAULT_EVENTS = [
+  {id:1,name:'หลงทาง',emoji:'🗺',type:'global_per',req:{PD1:5},dmg:2,desc:'แต่ละกลุ่มต้องมีเข็มทิศ 5 ชิ้น'},
+  {id:2,name:'หิวโหย',emoji:'🍖',type:'global_per',req:{PD3:5},dmg:3,desc:'แต่ละกลุ่มต้องมีอาหาร 5 ชิ้น'},
+  {id:3,name:'บาดเจ็บ',emoji:'🩹',type:'global_per',req:{EN:6},dmg:3,desc:'แต่ละกลุ่มต้องมียา 6 ชิ้น'},
+  {id:4,name:'แผ่นดินไหว',emoji:'🌋',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
+  {id:5,name:'สร้างแพ',emoji:'🛖',type:'people_var',reqMultiplier:{MN:2},dmg:3,desc:'ต้องมีเครื่องมือ = คนมีชีวิต × 2'},
+  {id:6,name:'สถานการณ์ฉุกเฉิน',emoji:'⚖',type:'discard',poolCap:35,desc:'แต่ละกลุ่มถือได้ไม่เกิน 35 ชิ้น'},
+  {id:7,name:'หนาวจัด',emoji:'🥶',type:'global_per',req:{PD3:1,MN:2},dmg:4,desc:'ต้องมีอาหาร 1 + เครื่องมือ 2 ชิ้น'},
+  {id:8,name:'ไฟป่า',emoji:'🔥',type:'regroup',preDmg:2,desc:'ทุกคน -2 HP ก่อน แล้วเลือกกลุ่มใหม่'},
+  {id:9,name:'โรคระบาด',emoji:'🦠',type:'global_all',req:{EN:40,QA:20,MN:40},dmgWho:'tiered_shortage',dmgTiers:[{max:0,dmg:0},{max:10,dmg:1},{max:20,dmg:2},{max:999,dmg:3}],desc:'รวม Pool ทั้งหมด'},
+  {id:10,name:'หนีรอด',emoji:'🚁',type:'global_all',req:{PD1:30,PD3:30,EN:20,PD2:20,QA:15,MN:15},dmgWho:'tiered_missing_types',dmgTiers:[{max:0,dmg:0},{max:2,dmg:1},{max:4,dmg:2},{max:6,dmg:3}],desc:'รวม Pool สุดท้าย'},
+];
+
+let S = { gs:null, players:{}, logs:[], groupStatus:[], activeTab:'game' };
+
+function h(tag,attrs,inner){ return '<'+tag+(attrs?' '+attrs:'')+'>'+(inner!==undefined?inner:'')+'</'+tag+'>'; }
+function toast(msg,isErr){
+  const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';
+  t.style.borderColor=isErr?'var(--red)':'var(--amber)';t.style.color=isErr?'var(--red)':'var(--amber)';
+  clearTimeout(t._to);t._to=setTimeout(()=>{t.style.display='none';},3000);
+}
+function setBtn(id,txt,disabled){const b=document.getElementById(id);if(b){if(txt)b.textContent=txt;b.disabled=!!disabled;}}
+
+// ============================================================
+//  FIREBASE LISTENERS — real-time, instant
+// ============================================================
+onValue(ref(db,'game/state'), snap => {
+  S.gs = snap.val();
+  buildGroupStatus();
+  updateTopbar();
+  updateEvProg();
+  renderActivePanel();
+});
+
+onValue(ref(db,'players'), snap => {
+  S.players = snap.val() || {};
+  buildGroupStatus();
+  updateTopbar();
+  renderActivePanel();
+});
+
+onValue(ref(db,'game/logs'), snap => {
+  const raw = snap.val() || {};
+  S.logs = Object.values(raw).sort((a,b)=>(a.ts||0)-(b.ts||0));
+  if (S.activeTab==='log') renderLogPanel();
+  // update mini log in game panel
+  updateMiniLog();
+});
+
+// Connection status
+onValue(ref(db,'.info/connected'), snap => {
+  const connected = snap.val();
+  const dot = document.getElementById('conn-dot');
+  const txt = document.getElementById('conn-txt');
+  if (dot) dot.className = 'pdot'+(connected?'':' off');
+  if (txt) txt.textContent = connected?'live':'offline';
+});
+
+function buildGroupStatus(){
+  const gs = S.gs || {};
+  const maxGS = gs.maxGroupSize||7; const minGS = gs.minGroupSize||5;
+  const gc = gs.groupCount||8; const names = gs.groupNames||GN;
+  const playerArr = Object.values(S.players);
+  S.groupStatus = Array.from({length:gc},(_,i)=>{
+    const members = playerArr.filter(p=>p.groupId==i);
+    const pool={};
+    members.filter(p=>p.alive).forEach(p=>{ pool[p.dept]=(pool[p.dept]||0)+(p.items||0); });
+    return {id:i,name:names[i]||('G'+(i+1)),count:members.length,max:maxGS,min:minGS,full:members.length>=maxGS,members,pool};
+  });
+}
+
+function updateTopbar(){
+  const gs=S.gs||{};const pa=Object.values(S.players);
+  const alive=pa.filter(p=>p.alive).length;
+  document.getElementById('tb-ev').textContent=Math.min((gs.currentEvent||0)+1,10)+'/10';
+  document.getElementById('tb-pl').textContent=pa.length;
+  document.getElementById('tb-al').textContent=alive;
+  document.getElementById('tb-de').textContent=pa.length-alive;
+  document.getElementById('tb-gr').textContent=gs.groupCount||'—';
+}
+
+function updateEvProg(){
+  const gs=S.gs||{};const cur=gs.currentEvent||0;
+  const types=['','global_per','global_per','global_per','regroup','people_var','discard','global_per','regroup','global_all','global_all'];
+  let html='';
+  for(let i=0;i<10;i++){
+    const t=types[i+1]||'';let cls='ep';
+    if(i<cur)cls+=' ep-done';
+    else if(i===cur)cls+=(t==='regroup'?' ep-rg-cur':t==='discard'?' ep-disc-cur':' ep-cur');
+    html+='<div class="'+cls+'" title="Event '+(i+1)+'"></div>';
+  }
+  document.getElementById('evprog').innerHTML=html;
+}
+
+function updateMiniLog(){
+  const lb=document.getElementById('mini-log');if(!lb)return;
+  lb.innerHTML=renderLogItems(S.logs.slice(-15));
+  lb.scrollTop=lb.scrollHeight;
+}
+
+// ============================================================
+//  TABS
+// ============================================================
+function switchTab(name){
+  S.activeTab=name;
+  ['game','players','groups','log','config','settings'].forEach(t=>{
+    document.getElementById('tab-'+t)?.setAttribute('class','tab'+(t===name?' tab-active':''));
+    const p=document.getElementById('panel-'+t);if(p)p.className='panel'+(t===name?' panel-on':'');
+  });
+  renderActivePanel();
+  if(name==='config')renderEvCfgTable();
+}
+
+function renderActivePanel(){
+  if(S.activeTab==='game')renderGamePanel();
+  else if(S.activeTab==='players')renderPlayersPanel();
+  else if(S.activeTab==='groups')renderGroupsPanel();
+  else if(S.activeTab==='log')renderLogPanel();
+}
+
+// ============================================================
+//  GAME PANEL
+// ============================================================
+function renderGamePanel(){
+  const el=document.getElementById('game-content');if(!el)return;
+  const gs=S.gs||{};const phase=gs.phase||'lobby';
+
+  if(phase==='lobby'){
+    const gsHtml=S.groupStatus.map(g=>{
+      const tags=g.members.map(m=>h('span','style="font-size:.66rem;padding:2px 5px;border-radius:3px;background:var(--sur2);font-family:monospace"',(DEPTS[m.dept]?.icon||'')+' '+m.name)).join('');
+      return h('div','style="background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:8px 10px;margin-bottom:5px"',
+        h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"',
+          h('span','style="font-family:\'Bebas Neue\',sans-serif;letter-spacing:3px;color:var(--amber)"',g.name)+
+          h('span','style="font-family:monospace;font-size:.58rem;color:'+(g.full?'var(--red)':'var(--dim)')+'"',g.count+'/'+g.max+(g.full?' FULL':''))
+        )+h('div','style="display:flex;flex-wrap:wrap;gap:3px"',tags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
+      );
+    }).join('');
+    el.innerHTML=gsHtml+h('div','style="margin-top:10px;display:flex;gap:8px"',h('button','id="btn-start" class="btn btn-p" onclick="doStartGame()"','▶ Start Game'));
+    return;
+  }
+
+  if(phase==='result'){
+    el.innerHTML='<div style="text-align:center;padding:40px"><div style="font-size:3rem">🏁</div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;letter-spacing:6px;color:var(--amber);margin-top:10px">จบเกม!</div></div>';return;
+  }
+
+  if(phase==='regrouping'){
+    el.innerHTML=renderRegroupingPanel();return;
+  }
+
+  // playing
+  const evIdx=gs.currentEvent||0;const ev=getEffectiveEvent(evIdx);
+  const pending=gs.pendingConfirm;
+  let out='';
+
+  if(ev){
+    out+=h('div','class="ev-card"',
+      h('div','style="font-family:\'Space Mono\',monospace;font-size:.53rem;color:var(--dim);margin-bottom:3px"','EVENT '+(evIdx+1)+' / 10')+
+      h('div','style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"',
+        h('span','style="font-size:1.7rem"',ev.emoji)+
+        h('div','',h('div','class="ev-title"',ev.name)+h('div','style="font-size:.8rem;margin-top:2px"',ev.desc))
+      )
+    );
+  }
+
+  if(!pending){
+    out+=h('div','style="margin-top:9px;display:flex;gap:7px;flex-wrap:wrap"',
+      h('button','id="btn-run-ev" class="btn btn-p" onclick="doRunEvent()"','⚡ เปิด Event '+(evIdx+1)+(ev?' '+ev.emoji+' '+ev.name:''))
+    );
+  } else {
+    out+=h('div','style="background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.2);border-radius:7px;padding:11px;margin-top:9px"',
+      h('div','style="font-family:\'Space Mono\',monospace;font-size:.6rem;color:var(--amber);margin-bottom:7px"','⏳ รอ Players ใช้ items...')+
+      h('button','id="btn-conf-ev" class="btn btn-p" onclick="doConfirmEvent()"','✅ Confirm → Apply Damage')
+    );
+  }
+
+  out+=h('div','style="margin-top:10px"',
+    h('div','class="st"','LOG')+
+    h('div','class="logbox" id="mini-log"',renderLogItems(S.logs.slice(-15)))
+  );
+  el.innerHTML=out;
+  updateMiniLog();
+}
+
+function renderRegroupingPanel(){
+  const gs=S.gs||{};const evIdx=gs.currentEvent||0;const ev=getEffectiveEvent(evIdx)||{};
+  const playerArr=Object.values(S.players);
+  const alive=playerArr.filter(p=>p.alive);
+  const assigned=alive.filter(p=>p.groupId>=0);
+  const unassigned=alive.filter(p=>p.groupId<0);
+
+  const gsHtml=S.groupStatus.map(g=>{
+    const tags=g.members.map(m=>h('span','style="font-size:.66rem;padding:2px 5px;border-radius:3px;background:var(--sur2);font-family:monospace"',(DEPTS[m.dept]?.icon||'')+' '+m.name)).join('');
+    return h('div','style="background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:7px 9px;margin-bottom:4px"',
+      h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"',
+        h('span','style="font-family:\'Bebas Neue\',sans-serif;letter-spacing:3px;color:var(--purple)"',g.name)+
+        h('span','style="font-family:monospace;font-size:.58rem;color:'+(g.full?'var(--red)':'var(--dim)')+'"',g.count+'/'+g.max+(g.full?' FULL':''))
+      )+h('div','style="display:flex;flex-wrap:wrap;gap:3px"',tags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
+    );
+  }).join('');
+
+  const unassignedHtml=unassigned.length?h('div','class="unassigned-box"',
+    h('div','style="font-family:monospace;font-size:.6rem;color:var(--red);margin-bottom:5px"','⚠️ ยังไม่เลือก '+unassigned.length+' คน')+
+    unassigned.map(p=>{
+      const d=DEPTS[p.dept]||{};
+      const opts=S.groupStatus.map(g=>h('option','value="'+g.id+'"'+(g.full?' disabled':''),g.name+(g.full?' (เต็ม)':''))).join('');
+      return h('div','style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(232,64,64,.1)"',
+        h('span','style="font-size:.7rem"',d.icon+' '+p.name)+
+        h('select','onchange="forceAssign(\''+p.id+'\',+this.value)" style="background:var(--sur);border:1px solid var(--brd2);color:var(--txt);padding:3px 5px;border-radius:4px;font-family:monospace;font-size:.6rem;cursor:pointer"',
+          h('option','value="-1"','เลือก...')+opts
+        )
+      );
+    }).join('')
+  ):'';
+
+  return h('div','class="ev-card regroup"',
+    h('div','style="font-size:.53rem;font-family:monospace;color:var(--dim);margin-bottom:2px"','EVENT '+(evIdx+1)+' / 10')+
+    h('div','style="display:flex;align-items:center;gap:8px"',
+      h('span','style="font-size:1.5rem"',ev.emoji||'🔀')+
+      h('div','class="ev-title regroup"',ev.name||'Regroup')
+    )+
+    h('div','style="font-size:.78rem;margin-top:3px"','รอ Players เลือกกลุ่มใหม่ (5-7 คน)')+
+    h('div','style="font-family:monospace;font-size:.65rem;margin-top:5px"',
+      h('span','style="color:var(--green)"','✓ '+assigned.length+' คน')+
+      h('span','style="color:var(--dim)">  /  '+alive.length)+
+      h('span','style="color:'+(unassigned.length?'var(--red)':'var(--dim)')+'"','  ยังไม่เลือก '+unassigned.length)
+    )
+  )+
+  h('div','style="margin-top:8px"',gsHtml)+
+  unassignedHtml+
+  h('div','style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap"',
+    h('button','id="btn-conf-rg" class="btn btn-p" onclick="doConfirmRegroup()"','✅ Confirm Regroup ('+assigned.length+'/'+alive.length+')')+
+    h('button','class="btn btn-s" onclick="renderGamePanel()"','🔄 Refresh')
+  );
+}
+
+// ============================================================
+//  PLAYERS PANEL
+// ============================================================
+function renderPlayersPanel(){
+  const tbody=document.getElementById('players-body');if(!tbody)return;
+  const playerArr=Object.values(S.players);
+  if(!playerArr.length){tbody.innerHTML=h('tr','',h('td','colspan="7" style="text-align:center;padding:16px;font-family:monospace;font-size:.7rem;color:var(--dim)"','ยังไม่มีผู้เล่น'));return;}
+  tbody.innerHTML=playerArr.map(p=>{
+    const d=DEPTS[p.dept]||{};
+    const g=S.groupStatus.find(x=>x.id==p.groupId);
+    const hc=p.hp<=2?'var(--red)':p.hp<=4?'#ff9800':'var(--green)';
+    return h('tr',!p.alive?'style="opacity:.35"':'',
+      h('td','',h('div','class="dtag" style="background:'+d.color+'22;color:'+d.color+';border:1px solid '+d.color+'44"',d.icon+' '+p.dept))+
+      h('td','style="font-size:.76rem"',p.name)+
+      h('td','style="font-family:monospace;font-size:.6rem;color:var(--dim)"',p.row||'—')+
+      h('td','',h('input','class="ain" type="number" min="0" max="999" value="'+(p.items||0)+'" onblur="adminSetItems(\''+p.id+'\',+this.value)"',''))+
+      h('td','',h('input','class="ain" type="number" min="0" max="'+(p.maxHp||8)+'" value="'+(p.hp||0)+'" style="color:'+hc+'" onblur="adminSetHP(\''+p.id+'\',+this.value)"',''))+
+      h('td','style="font-family:monospace;font-size:.6rem;color:var(--purple)"',g?g.name:'—')+
+      h('td','style="font-family:monospace;font-size:.58rem;color:'+(p.alive?'var(--green)':'var(--red)')+';"',p.alive?'ALIVE':'DEAD')
+    );
+  }).join('');
+}
+
+// ============================================================
+//  GROUPS PANEL
+// ============================================================
+function renderGroupsPanel(){
+  const grid=document.getElementById('groups-grid');if(!grid)return;
+  if(!S.groupStatus.length){grid.innerHTML=h('div','style="font-family:monospace;font-size:.75rem;color:var(--dim);padding:20px"','ยังไม่มีกลุ่ม');return;}
+  grid.innerHTML=S.groupStatus.map(g=>{
+    const pool=g.pool||{};
+    const alive=g.members.filter(p=>p.alive);
+    const poolHtml=DK.map(dk=>h('div','class="ib"',(DEPTS[dk]?.icon||dk)+h('span','class="iv"',pool[dk]||0))).join('');
+    const mHtml=g.members.map(m=>{
+      const md=DEPTS[m.dept]||{};const mc=m.hp<=2?'var(--red)':m.hp<=4?'#ff9800':'var(--green)';
+      let mpips='';for(let i=0;i<(m.maxHp||0);i++)mpips+=h('span','style="width:6px;height:6px;border-radius:50%;display:inline-block;background:'+(i<(m.hp||0)?mc:'var(--brd2)')+';"','');
+      return h('div','class="mrow'+(m.alive?'':' mrow-dead')+'"',
+        h('div','style="display:flex;align-items:center;gap:4px"',h('div','class="dtag" style="background:'+md.color+'22;color:'+md.color+';border:1px solid '+md.color+'44;font-size:.5rem"',m.dept)+h('span','style="font-size:.66rem"',m.name+(m.row?' '+m.row:'')))+
+        h('div','style="display:flex;align-items:center;gap:4px"',h('span','style="font-family:monospace;font-size:.6rem;color:'+(md.color||'var(--dim)')+';"',m.items||0)+mpips)
+      );
+    }).join('');
+    return h('div','class="gcard"',
+      h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"',
+        h('div','class="gname"',g.name)+h('div','style="font-family:monospace;font-size:.58rem;color:var(--dim);background:var(--sur2);padding:2px 6px;border-radius:10px"',alive.length+'/'+g.members.length+' alive')
+      )+h('div','class="pool-row"',poolHtml)+h('div','class="mlist-a"',mHtml)
+    );
+  }).join('');
+}
+
+// ============================================================
+//  LOG PANEL
+// ============================================================
+function renderLogPanel(){
+  const lb=document.getElementById('full-log');if(!lb)return;
+  lb.innerHTML=renderLogItems(S.logs);lb.scrollTop=lb.scrollHeight;
+}
+function renderLogItems(logs){
+  if(!logs||!logs.length)return h('div','class="le li"','// รอเหตุการณ์...');
+  return logs.map(l=>h('div','class="le l'+(l.type||'i')+'"','&gt; '+l.msg)).join('');
+}
+
+// ============================================================
+//  CONFIG
+// ============================================================
+function renderEvCfgTable(){
+  const body=document.getElementById('ev-cfg-body');if(!body)return;
+  const gs=S.gs||{};const cfg=gs.eventConfig||{};
+  body.innerHTML=DEFAULT_EVENTS.map(ev=>{
+    const c=cfg[ev.id]||{};
+    const reqVal=JSON.stringify(c.req||ev.req||{});
+    return h('tr','',
+      h('td','style="font-family:monospace;font-size:.62rem"',ev.id)+
+      h('td','style="font-size:.7rem"',ev.name)+
+      h('td','style="font-family:monospace;font-size:.58rem;color:var(--dim)"',ev.type)+
+      h('td','',h('input','style="width:140px" type="text" value=\''+reqVal+'\' onblur="saveEvReq('+ev.id+',this.value)"',''))+
+      h('td','',h('input','class="ain" type="number" min="0" max="20" value="'+(c.dmg!==undefined?c.dmg:(ev.dmg||0))+'" onchange="saveEvCfg('+ev.id+',\'dmg\',+this.value)"',''))+
+      h('td','',h('input','class="ain" type="number" min="0" max="20" value="'+(c.preDmg!==undefined?c.preDmg:(ev.preDmg||0))+'" onchange="saveEvCfg('+ev.id+',\'preDmg\',+this.value)"',''))+
+      h('td','',h('input','class="ain" type="number" min="1" max="999" value="'+(c.poolCap!==undefined?c.poolCap:(ev.poolCap||35))+'" onchange="saveEvCfg('+ev.id+',\'poolCap\',+this.value)"',''))
+    );
+  }).join('');
+}
+
+async function saveEvReq(evId,val){
+  try{
+    const obj=JSON.parse(val);
+    const gs=S.gs||{};const cfg={...(gs.eventConfig||{})};
+    if(!cfg[evId])cfg[evId]={};cfg[evId].req=obj;
+    await update(ref(db,'game/state'),{eventConfig:cfg});
+    toast('✅ บันทึก Req Event '+evId);
+  }catch(e){toast('❌ JSON ไม่ถูกต้อง',true);}
+}
+
+async function saveEvCfg(evId,field,val){
+  const gs=S.gs||{};const cfg={...(gs.eventConfig||{})};
+  if(!cfg[evId])cfg[evId]={};cfg[evId][field]=val;
+  await update(ref(db,'game/state'),{eventConfig:cfg});
+}
+
+async function saveGlobalCfg(field,val){
+  await update(ref(db,'game/state/globalConfig'),{[field]:val});
+  toast('✅ บันทึก '+field);
+}
+
+// ============================================================
+//  GAME ACTIONS
+// ============================================================
+function getEffectiveEvent(idx){
+  const ev={...DEFAULT_EVENTS[idx]};
+  const cfg=(S.gs?.eventConfig||{})[ev.id]||{};
+  if(cfg.req)ev.req=cfg.req;
+  if(cfg.dmg!==undefined)ev.dmg=cfg.dmg;
+  if(cfg.preDmg!==undefined)ev.preDmg=cfg.preDmg;
+  if(cfg.poolCap!==undefined)ev.poolCap=cfg.poolCap;
+  return ev;
+}
+
+async function doInitGame(){
+  if(!confirm('Init Game จะล้างผู้เล่นทั้งหมด ยืนยัน?'))return;
+  setBtn('btn-init','⏳...',true);
+  const gc=+document.getElementById('s-gcount').value||8;
+  const mn=+document.getElementById('s-min').value||5;
+  const mx=+document.getElementById('s-max').value||7;
+  const hp=+document.getElementById('s-hp').value||8;
+  await set(ref(db,'game'),{
+    state:{
+      gameStarted:false,phase:'lobby',currentEvent:0,
+      pendingConfirm:false,groupCount:gc,minGroupSize:mn,maxGroupSize:mx,
+      defaultHp:hp,groupNames:GN,eventConfig:{},globalConfig:{poolCap:35}
+    }
+  });
+  await set(ref(db,'players'),null);
+  await push(ref(db,'game/logs'),{ts:Date.now(),type:'i',msg:'ระบบพร้อมแล้ว รอผู้เล่นเข้าร่วม'});
+  setBtn('btn-init','⚡ Init Game',false);
+  toast('✅ Init สำเร็จ');
+}
+
+async function doStartGame(){
+  setBtn('btn-start','⏳...',true);
+  const pa=Object.values(S.players);
+  const unassigned=pa.filter(p=>p.groupId<0).length;
+  if(unassigned>0)await push(ref(db,'game/logs'),{ts:Date.now(),type:'w',msg:unassigned+' คนยังไม่ได้เลือกกลุ่ม'});
+  await update(ref(db,'game/state'),{gameStarted:true,phase:'playing',currentEvent:0});
+  await push(ref(db,'game/logs'),{ts:Date.now(),type:'g',msg:'เกมเริ่มต้นแล้ว! '+pa.length+' คน'});
+  setBtn('btn-start','▶ Start Game',false);
+  toast('🎮 เกมเริ่มแล้ว!');
+}
+
+async function doRunEvent(){
+  setBtn('btn-run-ev','⏳...',true);
+  const gs=S.gs||{};const evIdx=gs.currentEvent||0;
+  const ev=getEffectiveEvent(evIdx);
+  if(!ev){toast('❌ ไม่พบ event',true);setBtn('btn-run-ev',null,false);return;}
+
+  const playerArr=Object.values(S.players);
+  const poolCap=(gs.globalConfig?.poolCap)||35;
+
+  if(ev.type==='regroup'){
+    // preDmg
+    const preDmg=ev.preDmg||0;
+    const updates={};
+    if(preDmg>0){
+      playerArr.filter(p=>p.alive).forEach(p=>{
+        const newHp=Math.max(0,(p.hp||0)-preDmg);
+        updates['players/'+p.id+'/hp']=newHp;
+        if(newHp<=0)updates['players/'+p.id+'/alive']=false;
+      });
+      if(preDmg>0)updates['game/logs/'+Date.now()+'a']={ts:Date.now(),type:'b',msg:'Pre-damage: ทุกคน -'+preDmg+' HP'};
+    }
+    // Reset all groupIds
+    playerArr.filter(p=>p.alive).forEach(p=>{ updates['players/'+p.id+'/groupId']=-1; });
+    updates['game/state/phase']='regrouping';
+    updates['game/state/pendingConfirm']=true;
+    updates['game/state/pendingEventId']=ev.id;
+    updates['game/logs/'+Date.now()+'b']={ts:Date.now(),type:'w',msg:'Event '+ev.id+': '+ev.emoji+' '+ev.name+' — เปิดให้เลือกกลุ่มใหม่'};
+    await update(ref(db),updates);
+    setBtn('btn-run-ev',null,false);
+    toast('🔀 Regroup เปิดแล้ว');
+    return;
+  }
+
+  // Auto-discard event 6
+  if(ev.type==='discard'){
+    const cap=ev.poolCap||poolCap;
+    const updates={};
+    const groupIds=[...new Set(playerArr.filter(p=>p.alive).map(p=>p.groupId))].filter(id=>id>=0);
+    for(const gid of groupIds){
+      const members=playerArr.filter(p=>p.alive&&p.groupId==gid);
+      const total=members.reduce((s,m)=>s+(m.items||0),0);
+      if(total>cap){
+        let excess=total-cap;
+        const sorted=[...members].sort((a,b)=>(b.items||0)-(a.items||0));
+        for(const m of sorted){
+          if(excess<=0)break;
+          const cut=Math.min(excess,m.items||0);
+          updates['players/'+m.id+'/items']=(m.items||0)-cut;
+          excess-=cut;
+          updates['game/logs/'+Date.now()+'_'+m.id]={ts:Date.now(),type:'w',msg:m.name+' [auto-discard] ทิ้ง '+cut+' ชิ้น'};
+        }
+      }
+    }
+    if(Object.keys(updates).length)await update(ref(db),updates);
+  }
+
+  await update(ref(db,'game/state'),{pendingConfirm:true,pendingEventId:ev.id});
+  await push(ref(db,'game/logs'),{ts:Date.now(),type:'w',msg:'Event '+ev.id+': '+ev.emoji+' '+ev.name});
+  setBtn('btn-run-ev',null,false);
+  toast('⚡ Event เปิดแล้ว รอ Players');
+}
+
+async function doConfirmEvent(){
+  setBtn('btn-conf-ev','⏳...',true);
+  const gs=S.gs||{};const evIdx=gs.currentEvent||0;
+  const ev=getEffectiveEvent(evIdx);
+  const playerArr=Object.values(S.players);
+  const poolCap=(gs.globalConfig?.poolCap)||35;
+
+  // Build pool map
+  const poolMap={};
+  playerArr.forEach(p=>{
+    if(p.alive&&p.groupId>=0){
+      if(!poolMap[p.groupId])poolMap[p.groupId]={};
+      poolMap[p.groupId][p.dept]=(poolMap[p.groupId][p.dept]||0)+(p.items||0);
+    }
+  });
+
+  // Apply damage
+  const dmgLogs=[];
+  const updates={};
+  applyDamage(ev,playerArr,poolMap,gs,poolCap,updates,dmgLogs);
+
+  // Advance event
+  const nextEv=evIdx+1;
+  updates['game/state/pendingConfirm']=false;
+  updates['game/state/currentEvent']=nextEv;
+  updates['game/state/phase']=nextEv>=10?'result':'playing';
+
+  // Write damage logs
+  dmgLogs.forEach((l,i)=>{ updates['game/logs/'+(Date.now()+i)+'_dl']={ts:Date.now()+i,...l}; });
+
+  await update(ref(db),updates);
+  setBtn('btn-conf-ev',null,false);
+  toast('✅ Event สรุปแล้ว');
+}
+
+async function doConfirmRegroup(){
+  setBtn('btn-conf-rg','⏳...',true);
+  const gs=S.gs||{};const evIdx=gs.currentEvent||0;
+  const nextEv=evIdx+1;
+  await update(ref(db,'game/state'),{
+    phase:nextEv>=10?'result':'playing',
+    pendingConfirm:false,
+    currentEvent:nextEv
+  });
+  await push(ref(db,'game/logs'),{ts:Date.now(),type:'p',msg:'Regroup เสร็จสิ้น — Event '+(nextEv+1)+' พร้อมแล้ว'});
+  setBtn('btn-conf-rg',null,false);
+  toast('✅ Regroup สรุปแล้ว');
+}
+
+async function forceAssign(playerId,groupId){
+  if(groupId<0)return;
+  const gs=S.gs||{};
+  const g=S.groupStatus.find(x=>x.id==groupId);
+  if(g&&g.full){toast('❌ กลุ่มเต็ม',true);return;}
+  await update(ref(db,'players/'+playerId),{groupId:+groupId});
+  const gname=(gs.groupNames||GN)[groupId]||('G'+groupId);
+  const p=S.players[playerId];
+  await push(ref(db,'game/logs'),{ts:Date.now(),type:'w',msg:'Admin ย้าย '+(p?.name||playerId)+' ไปกลุ่ม '+gname});
+}
+
+async function adminSetHP(playerId,hp){
+  const p=S.players[playerId];if(!p)return;
+  const newHp=Math.max(0,Math.min(hp,p.maxHp||8));
+  await update(ref(db,'players/'+playerId),{hp:newHp,alive:newHp>0});
+}
+async function adminSetItems(playerId,items){
+  await update(ref(db,'players/'+playerId),{items:Math.max(0,items)});
+}
+
+async function doRestart(){
+  if(!confirm('⚠️ Restart จะล้างข้อมูลทั้งหมด ยืนยัน?'))return;
+  await set(ref(db),{
+    game:{state:{gameStarted:false,phase:'lobby',currentEvent:0,pendingConfirm:false,groupCount:8,minGroupSize:5,maxGroupSize:7,defaultHp:8,groupNames:GN,eventConfig:{},globalConfig:{poolCap:35}},
+      logs:{[Date.now()]:{ts:Date.now(),type:'w',msg:'Restart — ระบบพร้อมใหม่'}}
+    }
+  });
+  toast('🔄 Restart แล้ว');
+}
+
+// ============================================================
+//  DAMAGE ENGINE (client-side, called by admin)
+// ============================================================
+function applyDamage(ev,playerArr,poolMap,gs,poolCap,updates,logs){
+  const alive=p=>p.alive;
+  const dmgPlayer=(p,dmg)=>{
+    const newHp=Math.max(0,(p.hp||0)-dmg);
+    updates['players/'+p.id+'/hp']=newHp;
+    if(newHp<=0){updates['players/'+p.id+'/alive']=false;logs.push({type:'b',msg:p.name+' ถูกตัดออก'});}
+  };
+
+  if(ev.type==='global_per'||ev.type==='people_var'){
+    const groupIds=[...new Set(playerArr.filter(alive).map(p=>p.groupId))].filter(id=>id>=0);
+    groupIds.forEach(gid=>{
+      const pool=poolMap[gid]||{};
+      let req={};
+      if(ev.req)req=ev.req;
+      else if(ev.reqMultiplier){
+        const cnt=playerArr.filter(p=>p.groupId==gid&&p.alive).length;
+        Object.entries(ev.reqMultiplier).forEach(([d,m])=>{req[d]=cnt*m;});
+      }
+      const met=Object.entries(req).every(([d,n])=>(pool[d]||0)>=n);
+      const gname=(gs.groupNames||GN)[gid]||('G'+gid);
+      if(met){logs.push({type:'g',msg:gname+': ผ่าน ✓'});}
+      else{
+        const dmg=ev.dmg||0;
+        playerArr.filter(p=>p.groupId==gid&&p.alive).forEach(p=>dmgPlayer(p,dmg));
+        const missing=Object.entries(req).filter(([d,n])=>(pool[d]||0)<n).map(([d,n])=>(DEPTS[d]?.icon||d)+(pool[d]||0)+'/'+n).join(' ');
+        logs.push({type:'b',msg:gname+': ไม่ผ่าน ['+missing+'] → -'+dmg+' HP'});
+      }
+    });
+  } else if(ev.type==='global_all'){
+    const total={};
+    Object.values(poolMap).forEach(pool=>{DK.forEach(d=>{total[d]=(total[d]||0)+(pool[d]||0);});});
+    if(ev.dmgWho==='tiered_shortage'&&ev.req){
+      let shortage=0;Object.entries(ev.req).forEach(([d,n])=>{shortage+=Math.max(0,n-(total[d]||0));});
+      const tier=ev.dmgTiers.find(t=>shortage<=t.max)||ev.dmgTiers[ev.dmgTiers.length-1];
+      if(tier.dmg>0){playerArr.filter(alive).forEach(p=>dmgPlayer(p,tier.dmg));logs.push({type:'b',msg:'Pool ขาด '+shortage+' → ทุกคน -'+tier.dmg+' HP'});}
+      else logs.push({type:'g',msg:'Pool ผ่าน!'});
+    } else if(ev.dmgWho==='tiered_missing_types'&&ev.req){
+      const missing=Object.entries(ev.req).filter(([d,n])=>(total[d]||0)<n).length;
+      const tier=ev.dmgTiers.find(t=>missing<=t.max)||ev.dmgTiers[ev.dmgTiers.length-1];
+      if(tier.dmg>0){playerArr.filter(alive).forEach(p=>dmgPlayer(p,tier.dmg));logs.push({type:'b',msg:'ขาด '+missing+' ประเภท → ทุกคน -'+tier.dmg+' HP'});}
+      else logs.push({type:'g',msg:'ผ่านทุกประเภท!'});
+    }
+  } else if(ev.type==='discard'){
+    logs.push({type:'w',msg:'Discard event สิ้นสุด'});
+  }
+}
+
+// expose to onclick
+window.switchTab=switchTab;window.renderGamePanel=renderGamePanel;
+window.doInitGame=doInitGame;window.doStartGame=doStartGame;
+window.doRunEvent=doRunEvent;window.doConfirmEvent=doConfirmEvent;
+window.doConfirmRegroup=doConfirmRegroup;window.forceAssign=forceAssign;
+window.doRestart=doRestart;window.adminSetHP=adminSetHP;window.adminSetItems=adminSetItems;
+window.saveEvReq=saveEvReq;window.saveEvCfg=saveEvCfg;window.saveGlobalCfg=saveGlobalCfg;
+window.renderEvCfgTable=renderEvCfgTable;
+</script>
+</body>
+</html>
