@@ -138,7 +138,7 @@ input:focus,select:focus{border-color:var(--amber)}
       <div class="st">Game Config</div>
       <div class="card">
         <div class="grid2">
-          <div class="frow"><div class="flbl">จำนวนกลุ่ม</div><select id="cfg-gc"><option>4</option><option>6</option><option selected>8</option><option>10</option><option>12</option><option>14</option></select></div>
+          <div class="frow"><div class="flbl">จำนวนกลุ่ม</div><select id="cfg-gc"><option>4</option><option>5</option><option>6</option><option>7</option><option selected>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>14</option><option>16</option></select></div>
           <div class="frow"><div class="flbl">HP เริ่มต้น</div><input id="cfg-hp" type="number" min="1" max="30" value="8"></div>
           <div class="frow"><div class="flbl">Min คน/กลุ่ม</div><input id="cfg-min" type="number" min="2" max="10" value="5"></div>
           <div class="frow"><div class="flbl">Max คน/กลุ่ม</div><input id="cfg-max" type="number" min="3" max="20" value="7"></div>
@@ -250,7 +250,7 @@ function log(type,msg){
   const lb=document.getElementById('run-log');
   if(lb){lb.innerHTML=[...S.logs].reverse().slice(0,60).map(l=>`<div class="le l${l.type||'i'}">&gt; ${l.msg}</div>`).join('');lb.scrollTop=0;}
 }
-function calcItems(name){let t=0;for(let i=0;i<name.length;i++){const cp=name.codePointAt(i);if(cp>=0x0E01&&cp<=0x0E2E)t+=2;else if(cp>=0x0E30&&cp<=0x0E4E)t+=1;}return Math.max(1,t);}
+function calcItems(name){let t=0;for(let i=0;i<name.length;i++){const cp=name.codePointAt(i);if(cp>=0x0E00&&cp<=0x0E7F)t+=1;}return Math.max(1,t);}
 function gPool(gid){const p={};S.players.filter(x=>x.alive&&x.groupId===gid).forEach(x=>{p[x.dept]=(p[x.dept]||0)+(x.items||0);});return p;}
 function gAlive(gid){return S.players.filter(x=>x.groupId===gid&&x.alive).length;}
 function gMembers(gid){return S.players.filter(x=>x.groupId===gid);}
