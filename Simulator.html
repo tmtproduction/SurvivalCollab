@@ -468,47 +468,133 @@ function renderRunContent(){
   el.innerHTML=html;
 }
 
+// ── ITEM FORM HELPERS ────────────────────────────────────────
+// ตรวจว่า player dept ตรงกับ event req ไหม
+function pIsRelevant(p,ev){
+  if(!ev)return false;
+  if(ev.type==='discard')return true;
+  const cnt=gAlive(p.groupId),req=evReq(ev,cnt);
+  return p.dept in req;
+}
+// อัปเดต progress bar ต่อ dept ใน group card (เรียกหลัง stepP)
+function refreshGCard(gid,ev){
+  const cnt=gAlive(gid),req=evReq(ev,cnt);
+  const usedByDept={};
+  S.players.filter(p=>p.alive&&p.groupId===gid).forEach(p=>{
+    usedByDept[p.dept]=(usedByDept[p.dept]||0)+(S.useAmts[p.id]||0);
+  });
+  DK.forEach(dk=>{
+    const bar=document.getElementById('gbar-'+gid+'-'+dk);if(!bar)return;
+    const need=req[dk]||0,have=usedByDept[dk]||0;
+    const pct=need>0?Math.min(100,Math.round(have/need*100)):100;
+    bar.style.width=pct+'%';bar.style.background=have>=need?'var(--green)':'var(--amber)';
+    const lbl=document.getElementById('glbl-'+gid+'-'+dk);
+    if(lbl)lbl.textContent=have+(need?'/'+need:'');
+  });
+}
+
 function buildItemForm(ev){
   const cap=ev?.poolCap||S.cfg.poolCap;
-  const cards=allG().map(i=>{
-    const pool=gPool(i),cnt=gAlive(i),req=evReq(ev,cnt);
-    const totalPool=DK.reduce((s,d)=>s+(pool[d]||0),0);
-    const reqTot=Object.values(req).reduce((s,v)=>s+v,0);
-    if(!cnt)return'';
-    if(S.useAmts[i]===undefined)S.useAmts[i]=Math.min(totalPool,ev?.type==='discard'?Math.max(0,totalPool-cap):reqTot||totalPool);
-    const reqTxt=Object.entries(req).map(([d,n])=>`${DEPTS[d]?.icon||d}×${n}`).join(' ');
+  const isDiscard=ev?.type==='discard';
+  const label=isDiscard?'Items ที่ทิ้ง':'Items ที่ใช้';
+
+  const groupCards=allG().map(gid=>{
+    const members=S.players.filter(p=>p.alive&&p.groupId===gid);
+    if(!members.length)return'';
+    const cnt=gAlive(gid),req=evReq(ev,cnt),pool=gPool(gid);
+    // dept progress bars
+    const deptKeys=isDiscard?DK:DK.filter(dk=>req[dk]);
+    const usedByDept={};members.forEach(p=>{usedByDept[p.dept]=(usedByDept[p.dept]||0)+(S.useAmts[p.id]||0);});
+    const deptBars=deptKeys.map(dk=>{
+      const need=req[dk]||0,poolHave=pool[dk]||0,used=usedByDept[dk]||0;
+      const pct=need>0?Math.min(100,Math.round(used/need*100)):100;
+      const col=used>=need?'var(--green)':'var(--amber)';
+      return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+        <span style="font-family:var(--mono);font-size:.58rem;color:${DEPTS[dk]?.color};min-width:30px">${DEPTS[dk]?.icon} ${dk}</span>
+        <div style="flex:1;height:5px;background:var(--brd2);border-radius:3px;overflow:hidden">
+          <div id="gbar-${gid}-${dk}" style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width .15s"></div>
+        </div>
+        <span id="glbl-${gid}-${dk}" style="font-family:var(--mono);font-size:.58rem;color:var(--dim);min-width:36px;text-align:right">${used}${need?'/'+need:''}</span>
+        <span style="font-family:var(--mono);font-size:.52rem;color:var(--dim)">(มี ${poolHave})</span>
+      </div>`;
+    }).join('');
+    // rows ต่อคน
+    const rows=members.map(p=>{
+      const d=DEPTS[p.dept]||{},relevant=pIsRelevant(p,ev),use=S.useAmts[p.id]||0;
+      if(!relevant)return`<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;border-radius:5px;margin-bottom:2px;opacity:.28;gap:8px">
+        <div style="display:flex;align-items:center;gap:5px"><span class="dbadge" style="background:${d.color}22;color:${d.color}">${d.icon} ${p.dept}</span><span style="font-size:.72rem">${p.name}</span></div>
+        <span style="font-family:var(--mono);font-size:.55rem;color:var(--dim)">ไม่ใช้ใน event นี้</span>
+      </div>`;
+      return`<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:var(--sur3);border-radius:5px;margin-bottom:2px;gap:8px">
+        <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0">
+          <span class="dbadge" style="background:${d.color}22;color:${d.color};white-space:nowrap">${d.icon} ${p.dept}</span>
+          <span style="font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+          <span style="font-family:var(--mono);font-size:.57rem;color:var(--dim)">มี ${p.items}</span>
+          <button class="sbtn" style="width:22px;height:22px;font-size:.85rem" onclick="stepP('${p.id}',-1)">−</button>
+          <div id="pu-${p.id}" style="font-family:var(--deco);font-size:.95rem;color:${d.color};min-width:24px;text-align:center">${use}</div>
+          <button class="sbtn" style="width:22px;height:22px;font-size:.85rem" onclick="stepP('${p.id}',1)">+</button>
+        </div>
+      </div>`;
+    }).join('');
+    const reqTxt=Object.entries(req).map(([dk,n])=>`${DEPTS[dk]?.icon||dk}×${n}`).join(' ');
     return`<div style="background:var(--sur2);border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px">
-      <div style="font-family:var(--deco);font-size:.85rem;letter-spacing:.1em;color:var(--amber);margin-bottom:2px">${GN[i]||('G'+(i+1))}</div>
-      ${reqTxt?`<div style="font-size:.68rem;color:var(--dim);margin-bottom:4px">ต้องการ: ${reqTxt}</div>`:''}
-      <div style="font-size:.7rem;color:var(--dim);margin-bottom:5px">Pool รวม: ${totalPool}</div>
-      <div class="stepper">
-        <button class="sbtn" onclick="stepG(${i},-1)">−</button>
-        <div class="sval" id="ga-${i}">${S.useAmts[i]||0}</div>
-        <button class="sbtn" onclick="stepG(${i},1)">+</button>
-      </div>
+      <div style="font-family:var(--deco);font-size:.85rem;letter-spacing:.1em;color:var(--amber);margin-bottom:6px">${GN[gid]||('G'+(gid+1))}${reqTxt?`<span style="font-family:var(--mono);font-size:.58rem;color:var(--dim);font-weight:400;letter-spacing:0;margin-left:8px">ต้องการ: ${reqTxt}</span>`:''}</div>
+      ${deptBars}<div style="margin-top:6px">${rows}</div>
     </div>`;
   }).filter(Boolean).join('');
+
   return`<div class="card" style="margin-bottom:10px">
-    <div class="st">กำหนด Items ${ev?.type==='discard'?'ที่ทิ้ง':'ที่ใช้'} ต่อกลุ่ม</div>
-    <div class="grid3">${cards}</div>
+    <div class="st">กำหนด ${label} ต่อคน</div>
+    <div class="grid3">${groupCards}</div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
       <button class="btn btn-a" onclick="confirmEvent()">✅ Confirm → Apply Damage</button>
-      <button class="btn btn-gh" onclick="autoFill()">🎲 สุ่มค่าอัตโนมัติ</button>
+      <button class="btn btn-gh" onclick="autoFill()">🎲 Auto-fill</button>
     </div>
   </div>`;
 }
 
-function stepG(gid,d){
-  const pool=gPool(gid),tot=DK.reduce((s,dk)=>s+(pool[dk]||0),0);
-  S.useAmts[gid]=Math.max(0,Math.min(tot,(S.useAmts[gid]||0)+d));
-  const el=document.getElementById('ga-'+gid);if(el)el.textContent=S.useAmts[gid];
+function stepP(pid,d){
+  const p=S.players.find(x=>x.id===pid);if(!p)return;
+  S.useAmts[pid]=Math.max(0,Math.min(p.items,(S.useAmts[pid]||0)+d));
+  const el=document.getElementById('pu-'+pid);if(el)el.textContent=S.useAmts[pid];
+  refreshGCard(p.groupId,S.events[S.game.evIdx||0]);
 }
+
 function autoFill(){
-  const ev=S.events[S.game.evIdx||0],cap=ev?.poolCap||S.cfg.poolCap;
-  allG().forEach(i=>{
-    const pool=gPool(i),cnt=gAlive(i),req=evReq(ev,cnt),tot=DK.reduce((s,d)=>s+(pool[d]||0),0);
-    const reqTot=Object.values(req).reduce((s,v)=>s+v,0);
-    S.useAmts[i]=ev?.type==='discard'?Math.max(0,tot-cap):Math.min(tot,reqTot||tot);
+  const evIdx=S.game.evIdx||0,ev=S.events[evIdx],cap=ev?.poolCap||S.cfg.poolCap;
+  const isDiscard=ev?.type==='discard';
+  // reset ก่อนทุกครั้ง
+  S.players.filter(p=>p.alive).forEach(p=>{S.useAmts[p.id]=0;});
+  allG().forEach(gid=>{
+    const members=S.players.filter(p=>p.alive&&p.groupId===gid);
+    if(!members.length)return;
+    const cnt=members.length,req=evReq(ev,cnt);
+    if(isDiscard){
+      // คิดจาก pool รวมทุก dept ของกลุ่ม แล้วกระจาย excess ตามสัดส่วน items แต่ละคน
+      const pool=gPool(gid),gTot=DK.reduce((s,d)=>s+(pool[d]||0),0);
+      const excess=Math.max(0,gTot-cap);
+      if(excess>0){
+        let rem=excess;
+        const sorted=[...members].sort((a,b)=>b.items-a.items);
+        sorted.forEach((p,idx)=>{
+          const share=idx===sorted.length-1?rem:Math.min(p.items,Math.round((p.items/Math.max(1,gTot))*excess));
+          S.useAmts[p.id]=Math.max(0,Math.min(p.items,share));rem-=S.useAmts[p.id];
+        });
+      }
+    }else{
+      // กระจาย req แต่ละ dept ให้เฉพาะคนที่ dept ตรง
+      DK.forEach(dk=>{
+        const need=req[dk]||0;if(!need)return;
+        const eligible=members.filter(p=>p.dept===dk);
+        let rem=Math.min(need,eligible.reduce((s,p)=>s+(p.items||0),0));
+        [...eligible].sort((a,b)=>b.items-a.items).forEach((p,idx,arr)=>{
+          const give=idx===arr.length-1?rem:Math.min(p.items,rem);
+          S.useAmts[p.id]=(S.useAmts[p.id]||0)+give;rem-=give;
+        });
+      });
+    }
   });
   renderRunContent();
 }
@@ -532,19 +618,27 @@ function openEvent(){
     renderRun();toast('🔀 Regroup');return;
   }
   S.game.pending=true;
-  autoFill();
+  autoFill(); // populates S.useAmts per player
   log('w','⚡ Event '+ev.id+': '+ev.emoji+' '+ev.name);
   renderRun();
 }
 function confirmEvent(){
   const evIdx=S.game.evIdx||0,ev=S.events[evIdx];
+
+  // Build poolMap from per-player useAmts, grouped by dept
   const poolMap={};
-  allG().forEach(i=>{
-    const pool=gPool(i),use=S.useAmts[i]||0,tot=DK.reduce((s,d)=>s+(pool[d]||0),0);
-    if(tot===0){poolMap[i]={};return;}
-    const ratio=Math.min(1,use/tot);
-    poolMap[i]={};DK.forEach(d=>{poolMap[i][d]=Math.round((pool[d]||0)*ratio);});
+  allG().forEach(gid=>{
+    poolMap[gid]={};
+    const members=S.players.filter(p=>p.alive&&p.groupId===gid);
+    members.forEach(p=>{
+      const use=S.useAmts[p.id]||0;
+      // deduct items from player
+      p.items=Math.max(0,p.items-use);
+      // accumulate into poolMap by dept
+      poolMap[gid][p.dept]=(poolMap[gid][p.dept]||0)+use;
+    });
   });
+
   const dmgLogs=[];
   applyDmg(ev,poolMap,dmgLogs);
   dmgLogs.forEach(l=>log(l.type,l.msg));
@@ -591,8 +685,11 @@ async function autoRunAll(){
       sh.forEach(p=>{for(let a=0;a<S.cfg.gc;a++){const c=sh.filter(x=>x.groupId===gi).length;if(c<S.cfg.max){p.groupId=gi;gi=(gi+1)%S.cfg.gc;return;}gi=(gi+1)%S.cfg.gc;}p.groupId=gi%S.cfg.gc;gi=(gi+1)%S.cfg.gc;});
       log('p','[Auto] Event '+ev.id+': '+ev.emoji+' '+ev.name+' — Regroup OK');
     }else{
+      // build poolMap = full pool, then deduct all items used
       const poolMap={};allG().forEach(gi=>{poolMap[gi]={...gPool(gi)};});
       const dmgLogs=[];applyDmg(ev,poolMap,dmgLogs);dmgLogs.forEach(l=>log(l.type,l.msg));
+      // deduct items: each alive player spends all their items for auto-run
+      S.players.filter(p=>p.alive).forEach(p=>{p.items=0;});
     }
     S.game.evIdx=evIdx+1;S.game.phase=evIdx+1>=10?'result':'playing';
     renderRun();
