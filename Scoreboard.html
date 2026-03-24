@@ -155,13 +155,15 @@ const DEFAULT_EVENTS = [
   {id:2,name:'หิวโหย',emoji:'🍖',type:'global_per'},
   {id:3,name:'บาดเจ็บ',emoji:'🩹',type:'global_per'},
   {id:4,name:'แผ่นดินไหว',emoji:'🌋',type:'regroup'},
+  {id:'4b',name:'พบแหล่งน้ำ',emoji:'💧',type:'headcount_reward'},
   {id:5,name:'สร้างแพ',emoji:'🛖',type:'people_var'},
   {id:6,name:'สถานการณ์ฉุกเฉิน',emoji:'⚖',type:'discard'},
   {id:7,name:'หนาวจัด',emoji:'🥶',type:'global_per'},
   {id:8,name:'ไฟป่า',emoji:'🔥',type:'regroup'},
-  {id:9,name:'โรคระบาด',emoji:'🦠',type:'global_all'},
-  {id:10,name:'หนีรอด',emoji:'🚁',type:'global_all'},
+  {id:9,name:'โรคระบาด',emoji:'🦠',type:'collective_pool'},
+  {id:10,name:'หนีรอด',emoji:'🚁',type:'per_group'},
 ];
+const EV_TOTAL = DEFAULT_EVENTS.length;
 
 let D = { gs:null, players:{}, eventHistory:{} };
 
@@ -235,16 +237,16 @@ function render() {
 
   // ── LIVE BANNER (if game in progress) ──
   if (phase !== 'result' && gs.gameStarted) {
-    const types=['','global_per','global_per','global_per','regroup','people_var','discard','global_per','regroup','global_all','global_all'];
+    const types=DEFAULT_EVENTS.map(e=>e.type);
     let dotHtml='';
-    for(let i=0;i<10;i++){
-      const t=types[i+1]||'';let cls='evdot';
+    for(let i=0;i<EV_TOTAL;i++){
+      const t=types[i]||'';let cls='evdot';
       if(i<evIdx)cls+=' done';
-      else if(i===evIdx)cls+=(t==='regroup'?' cur-rg':t==='discard'?' cur-disc':' cur');
+      else if(i===evIdx)cls+=(t==='regroup'?' cur-rg':t==='discard'?' cur-disc':t==='headcount_reward'?' cur-rg':' cur');
       dotHtml+=h('div','class="'+cls+'" title="Event '+(i+1)+': '+DEFAULT_EVENTS[i]?.name+'"','');
     }
     out += h('div','class="live-banner"',
-      h('span','','🎮 เกมกำลังดำเนินอยู่ — Event '+(evIdx+1)+'/10')+
+      h('span','','🎮 เกมกำลังดำเนินอยู่ — Event '+(evIdx+1)+'/'+EV_TOTAL)+
       h('div','class="ev-progress"',dotHtml)
     );
   } else if (phase==='result') {
@@ -268,7 +270,7 @@ function render() {
       h('div','class="stat-val purple"',totalItems)+h('div','class="stat-lbl"','ITEMS LEFT')
     )+
     h('div','class="stat-card"',
-      h('div','class="stat-val"',eventsCompleted+'/10')+h('div','class="stat-lbl"','EVENTS DONE')
+      h('div','class="stat-val"',eventsCompleted+'/'+(EV_TOTAL))+h('div','class="stat-lbl"','EVENTS DONE')
     )
   );
 
@@ -362,8 +364,13 @@ function render() {
         const results = Object.values(hist.results);
         const passed = results.filter(r=>r.pass).length;
         const total = results.length;
-        if (total===0||hist.type==='regroup'||hist.type==='discard') {
+        const t = hist.type;
+        if (total===0||t==='regroup'||t==='discard'||t==='headcount_reward') {
           rowClass='pass'; resultLabel='ดำเนินการเสร็จ'; resultClass='ok';
+        } else if (t==='collective_pool'||t==='global_all') {
+          const gr = hist.results?.global;
+          if (gr?.pass) { rowClass='pass'; resultLabel='กองกลางผ่าน ✓'; resultClass='ok'; }
+          else { rowClass='fail'; resultLabel='กองกลางไม่ผ่าน → -'+gr?.dmg+'HP'; resultClass='bad'; }
         } else if (passed===total) {
           rowClass='pass'; resultLabel='ทุกกลุ่มผ่าน ✓'; resultClass='ok';
         } else if (passed===0) {
@@ -372,21 +379,22 @@ function render() {
           rowClass='partial'; resultLabel=passed+'/'+total+' กลุ่มผ่าน'; resultClass='mid';
         }
 
-        // Per-group results (for global_per, people_var)
-        if (hist.type!=='regroup'&&hist.type!=='discard'&&hist.type!=='global_all') {
+        // Per-group results
+        if (t==='global_per'||t==='people_var'||t==='per_group'||t==='headcount_reward') {
           groupResultsHtml = h('div','class="tl-groups"',
             Object.values(hist.results).map(r =>
-              h('span','class="tl-g '+(r.pass?'pass':'fail')+'"', r.name+(r.pass?' ✓':' -'+r.dmg+'HP'))
+              h('span','class="tl-g '+(r.pass?'pass':'fail')+'"',
+                r.name+(r.pass?' ✓':(r.missingTypes?' ขาด '+r.missingTypes+' type':' -'+(r.dmg||0)+'HP')))
             ).join('')
           );
-        } else if (hist.type==='global_all'&&hist.results?.global) {
+        } else if ((t==='collective_pool'||t==='global_all')&&hist.results?.global) {
           const gr = hist.results.global;
           groupResultsHtml = h('div','class="tl-groups"',
             h('span','class="tl-g '+(gr.pass?'pass':'fail')+'"',
-              gr.pass?'Pool รวมผ่าน ✓':'Pool ไม่ผ่าน → ทุกคน -'+gr.dmg+'HP'+(gr.shortage?' (ขาด '+gr.shortage+')':gr.missingTypes?' (ขาด '+gr.missingTypes+' ประเภท)':''))
+              gr.pass?'กองกลางผ่าน ✓':'ขาด '+gr.shortage+' ชิ้น → ทุกคน -'+gr.dmg+'HP')
           );
-        } else if (hist.type==='regroup') {
-          groupResultsHtml = h('div','class="tl-groups"',h('span','class="tl-g pass"','จัดกลุ่มใหม่สำเร็จ'));
+        } else if (t==='regroup'||t==='discard') {
+          groupResultsHtml = h('div','class="tl-groups"',h('span','class="tl-g pass"','ดำเนินการเสร็จ'));
         }
 
       } else if (isCurrent) {

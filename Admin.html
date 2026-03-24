@@ -276,16 +276,23 @@ const GN = ['ALPHA','BETA','GAMMA','DELTA','EPSILON','ZETA','ETA','THETA','IOTA'
 
 const DEFAULT_EVENTS = [
   {id:1,name:'หลงทาง',emoji:'🗺',type:'global_per',req:{PD1:5},dmg:2,desc:'แต่ละกลุ่มต้องมีเข็มทิศ 5 ชิ้น'},
-  {id:2,name:'หิวโหย',emoji:'🍖',type:'global_per',req:{PD3:5},dmg:3,desc:'แต่ละกลุ่มต้องมีอาหาร 5 ชิ้น'},
-  {id:3,name:'บาดเจ็บ',emoji:'🩹',type:'global_per',req:{EN:6},dmg:3,desc:'แต่ละกลุ่มต้องมียา 6 ชิ้น'},
+  {id:2,name:'หิวโหย',emoji:'🍖',type:'global_per',req:{PD3:5},dmg:2,desc:'แต่ละกลุ่มต้องมีอาหาร 5 ชิ้น'},
+  {id:3,name:'บาดเจ็บ',emoji:'🩹',type:'global_per',req:{EN:6},dmg:2,desc:'แต่ละกลุ่มต้องมียา 6 ชิ้น'},
   {id:4,name:'แผ่นดินไหว',emoji:'🌋',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
-  {id:5,name:'สร้างแพ',emoji:'🛖',type:'people_var',reqMultiplier:{MN:2},dmg:3,desc:'ต้องมีเครื่องมือ = คนมีชีวิต × 2'},
-  {id:6,name:'สถานการณ์ฉุกเฉิน',emoji:'⚖',type:'discard',poolCap:35,desc:'แต่ละกลุ่มถือได้ไม่เกิน 35 ชิ้น'},
-  {id:7,name:'หนาวจัด',emoji:'🥶',type:'global_per',req:{PD3:1,MN:2},dmg:4,desc:'ต้องมีอาหาร 1 + เครื่องมือ 2 ชิ้น'},
-  {id:8,name:'ไฟป่า',emoji:'🔥',type:'regroup',preDmg:2,desc:'ทุกคน -2 HP ก่อน แล้วเลือกกลุ่มใหม่'},
-  {id:9,name:'โรคระบาด',emoji:'🦠',type:'global_all',req:{EN:40,QA:20,MN:40},dmgWho:'tiered_shortage',dmgTiers:[{max:0,dmg:0},{max:10,dmg:1},{max:20,dmg:2},{max:999,dmg:3}],desc:'รวม Pool ทั้งหมด'},
-  {id:10,name:'หนีรอด',emoji:'🚁',type:'global_all',req:{PD1:30,PD3:30,EN:20,PD2:20,QA:15,MN:15},dmgWho:'tiered_missing_types',dmgTiers:[{max:0,dmg:0},{max:2,dmg:1},{max:4,dmg:2},{max:6,dmg:3}],desc:'รวม Pool สุดท้าย'},
+  {id:'4b',name:'พบแหล่งน้ำ',emoji:'💧',type:'headcount_reward',maxHp:10,
+    conditions:[
+      {reqHeadcount:{PD1:2,QA:1},reward:{type:'hp',amt:2},desc:'PD1≥2คน+QA≥1คน → +2 HP ทุกคน'},
+      {reqHeadcount:{PD2:2,EN:1},reward:{type:'items',depts:['PD1','PD2','PD3'],amt:2},desc:'PD2≥2คน+EN≥1คน → 🧭📋🍖 +2 items'},
+      {reqHeadcount:{PD3:2,MN:2},reward:{type:'items',depts:['QA','EN','MN'],amt:2},desc:'PD3≥2คน+MN≥2คน → 💰💊🔧 +2 items'},
+    ],desc:'เช็คจำนวนคน dept — ผ่านได้หลายข้อ (stack)'},
+  {id:5,name:'สร้างแพ',emoji:'🛖',type:'people_var',reqMultiplier:{MN:2},dmg:2,desc:'ต้องมีเครื่องมือ = คนมีชีวิต × 2'},
+  {id:6,name:'สถานการณ์ฉุกเฉิน',emoji:'⚖',type:'discard',poolCap:55,desc:'แต่ละกลุ่มถือได้ไม่เกิน 55 ชิ้น'},
+  {id:7,name:'หนาวจัด',emoji:'🥶',type:'global_per',req:{PD3:1,MN:2},dmg:2,desc:'ต้องมีอาหาร 1 + เครื่องมือ 2 ชิ้น'},
+  {id:8,name:'ไฟป่า',emoji:'🔥',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
+  {id:9,name:'โรคระบาด',emoji:'🦠',type:'collective_pool',req:{EN:40,QA:20,MN:40},dmgTiers:[{max:0,dmg:0},{max:20,dmg:1},{max:40,dmg:2},{max:999,dmg:3}],desc:'ทุกกลุ่มส่ง items เข้ากองกลาง — รวมกันต้องถึง EN:40 QA:20 MN:40'},
+  {id:10,name:'หนีรอด',emoji:'🚁',type:'per_group',dmgPerMissType:2,desc:'ตรวจแยกกลุ่ม — ขาด 1 type→-2HP, 2→-4HP, 3+→-6HP'},
 ];
+const EV_TOTAL = DEFAULT_EVENTS.length;
 
 // ============================================================
 //  STATE
@@ -392,7 +399,7 @@ function updateTopbar() {
   const gs = S.gs||{}, pa = Object.values(S.players);
   const alive = pa.filter(p => p.alive).length;
   const totalItems = pa.filter(p => p.alive).reduce((s,p) => s+(p.items||0), 0);
-  document.getElementById('tb-ev').textContent = Math.min((gs.currentEvent||0)+1, 10)+'/10';
+  document.getElementById('tb-ev').textContent = Math.min((gs.currentEvent||0)+1,EV_TOTAL)+'/'+EV_TOTAL;
   document.getElementById('tb-pl').textContent = pa.length;
   document.getElementById('tb-al').textContent = alive;
   document.getElementById('tb-de').textContent = pa.length - alive;
@@ -404,7 +411,7 @@ function updateEvProg() {
   const gs = S.gs||{}, cur = gs.currentEvent||0;
   const types=['','global_per','global_per','global_per','regroup','people_var','discard','global_per','regroup','global_all','global_all'];
   let html = '';
-  for (let i=0;i<10;i++) {
+  for (let i=0;i<EV_TOTAL;i++) {
     const t = types[i+1]||''; let cls = 'ep';
     if (i < cur) cls += ' ep-done';
     else if (i === cur) cls += (t==='regroup'?' ep-rg-cur':t==='discard'?' ep-disc-cur':' ep-cur');
@@ -435,7 +442,7 @@ function updatePhaseBanner() {
     banner.innerHTML = `⚡ Event ${evIdx+1}: ${ev?.emoji||''} ${ev?.name||''} — รอผู้เล่นใช้ Items แล้วกด Confirm`;
   } else {
     banner.className = 'phase-banner playing';
-    banner.innerHTML = `🎮 Event ${evIdx+1}/10 — กด "เปิด Event" เมื่อพร้อม`;
+    banner.innerHTML = `🎮 Event ${evIdx+1}/${EV_TOTAL} — กด "เปิด Event" เมื่อพร้อม`;
   }
 }
 
@@ -808,7 +815,7 @@ async function doRunEvent() {
   if (!ev) { toast('❌ ไม่พบ event', true); setBtn('btn-run-ev',null,false); return; }
 
   const playerArr = Object.values(S.players);
-  const poolCap = (gs.globalConfig?.poolCap)||35;
+  const poolCap = (gs.globalConfig?.poolCap)||55;
 
   if (ev.type === 'regroup') {
     const preDmg = ev.preDmg||0;
@@ -829,6 +836,23 @@ async function doRunEvent() {
     await update(ref(db), updates);
     setBtn('btn-run-ev', null, false);
     toast('🔀 Regroup เปิดแล้ว');
+    return;
+  }
+
+  if (ev.type === 'headcount_reward') {
+    // auto-confirm — เช็คจำนวนคนแล้วให้รางวัลทันที ไม่รอ player ใช้ items
+    const updates = {}, dmgLogs = [], groupResults = {};
+    await push(ref(db,'game/logs'), {ts:Date.now(),type:'w',msg:'Event '+ev.id+': '+ev.emoji+' '+ev.name});
+    applyDamage(ev, playerArr, {}, gs, poolCap, updates, dmgLogs, groupResults);
+    const nextEv = evIdx + 1;
+    updates['game/state/pendingConfirm'] = false;
+    updates['game/state/currentEvent'] = nextEv;
+    updates['game/state/phase'] = nextEv >= EV_TOTAL ? 'result' : 'playing';
+    updates['game/eventHistory/'+evIdx] = {id:ev.id,name:ev.name,emoji:ev.emoji,type:ev.type,ts:Date.now(),results:groupResults};
+    dmgLogs.forEach((l,i) => { updates['game/logs/'+(Date.now()+i+1)+'_hr'] = {ts:Date.now()+i+1,...l}; });
+    await update(ref(db), updates);
+    setBtn('btn-run-ev', null, false);
+    toast('💧 '+ev.name+' สรุปแล้ว (auto)');
     return;
   }
 
@@ -866,13 +890,13 @@ async function doConfirmEvent() {
   const gs = S.gs||{}, evIdx = gs.currentEvent||0;
   const ev = getEffectiveEvent(evIdx);
   const playerArr = Object.values(S.players);
-  const poolCap = (gs.globalConfig?.poolCap)||35;
+  const poolCap = (gs.globalConfig?.poolCap)||55;
 
   // ใช้ eventPool = items ที่ player ส่งมาจริงๆ ไม่ใช่ items คงเหลือ
   const evPool = gs.eventPool || {};
   const poolMap = {};
-  if (ev.type === 'discard') {
-    // discard ใช้ items คงเหลือ (player ทิ้งไปแล้วก่อนหน้า)
+  if (ev.type === 'discard' || ev.type === 'per_group') {
+    // discard / per_group ใช้ items คงเหลือทั้งหมดของกลุ่ม
     playerArr.forEach(p => {
       if (p.alive && p.groupId >= 0) {
         if (!poolMap[p.groupId]) poolMap[p.groupId] = {};
@@ -880,7 +904,7 @@ async function doConfirmEvent() {
       }
     });
   } else {
-    // event ปกติ: pool = สิ่งที่ player contribute แล้ว
+    // collective_pool และ event ปกติ: pool = สิ่งที่ player contribute แล้ว
     Object.entries(evPool).forEach(([gid, depts]) => {
       poolMap[gid] = Object.assign({}, depts);
     });
@@ -895,7 +919,7 @@ async function doConfirmEvent() {
   const nextEv = evIdx + 1;
   updates['game/state/pendingConfirm'] = false;
   updates['game/state/currentEvent'] = nextEv;
-  updates['game/state/phase'] = nextEv >= 10 ? 'result' : 'playing';
+  updates['game/state/phase'] = nextEv >= EV_TOTAL ? 'result' : 'playing';
 
   // บันทึกผลลัพธ์ event เพื่อ Scoreboard
   updates['game/eventHistory/'+evIdx] = {
@@ -915,7 +939,7 @@ async function doConfirmRegroup() {
   const gs = S.gs||{}, evIdx = gs.currentEvent||0;
   const nextEv = evIdx + 1;
   await update(ref(db,'game/state'), {
-    phase: nextEv >= 10 ? 'result' : 'playing',
+    phase: nextEv >= EV_TOTAL ? 'result' : 'playing',
     pendingConfirm: false,
     currentEvent: nextEv
   });
@@ -967,6 +991,10 @@ function applyDamage(ev, playerArr, poolMap, gs, poolCap, updates, logs, groupRe
     updates['players/'+p.id+'/hp'] = newHp;
     if (newHp <= 0) { updates['players/'+p.id+'/alive'] = false; logs.push({type:'b',msg:'💀 '+p.name+' ถูกตัดออก'}); }
   };
+  const healPlayer = (p, amt, maxHp) => {
+    const newHp = Math.min(maxHp||p.maxHp||10, (p.hp||0) + amt);
+    updates['players/'+p.id+'/hp'] = newHp;
+  };
 
   if (ev.type==='global_per' || ev.type==='people_var') {
     const groupIds = [...new Set(playerArr.filter(alive).map(p=>p.groupId))].filter(id=>id>=0);
@@ -989,6 +1017,81 @@ function applyDamage(ev, playerArr, poolMap, gs, poolCap, updates, logs, groupRe
         logs.push({type:'b',msg:gname+': ไม่ผ่าน ['+missing+'] → -'+dmg+' HP'});
       }
     });
+
+  } else if (ev.type==='headcount_reward') {
+    // เช็คจำนวนคน dept ในกลุ่ม — ไม่ใช้ items
+    const maxHp = ev.maxHp||10;
+    const groupIds = [...new Set(playerArr.filter(alive).map(p=>p.groupId))].filter(id=>id>=0);
+    groupIds.forEach(gid => {
+      const aliveInGroup = playerArr.filter(p=>p.groupId==gid&&p.alive);
+      const gname = (gs.groupNames||GN)[gid]||('G'+gid);
+      const hc = {};
+      DK.forEach(dk => { hc[dk] = aliveInGroup.filter(p=>p.dept===dk).length; });
+      let anyPass = false;
+      (ev.conditions||[]).forEach(cond => {
+        const pass = Object.entries(cond.reqHeadcount).every(([dk,n])=>(hc[dk]||0)>=n);
+        if (!pass) {
+          const miss = Object.entries(cond.reqHeadcount).filter(([dk,n])=>(hc[dk]||0)<n).map(([dk,n])=>DEPTS[dk]?.icon+hc[dk]+'/'+n+'คน').join(' ');
+          logs.push({type:'i',msg:gname+' ['+cond.desc.split('→')[0].trim()+']: ไม่ผ่าน ['+miss+']'});
+          return;
+        }
+        anyPass = true;
+        if (cond.reward.type==='hp') {
+          aliveInGroup.forEach(p => healPlayer(p, cond.reward.amt, maxHp));
+          logs.push({type:'g',msg:gname+': ✓ '+cond.desc});
+        } else if (cond.reward.type==='items') {
+          aliveInGroup.filter(p => cond.reward.depts.includes(p.dept)).forEach(p => {
+            const ni = (p.items||0) + cond.reward.amt;
+            updates['players/'+p.id+'/items'] = ni;
+            updates['players/'+p.id+'/maxItems'] = Math.max(p.maxItems||0, ni);
+          });
+          logs.push({type:'g',msg:gname+': ✓ '+cond.desc});
+        }
+      });
+      groupResults[gid] = { name:gname, pass:anyPass, dmg:0 };
+      if (!anyPass) logs.push({type:'i',msg:gname+': ไม่ผ่านเงื่อนไขใดเลย'});
+    });
+
+  } else if (ev.type==='collective_pool') {
+    // รวม poolMap จากทุกกลุ่ม → เทียบ req รวม → tiered penalty
+    const tot = {};
+    Object.values(poolMap).forEach(pool => { DK.forEach(d => { tot[d]=(tot[d]||0)+(pool[d]||0); }); });
+    const req = ev.req||{};
+    let sh = 0;
+    Object.entries(req).forEach(([d,n]) => { sh += Math.max(0,n-(tot[d]||0)); });
+    const poolSummary = Object.entries(req).map(([d,n])=>`${DEPTS[d]?.icon||d}${tot[d]||0}/${n}`).join(' ');
+    const tier = ev.dmgTiers.find(t=>sh<=t.max)||ev.dmgTiers[ev.dmgTiers.length-1];
+    groupResults['global'] = { pass:tier.dmg===0, dmg:tier.dmg, shortage:sh };
+    if (sh===0) {
+      logs.push({type:'g',msg:'🧪 กองกลางผ่าน! ['+poolSummary+']'});
+    } else {
+      logs.push({type:'b',msg:'🧪 กองกลางขาด '+sh+' ชิ้น ['+poolSummary+']'});
+      if (tier.dmg>0) {
+        playerArr.filter(alive).forEach(p => dmgPlayer(p,tier.dmg));
+        logs.push({type:'b',msg:'ทุกคน -'+tier.dmg+' HP'});
+      }
+    }
+
+  } else if (ev.type==='per_group') {
+    // ตรวจแยกกลุ่ม — นับ item type ที่กลุ่มไม่มี
+    const dmgPer = ev.dmgPerMissType||2;
+    const groupIds = [...new Set(playerArr.filter(alive).map(p=>p.groupId))].filter(id=>id>=0);
+    groupIds.forEach(gid => {
+      const pool = poolMap[gid]||{};
+      const aliveInGroup = playerArr.filter(p=>p.groupId==gid&&p.alive);
+      const missing = DK.filter(dk=>!(pool[dk]>0));
+      const gname = (gs.groupNames||GN)[gid]||('G'+gid);
+      if (!missing.length) {
+        logs.push({type:'g',msg:gname+': มีครบทุก type ✓'});
+        groupResults[gid] = { name:gname, pass:true, dmg:0 };
+      } else {
+        const dmg = Math.min(dmgPer*missing.length, dmgPer*3);
+        aliveInGroup.forEach(p => dmgPlayer(p,dmg));
+        logs.push({type:'b',msg:gname+': ขาด '+missing.length+' type ['+missing.map(dk=>DEPTS[dk]?.icon||dk).join('')+'] → -'+dmg+' HP'});
+        groupResults[gid] = { name:gname, pass:false, dmg, missingTypes:missing.length };
+      }
+    });
+
   } else if (ev.type === 'global_all') {
     const total = {};
     Object.values(poolMap).forEach(pool => { DK.forEach(d => { total[d] = (total[d]||0) + (pool[d]||0); }); });

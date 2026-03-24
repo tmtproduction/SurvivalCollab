@@ -178,16 +178,18 @@ const DK=['PD1','PD2','PD3','QA','EN','MN'];
 const GN=['ALPHA','BETA','GAMMA','DELTA','EPSILON','ZETA','ETA','THETA','IOTA','KAPPA','LAMBDA','MU','NU','XI','OMICRON','PI','RHO','SIGMA','TAU','UPSILON'];
 const EVENTS=[
   {id:1,name:'หลงทาง',emoji:'🗺',type:'global_per',req:{PD1:5},dmg:2,desc:'แต่ละกลุ่มต้องมีเข็มทิศ 5 ชิ้น'},
-  {id:2,name:'หิวโหย',emoji:'🍖',type:'global_per',req:{PD3:5},dmg:3,desc:'แต่ละกลุ่มต้องมีอาหาร 5 ชิ้น'},
-  {id:3,name:'บาดเจ็บ',emoji:'🩹',type:'global_per',req:{EN:6},dmg:3,desc:'แต่ละกลุ่มต้องมียา 6 ชิ้น'},
+  {id:2,name:'หิวโหย',emoji:'🍖',type:'global_per',req:{PD3:5},dmg:2,desc:'แต่ละกลุ่มต้องมีอาหาร 5 ชิ้น'},
+  {id:3,name:'บาดเจ็บ',emoji:'🩹',type:'global_per',req:{EN:6},dmg:2,desc:'แต่ละกลุ่มต้องมียา 6 ชิ้น'},
   {id:4,name:'แผ่นดินไหว',emoji:'🌋',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
-  {id:5,name:'สร้างแพ',emoji:'🛖',type:'people_var',reqMultiplier:{MN:2},dmg:3,desc:'ต้องมีเครื่องมือ = คนมีชีวิต × 2'},
-  {id:6,name:'สถานการณ์ฉุกเฉิน',emoji:'⚖',type:'discard',poolCap:35,desc:'แต่ละกลุ่มถือได้ไม่เกิน 35 ชิ้น'},
-  {id:7,name:'หนาวจัด',emoji:'🥶',type:'global_per',req:{PD3:1,MN:2},dmg:4,desc:'ต้องมีอาหาร 1 + เครื่องมือ 2 ชิ้น'},
-  {id:8,name:'ไฟป่า',emoji:'🔥',type:'regroup',preDmg:2,desc:'ทุกคน -2 HP ก่อน แล้วเลือกกลุ่มใหม่'},
-  {id:9,name:'โรคระบาด',emoji:'🦠',type:'global_all',req:{EN:40,QA:20,MN:40},dmgWho:'tiered_shortage',dmgTiers:[{max:0,dmg:0},{max:10,dmg:1},{max:20,dmg:2},{max:999,dmg:3}],desc:'รวม Pool ทั้งหมด'},
-  {id:10,name:'หนีรอด',emoji:'🚁',type:'global_all',req:{PD1:30,PD3:30,EN:20,PD2:20,QA:15,MN:15},dmgWho:'tiered_missing_types',dmgTiers:[{max:0,dmg:0},{max:2,dmg:1},{max:4,dmg:2},{max:6,dmg:3}],desc:'รวม Pool สุดท้าย'},
+  {id:'4b',name:'พบแหล่งน้ำ',emoji:'💧',type:'headcount_reward',desc:'เช็คจำนวนคน dept — อาจได้รับ HP หรือ items เพิ่ม'},
+  {id:5,name:'สร้างแพ',emoji:'🛖',type:'people_var',reqMultiplier:{MN:2},dmg:2,desc:'ต้องมีเครื่องมือ = คนมีชีวิต × 2'},
+  {id:6,name:'สถานการณ์ฉุกเฉิน',emoji:'⚖',type:'discard',poolCap:55,desc:'แต่ละกลุ่มถือได้ไม่เกิน 55 ชิ้น'},
+  {id:7,name:'หนาวจัด',emoji:'🥶',type:'global_per',req:{PD3:1,MN:2},dmg:2,desc:'ต้องมีอาหาร 1 + เครื่องมือ 2 ชิ้น'},
+  {id:8,name:'ไฟป่า',emoji:'🔥',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
+  {id:9,name:'โรคระบาด',emoji:'🦠',type:'collective_pool',req:{EN:40,QA:20,MN:40},desc:'ทุกกลุ่มส่ง items เข้ากองกลาง — ช่วยกันให้ครบ EN:40 QA:20 MN:40'},
+  {id:10,name:'หนีรอด',emoji:'🚁',type:'per_group',desc:'ตรวจแยกกลุ่ม — ต้องมีครบทุก item type'},
 ];
+const EV_TOTAL=EVENTS.length;
 
 // STATE
 const S={pid:null,player:null,gs:null,players:{},logs:[],groups:[],connected:false,useAmt:0,discardAmt:0,logOpen:false,err:'',loading:false};
@@ -243,6 +245,9 @@ function getPhase(){
     const ev=EVENTS[(gs.currentEvent||0)];
     if(ev?.type==='regroup')return'wait';
     if(ev?.type==='discard')return'discard';
+    if(ev?.type==='headcount_reward')return'wait'; // auto-handled by Admin
+    if(ev?.type==='collective_pool')return'action'; // player ส่ง items เข้ากองกลาง
+    if(ev?.type==='per_group')return'wait'; // Admin confirm เอง
     return'action';
   }
   return'wait';
@@ -414,7 +419,7 @@ function renderShell(app,phase){
   const hc=p.hp<=2?'var(--red)':p.hp<=4?'#ff9800':'var(--green)';
   const alive=Object.values(S.players).filter(x=>x.alive).length;
   const types=['','global_per','global_per','global_per','regroup','people_var','discard','global_per','regroup','global_all','global_all'];
-  const dots=Array.from({length:10},(_,i)=>{
+  const dots=Array.from({length:EV_TOTAL},(_,i)=>{
     const t=types[i+1]||'';let c='es';
     if(i<evIdx)c+=' done';
     else if(i===evIdx)c+=(t==='regroup'?' cur-rg':t==='discard'?' cur-dc':' cur');
@@ -426,7 +431,7 @@ function renderShell(app,phase){
     <div id="topbar">
       <div class="tb-title">SURVIVAL</div>
       <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-family:var(--mono);font-size:.58rem;color:var(--dim)">event ${Math.min(evIdx+1,10)}/10</span>
+        <span style="font-family:var(--mono);font-size:.58rem;color:var(--dim)">event ${Math.min(evIdx+1,EV_TOTAL)}/${EV_TOTAL}</span>
         <div class="conn-dot${S.connected?'':' off'}"></div>
       </div>
     </div>
@@ -461,10 +466,84 @@ function renderContent(phase){
   }
   if(phase==='lobby')  return renderLobby(mg);
   if(phase==='regroup')return renderRegroup(mg);
+  if(phase==='action'){
+    if(ev?.type==='collective_pool')return renderCollectivePool(ev,evIdx,mg,p,d);
+    return renderAction(ev,evIdx,mg,p,d);
+  }
   if(phase==='wait')   return renderWait(ev,evIdx,mg);
-  if(phase==='action') return renderAction(ev,evIdx,mg,p,d);
   if(phase==='discard')return renderDiscard(ev,evIdx,mg,p,d);
   return renderWait(ev,evIdx,mg);
+}
+
+function renderCollectivePool(ev,evIdx,mg,p,d){
+  // เช็คว่า dept ของผู้เล่นเกี่ยวข้องกับ ev.req ไหม
+  const req=ev.req||{};
+  const relevant=p.dept in req;
+  // pool กองกลางรวมปัจจุบัน (eventPool)
+  const evPool=S.gs?.eventPool||{};
+  const tot={};DK.forEach(dk=>{tot[dk]=0;});
+  Object.values(evPool).forEach(pool=>{DK.forEach(dk=>{tot[dk]=(tot[dk]||0)+(pool[dk]||0);});});
+  const poolBars=Object.entries(req).map(([dk,need])=>{
+    const have=tot[dk]||0,pct=need>0?Math.min(100,Math.round(have/need*100)):100;
+    const col=have>=need?'var(--green)':'var(--amber)';
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+      <span style="font-family:var(--mono);font-size:.62rem;color:${DEPTS[dk]?.color};min-width:28px">${DEPTS[dk]?.icon} ${dk}</span>
+      <div style="flex:1;height:7px;background:var(--brd2);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${col};border-radius:4px;transition:width .3s"></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:.62rem;color:var(--dim);min-width:40px;text-align:right">${have}/${need}</span>
+    </div>`;
+  }).join('');
+  if(!relevant){
+    return`
+    <div class="card ca-amber">
+      <div style="font-family:var(--mono);font-size:.58rem;color:var(--dim);margin-bottom:5px">EVENT ${evIdx+1} / ${EV_TOTAL}</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px">
+        <span style="font-size:1.7rem">${ev.emoji}</span>
+        <span style="font-family:var(--deco);font-size:1.35rem;letter-spacing:.06em;color:var(--amber)">${ev.name}</span>
+      </div>
+      <div style="font-size:.83rem;color:var(--dim);margin-bottom:10px">${ev.desc}</div>
+      <div style="font-family:var(--mono);font-size:.6rem;color:var(--dim);margin-bottom:6px">กองกลางรวม</div>
+      ${poolBars}
+    </div>
+    <div class="done-box">
+      <div style="font-size:1.4rem;margin-bottom:5px">👁</div>
+      <div class="done-title" style="color:var(--dim)">รอดูผล</div>
+      <div class="done-sub">${d.icon} ${d.item} ไม่ใช่ items ที่ต้องการในรอบนี้</div>
+    </div>
+    ${groupInfo(mg,ev)}`;
+  }
+  if(!(p.items>0)){
+    return`<div class="done-box"><div style="font-size:1.8rem;margin-bottom:6px">✅</div>
+      <div class="done-title">ส่งเข้ากองกลางแล้ว</div>
+      <div class="done-sub">รอกลุ่มอื่นส่งด้วย<br>แล้ว Admin จะ Confirm</div>
+    </div>
+    <div class="card" style="padding:12px 14px">
+      <div style="font-family:var(--mono);font-size:.6rem;color:var(--dim);margin-bottom:8px">🧪 กองกลางรวมตอนนี้</div>
+      ${poolBars}
+    </div>
+    ${groupInfo(mg,ev)}`;
+  }
+  return`
+  <div class="card ca-amber">
+    <div style="font-family:var(--mono);font-size:.58rem;color:var(--dim);margin-bottom:5px">EVENT ${evIdx+1} / ${EV_TOTAL} · ${ev.emoji} ${ev.name}</div>
+    <div style="font-size:.83rem;color:var(--dim);margin-bottom:10px">${ev.desc}</div>
+    <div style="font-family:var(--mono);font-size:.6rem;color:var(--dim);margin-bottom:6px">🧪 กองกลางรวมตอนนี้</div>
+    ${poolBars}
+  </div>
+  <div class="stepper-wrap pulse-amber">
+    <div class="step-lbl">ส่งเข้ากองกลางกี่ชิ้น? &nbsp;(มี ${p.items} ชิ้น)</div>
+    <div class="step-row">
+      <button class="step-btn" onclick="stepUse(-1)">−</button>
+      <div class="step-num" id="use-num">${S.useAmt}</div>
+      <button class="step-btn" onclick="stepUse(1)">+</button>
+    </div>
+    <div class="step-max">${d.icon} ${d.item} → กองกลาง</div>
+  </div>
+  <button id="btn-use" class="btn-big btn-amber" onclick="doUseItems()" ${S.useAmt<=0?'disabled':''}>
+    ${S.useAmt>0?'ส่ง '+S.useAmt+' ชิ้นเข้ากองกลาง':'เลือกจำนวนก่อน'}
+  </button>
+  ${groupInfo(mg,ev)}`;
 }
 
 function renderLobby(mg){
@@ -522,7 +601,7 @@ function renderWait(ev,evIdx,mg){
     <div style="text-align:center;padding:14px 0 8px">
       <div style="font-size:2rem;margin-bottom:7px">⏳</div>
       <div style="font-family:var(--deco);font-size:1.5rem;letter-spacing:.08em;color:var(--dim);margin-bottom:4px">รออยู่...</div>
-      <div style="font-size:.85rem;color:var(--dim)">รอ Admin เปิด Event ${Math.min(evIdx+1,10)}<br>ยังไม่ต้องทำอะไร</div>
+      <div style="font-size:.85rem;color:var(--dim)">รอ Admin เปิด Event ${Math.min(evIdx+1,EV_TOTAL)}<br>ยังไม่ต้องทำอะไร</div>
     </div>
   </div>
   ${evCard(ev,evIdx,mg)}${groupInfo(mg,ev)}`;
@@ -587,7 +666,7 @@ function evCard(ev,evIdx,mg){
     return`<span class="rpill ${ok?'rok':'rfail'}">${DEPTS[dk]?.icon||dk} ${have}/${need} ${ok?'✓':'✗'}</span>`;
   }).join(''):'';
   return`<div class="card ca-amber">
-    <div style="font-family:var(--mono);font-size:.58rem;color:var(--dim);margin-bottom:5px">EVENT ${evIdx+1} / 10</div>
+    <div style="font-family:var(--mono);font-size:.58rem;color:var(--dim);margin-bottom:5px">EVENT ${evIdx+1} / ${EV_TOTAL}</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px">
       <span style="font-size:1.7rem;line-height:1">${ev.emoji}</span>
       <span style="font-family:var(--deco);font-size:1.35rem;letter-spacing:.06em;color:var(--amber)">${ev.name}</span>
