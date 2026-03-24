@@ -433,6 +433,7 @@ function updatePreview() {
 // ============================================================
 function render() {
   const app = document.getElementById('app'); if (!app) return;
+  if (!S.playerId) { renderLogin(app); return; }
   if (S.view==='login') { renderLogin(app); return; }
   if (S.view==='result') { renderResult(app); return; }
   if (S.view==='lobby'||S.view==='regroup') { renderGroupSelect(app); return; }
