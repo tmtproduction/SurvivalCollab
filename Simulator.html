@@ -147,6 +147,22 @@ input:focus,select:focus{border-color:var(--amber)}
         </div>
         <button class="btn btn-a" style="margin-top:4px" onclick="applyConfig()">✅ Apply Settings</button>
       </div>
+      <div class="st" style="margin-top:10px">สัดส่วน Dept & Item Range</div>
+      <div class="card" style="padding:10px 12px">
+        <div style="font-family:var(--mono);font-size:.56rem;color:var(--dim);margin-bottom:8px">กำหนดสัดส่วน % ของแต่ละ dept และ Min–Max items · คำนวณจำนวนจริงจาก "จำนวน Players"</div>
+        <table class="ptable" style="font-size:.72rem">
+          <thead><tr><th>Dept</th><th>Item</th><th>สัดส่วน %</th><th>≈ คน</th><th>Min items</th><th>Max items</th></tr></thead>
+          <tbody id="item-range-body"></tbody>
+        </table>
+        <div style="margin-top:8px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-family:var(--mono);font-size:.56rem;color:var(--dim)">รวม %</span>
+            <span id="pct-total" style="font-family:var(--mono);font-size:.58rem;color:var(--amber)">100%</span>
+          </div>
+          <div style="height:6px;background:var(--brd2);border-radius:3px;overflow:hidden;display:flex;gap:1px" id="pct-bar"></div>
+          <div id="pct-warn" style="font-family:var(--mono);font-size:.56rem;color:var(--red);margin-top:3px;display:none">⚠ รวม % ≠ 100 — จะปรับ dept สุดท้ายให้พอดีอัตโนมัติ</div>
+        </div>
+      </div>
     </div>
     <div>
       <div class="st">Event Config</div>
@@ -236,7 +252,9 @@ const DEF_EVENTS=[
   {id:10,name:'หนีรอด',emoji:'🚁',type:'global_all',req:{PD1:30,PD3:30,EN:20,PD2:20,QA:15,MN:15},dmgWho:'tiered_missing_types',dmgTiers:[{max:0,dmg:0},{max:2,dmg:1},{max:4,dmg:2},{max:6,dmg:3}],desc:'รวม Pool สุดท้าย'},
 ];
 
-let S={cfg:{gc:8,hp:8,min:5,max:7,poolCap:35,np:40},events:DEF_EVENTS.map(e=>({...e})),players:[],logs:[],useAmts:{},dragPid:null,
+let S={cfg:{gc:8,hp:8,min:5,max:7,poolCap:35,np:40},
+  itemRange:{PD1:{pct:17,min:3,max:8},PD2:{pct:17,min:3,max:8},PD3:{pct:17,min:3,max:8},QA:{pct:17,min:3,max:8},EN:{pct:16,min:3,max:8},MN:{pct:16,min:3,max:8}},
+  events:DEF_EVENTS.map(e=>({...e})),players:[],logs:[],useAmts:{},dragPid:null,
   game:{started:false,phase:'lobby',evIdx:0,pending:false,regroup:false}};
 
 // ── HELPERS ─────────────────────────────────────────────────
@@ -282,6 +300,51 @@ function renderEvCfg(){
       <td><input class="ain" type="number" min="0" max="20" value="${ev.preDmg||0}" onchange="S.events[${i}].preDmg=+this.value" style="width:46px"></td>
       <td><input class="ain" type="number" min="1" max="999" value="${ev.poolCap||35}" onchange="S.events[${i}].poolCap=+this.value" style="width:52px"></td>
     </tr>`).join('');
+  renderItemRangeCfg();
+}
+function renderItemRangeCfg(){
+  const tb=document.getElementById('item-range-body');if(!tb)return;
+  tb.innerHTML=DK.map(dk=>{
+    const d=DEPTS[dk],r=S.itemRange[dk];
+    const approx=Math.round((r.pct/100)*S.cfg.np);
+    return`<tr>
+      <td><span class="dbadge" style="background:${d.color}22;color:${d.color}">${d.icon} ${dk}</span></td>
+      <td style="font-size:.68rem;color:var(--dim)">${d.item}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input class="ain" type="number" min="0" max="100" value="${r.pct}" style="width:46px"
+            onchange="S.itemRange['${dk}'].pct=Math.max(0,Math.min(100,+this.value));updatePctBar()">
+          <span style="font-family:var(--mono);font-size:.58rem;color:var(--dim)">%</span>
+        </div>
+      </td>
+      <td id="approx-${dk}" style="font-family:var(--mono);font-size:.65rem;color:var(--amber);text-align:center">${approx}</td>
+      <td><input class="ain" type="number" min="0" max="99" value="${r.min}" style="width:46px"
+          onchange="S.itemRange['${dk}'].min=Math.min(+this.value,S.itemRange['${dk}'].max);this.value=S.itemRange['${dk}'].min"></td>
+      <td><input class="ain" type="number" min="1" max="99" value="${r.max}" style="width:46px"
+          onchange="S.itemRange['${dk}'].max=Math.max(+this.value,S.itemRange['${dk}'].min);this.value=S.itemRange['${dk}'].max"></td>
+    </tr>`;
+  }).join('');
+  updatePctBar();
+}
+function updatePctBar(){
+  const np=S.cfg.np||40;
+  const tot=DK.reduce((s,dk)=>s+(S.itemRange[dk]?.pct||0),0);
+  // อัปเดต approx คน
+  DK.forEach(dk=>{
+    const el=document.getElementById('approx-'+dk);
+    if(el)el.textContent=Math.round(((S.itemRange[dk]?.pct||0)/100)*np);
+  });
+  // total label
+  const tEl=document.getElementById('pct-total');
+  if(tEl){tEl.textContent=tot+'%';tEl.style.color=tot===100?'var(--green)':tot>100?'var(--red)':'var(--amber)';}
+  // warn
+  const w=document.getElementById('pct-warn');if(w)w.style.display=tot!==100?'block':'none';
+  // stacked bar
+  const bar=document.getElementById('pct-bar');
+  if(bar)bar.innerHTML=DK.map(dk=>{
+    const pct=S.itemRange[dk]?.pct||0;
+    return`<div style="flex:${pct};background:${DEPTS[dk]?.color};min-width:${pct?'2px':'0'};transition:flex .2s"></div>`;
+  }).join('');
 }
 function applyConfig(){
   S.cfg.gc=+document.getElementById('cfg-gc').value||8;
@@ -292,23 +355,37 @@ function applyConfig(){
   S.cfg.np=+document.getElementById('cfg-np').value||40;
   S.players=[];S.logs=[];S.useAmts={};
   S.game={started:false,phase:'lobby',evIdx:0,pending:false,regroup:false};
-  renderEvCfg();toast('✅ Applied: '+S.cfg.gc+' กลุ่ม / HP '+S.cfg.hp);
+  renderEvCfg();updatePctBar();toast('✅ Applied: '+S.cfg.gc+' กลุ่ม / HP '+S.cfg.hp+' / '+S.cfg.np+' คน');
 }
 
 // ── PLAYERS ─────────────────────────────────────────────────
 function genPlayers(){
-  const dkeys=Object.keys(DEPTS);
   const used=new Set(S.players.map(p=>p.name));
-  const pool=THAI_NAMES.filter(n=>!used.has(n));
-  const n=Math.min(S.cfg.np,pool.length);
-  for(let i=0;i<n;i++){
-    const idx=Math.floor(Math.random()*pool.length);
-    const name=pool.splice(idx,1)[0];
-    const dept=dkeys[i%dkeys.length];
-    const items=calcItems(name);
-    S.players.push({id:'s'+Date.now()+'_'+i,name,dept,items,maxItems:items,hp:S.cfg.hp,maxHp:S.cfg.hp,alive:true,groupId:-1});
+  const namePool=THAI_NAMES.filter(n=>!used.has(n));
+  const np=S.cfg.np||40;
+  // คำนวณจำนวนคนต่อ dept จาก %
+  const counts={};let assigned=0;
+  DK.forEach((dk,i)=>{
+    const r=S.itemRange[dk]||{pct:Math.round(100/DK.length),min:3,max:8};
+    // dept สุดท้ายรับส่วนที่เหลือ ป้องกัน rounding error
+    const cnt=i===DK.length-1?np-assigned:Math.round((r.pct/100)*np);
+    counts[dk]=Math.max(0,cnt);assigned+=counts[dk];
+  });
+  let added=0;
+  for(const dk of DK){
+    const r=S.itemRange[dk]||{min:3,max:8};
+    const cnt=counts[dk]||0;
+    for(let i=0;i<cnt;i++){
+      if(!namePool.length)break;
+      const idx=Math.floor(Math.random()*namePool.length);
+      const name=namePool.splice(idx,1)[0];
+      const items=r.min+Math.floor(Math.random()*(Math.max(r.max,r.min)-r.min+1));
+      S.players.push({id:'s'+Date.now()+'_'+added,name,dept:dk,items,maxItems:items,hp:S.cfg.hp,maxHp:S.cfg.hp,alive:true,groupId:-1});
+      added++;
+    }
   }
-  toast('✅ สร้าง '+n+' คน');renderPlayers();
+  const breakdown=DK.map(dk=>`${DEPTS[dk].icon}${counts[dk]}`).join(' ');
+  toast('✅ สร้าง '+added+' คน — '+breakdown);renderPlayers();
 }
 function toggleManualForm(){const f=document.getElementById('manual-form');f.style.display=f.style.display==='none'?'block':'none';}
 function addPlayerManual(){
@@ -476,9 +553,10 @@ function pIsRelevant(p,ev){
   const cnt=gAlive(p.groupId),req=evReq(ev,cnt);
   return p.dept in req;
 }
-// อัปเดต progress bar ต่อ dept ใน group card (เรียกหลัง stepP)
+// อัปเดต progress bar + pass/fail badge ต่อ group (เรียกหลัง stepP)
 function refreshGCard(gid,ev){
   const cnt=gAlive(gid),req=evReq(ev,cnt);
+  const isDiscard=ev?.type==='discard',cap=ev?.poolCap||S.cfg.poolCap;
   const usedByDept={};
   S.players.filter(p=>p.alive&&p.groupId===gid).forEach(p=>{
     usedByDept[p.dept]=(usedByDept[p.dept]||0)+(S.useAmts[p.id]||0);
@@ -491,6 +569,18 @@ function refreshGCard(gid,ev){
     const lbl=document.getElementById('glbl-'+gid+'-'+dk);
     if(lbl)lbl.textContent=have+(need?'/'+need:'');
   });
+  // อัปเดต pass/fail badge ของกลุ่ม
+  const badge=document.getElementById('gpf-'+gid);if(!badge)return;
+  let pass;
+  if(isDiscard){
+    const usedTot=Object.values(usedByDept).reduce((s,v)=>s+v,0);
+    const poolTot=DK.reduce((s,d)=>s+(gPool(gid)[d]||0),0);
+    pass=(poolTot-usedTot)<=cap;
+  }else{
+    pass=Object.entries(req).every(([dk,n])=>(usedByDept[dk]||0)>=n);
+  }
+  badge.className=pass?'rp':'rf';
+  badge.textContent=pass?'✓ PASS':'✗ FAIL';
 }
 
 function buildItemForm(ev){
@@ -539,8 +629,15 @@ function buildItemForm(ev){
       </div>`;
     }).join('');
     const reqTxt=Object.entries(req).map(([dk,n])=>`${DEPTS[dk]?.icon||dk}×${n}`).join(' ');
+    const usedByDeptInit={};members.forEach(p=>{usedByDeptInit[p.dept]=(usedByDeptInit[p.dept]||0)+(S.useAmts[p.id]||0);});
+    let initPass;
+    if(isDiscard){const ut=Object.values(usedByDeptInit).reduce((s,v)=>s+v,0),pt=DK.reduce((s,d)=>s+(pool[d]||0),0);initPass=(pt-ut)<=cap;}
+    else{initPass=Object.keys(req).length===0||Object.entries(req).every(([dk,n])=>(usedByDeptInit[dk]||0)>=n);}
     return`<div style="background:var(--sur2);border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px">
-      <div style="font-family:var(--deco);font-size:.85rem;letter-spacing:.1em;color:var(--amber);margin-bottom:6px">${GN[gid]||('G'+(gid+1))}${reqTxt?`<span style="font-family:var(--mono);font-size:.58rem;color:var(--dim);font-weight:400;letter-spacing:0;margin-left:8px">ต้องการ: ${reqTxt}</span>`:''}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px">
+        <div style="font-family:var(--deco);font-size:.85rem;letter-spacing:.1em;color:var(--amber)">${GN[gid]||('G'+(gid+1))}${reqTxt?`<span style="font-family:var(--mono);font-size:.58rem;color:var(--dim);font-weight:400;letter-spacing:0;margin-left:8px">ต้องการ: ${reqTxt}</span>`:''}</div>
+        <span id="gpf-${gid}" class="${initPass?'rp':'rf'}" style="flex-shrink:0">${initPass?'✓ PASS':'✗ FAIL'}</span>
+      </div>
       ${deptBars}<div style="margin-top:6px">${rows}</div>
     </div>`;
   }).filter(Boolean).join('');
@@ -760,6 +857,10 @@ function renderResultScreen(el){
   </div>
   <div class="st">🏅 จัดอันดับกลุ่ม</div>
   <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">${gcards}</div>
+  <div class="st">🤖 AI วิเคราะห์ผลการแข่งขัน</div>
+  <div id="ai-box" class="card" style="margin-bottom:10px;min-height:60px">
+    <button class="btn btn-p" onclick="runAiAnalysis()" id="ai-btn">✨ วิเคราะห์ด้วย AI</button>
+  </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn btn-a" onclick="resetGame()">🔄 เล่นใหม่ (เก็บ Players)</button>
     <button class="btn btn-gh" onclick="doReset()">🗑 Reset ทั้งหมด</button>
@@ -785,6 +886,73 @@ function copyToFirebase(){
   const cfg={gameStarted:false,phase:'lobby',currentEvent:0,pendingConfirm:false,groupCount:S.cfg.gc,minGroupSize:S.cfg.min,maxGroupSize:S.cfg.max,defaultHp:S.cfg.hp,eventConfig:S.events.reduce((o,ev,i)=>{const d=DEF_EVENTS[i]||{};if(ev.dmg!==d.dmg||ev.preDmg!==d.preDmg||ev.poolCap!==d.poolCap)o[ev.id]={dmg:ev.dmg,preDmg:ev.preDmg||0,poolCap:ev.poolCap||35};return o;},{}),globalConfig:{poolCap:S.cfg.poolCap}};
   const out=JSON.stringify({game:{state:cfg}},null,2);
   navigator.clipboard?.writeText(out).then(()=>toast('🔥 Copy Config แล้ว! วางใน Firebase Console')).catch(()=>{const ta=document.createElement('textarea');ta.value=out;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('🔥 Copy แล้ว!');});
+}
+
+// ── AI ANALYSIS ──────────────────────────────────────────────
+function buildAiPrompt(){
+  const alive=S.players.filter(p=>p.alive),dead=S.players.filter(p=>!p.alive);
+  const groups=allG().map(i=>{
+    const m=gMembers(i),al=m.filter(p=>p.alive);
+    const pool=gPool(i),tp=DK.reduce((s,d)=>s+(pool[d]||0),0),th=al.reduce((s,p)=>s+p.hp,0);
+    const deptBreakdown=DK.map(d=>pool[d]?`${DEPTS[d].icon}${d}:${pool[d]}`:'').filter(Boolean).join(' ');
+    return{name:GN[i]||'G'+(i+1),survived:al.length,total:m.length,hp:th,items:tp,deptBreakdown};
+  }).filter(g=>g.total>0);
+  const deptCounts=DK.map(dk=>`${DEPTS[dk].icon}${dk}:${S.players.filter(p=>p.dept===dk).length}คน(${S.itemRange[dk]?.min||0}-${S.itemRange[dk]?.max||0}items)`).join(' | ');
+  const evSummary=S.events.map((ev,i)=>`Ev${i+1}:${ev.name}[${ev.type},dmg:${ev.dmg||0}]`).join(' | ');
+  const logSummary=[...S.logs].slice(-50).map(l=>l.msg).join('\n');
+  return`คุณคือ AI วิเคราะห์ผลการทดสอบระบบ Survival Game Simulator สำหรับ HR/ทีม TMT (บริษัทเหล็ก)
+
+== GAME CONFIG ==
+ผู้เล่น: ${S.players.length} คน | กลุ่ม: ${S.cfg.gc} กลุ่ม | HP เริ่มต้น: ${S.cfg.hp} | Pool Cap: ${S.cfg.poolCap}
+สัดส่วน dept: ${deptCounts}
+Events: ${evSummary}
+
+== ผลลัพธ์รวม ==
+รอด: ${alive.length}/${S.players.length} คน (${Math.round(alive.length/S.players.length*100)}%) | ตกรอบ: ${dead.length} คน
+
+== สถานะแต่ละกลุ่ม ==
+${groups.map(g=>`${g.name}: รอด ${g.survived}/${g.total} | HP รวม:${g.hp} | Items เหลือ:${g.items} [${g.deptBreakdown||'ไม่มี'}]`).join('\n')}
+
+== Game Log ==
+${logSummary}
+
+วิเคราะห์เป็นภาษาไทย แบ่ง 4 ส่วน:
+1. 📊 ภาพรวม — เกมยากแค่ไหน อัตรารอดเหมาะสมไหม
+2. ⚠️ จุดอ่อน — กลุ่ม/dept ไหนเป็นปัญหา event ไหนทำให้คนตกมากสุด
+3. 💡 แนะนำ — ควรปรับจำนวนคน/item range ต่อ dept อย่างไร และ allocation รอบหน้าควรเป็นแบบไหน
+4. 🎯 ทำนาย — ถ้าเล่นรอบหน้า config เดิม outcome น่าจะเป็นอย่างไร
+ตอบกระชับ ตรงประเด็น ไม่เกิน 400 คำ`;
+}
+
+function runAiAnalysis(){
+  const box=document.getElementById('ai-box');if(!box)return;
+  if(S.game.phase!=='result'&&!S.logs.length){toast('รัน Simulate ก่อนครับ',true);return;}
+  const prompt=buildAiPrompt();
+  // copy to clipboard
+  navigator.clipboard?.writeText(prompt).then(()=>{
+    box.innerHTML=`<div class="card cp" style="padding:12px 14px;margin-bottom:8px">
+      <div style="font-family:var(--deco);font-size:.85rem;letter-spacing:.08em;color:var(--purple);margin-bottom:6px">✅ Copy Prompt แล้ว!</div>
+      <div style="font-size:.78rem;color:var(--dim);line-height:1.7">วาง Prompt ใน Claude (claude.ai) แล้วกด Enter เพื่อรับการวิเคราะห์<br>
+      <span style="font-family:var(--mono);font-size:.62rem">Ctrl+V / Cmd+V ใน chat box ของ Claude</span></div>
+    </div>
+    <details style="margin-top:6px">
+      <summary style="font-family:var(--mono);font-size:.62rem;color:var(--dim);cursor:pointer">ดู Prompt ที่ copy</summary>
+      <pre style="font-family:var(--mono);font-size:.58rem;color:var(--dim);background:var(--sur2);border:1px solid var(--brd);border-radius:var(--r);padding:8px;margin-top:6px;overflow-x:auto;white-space:pre-wrap;max-height:200px;overflow-y:auto">${prompt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+    </details>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button class="btn btn-p" onclick="runAiAnalysis()">📋 Copy ใหม่</button>
+      <a href="https://claude.ai" target="_blank" class="btn btn-b">🤖 เปิด Claude.ai</a>
+    </div>`;
+    toast('📋 Copy Prompt แล้ว!');
+  }).catch(()=>{
+    // fallback: show prompt in textarea
+    box.innerHTML=`<div style="font-family:var(--mono);font-size:.65rem;color:var(--amber);margin-bottom:6px">📋 Copy ข้อความด้านล่างไปวางใน Claude.ai</div>
+      <textarea style="width:100%;height:160px;background:var(--sur2);border:1px solid var(--brd2);color:var(--txt);font-family:var(--mono);font-size:.58rem;padding:8px;border-radius:var(--r);resize:vertical" onclick="this.select()" readonly>${prompt}</textarea>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="btn btn-p" onclick="runAiAnalysis()">🔄 Refresh</button>
+        <a href="https://claude.ai" target="_blank" class="btn btn-b">🤖 เปิด Claude.ai</a>
+      </div>`;
+  });
 }
 
 renderEvCfg();
