@@ -149,18 +149,17 @@ input:focus,select:focus{border-color:var(--amber)}
       </div>
       <div class="st" style="margin-top:10px">สัดส่วน Dept & Item Range</div>
       <div class="card" style="padding:10px 12px">
-        <div style="font-family:var(--mono);font-size:.56rem;color:var(--dim);margin-bottom:8px">กำหนดสัดส่วน % ของแต่ละ dept และ Min–Max items · คำนวณจำนวนจริงจาก "จำนวน Players"</div>
+        <div style="font-family:var(--mono);font-size:.56rem;color:var(--dim);margin-bottom:8px">กำหนดจำนวนคนต่อ dept และ Min–Max items สำหรับ Auto-Generate</div>
         <table class="ptable" style="font-size:.72rem">
-          <thead><tr><th>Dept</th><th>Item</th><th>สัดส่วน %</th><th>≈ คน</th><th>Min items</th><th>Max items</th></tr></thead>
+          <thead><tr><th>Dept</th><th>Item</th><th>จำนวนคน</th><th>Min items</th><th>Max items</th></tr></thead>
           <tbody id="item-range-body"></tbody>
         </table>
         <div style="margin-top:8px">
           <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-            <span style="font-family:var(--mono);font-size:.56rem;color:var(--dim)">รวม %</span>
-            <span id="pct-total" style="font-family:var(--mono);font-size:.58rem;color:var(--amber)">100%</span>
+            <span style="font-family:var(--mono);font-size:.56rem;color:var(--dim)">รวมทั้งหมด</span>
+            <span id="pct-total" style="font-family:var(--mono);font-size:.58rem;color:var(--amber)">0 คน</span>
           </div>
           <div style="height:6px;background:var(--brd2);border-radius:3px;overflow:hidden;display:flex;gap:1px" id="pct-bar"></div>
-          <div id="pct-warn" style="font-family:var(--mono);font-size:.56rem;color:var(--red);margin-top:3px;display:none">⚠ รวม % ≠ 100 — จะปรับ dept สุดท้ายให้พอดีอัตโนมัติ</div>
         </div>
       </div>
     </div>
@@ -253,7 +252,7 @@ const DEF_EVENTS=[
 ];
 
 let S={cfg:{gc:8,hp:8,min:5,max:7,poolCap:35,np:40},
-  itemRange:{PD1:{pct:17,min:3,max:8},PD2:{pct:17,min:3,max:8},PD3:{pct:17,min:3,max:8},QA:{pct:17,min:3,max:8},EN:{pct:16,min:3,max:8},MN:{pct:16,min:3,max:8}},
+  itemRange:{PD1:{count:7,min:3,max:8},PD2:{count:7,min:3,max:8},PD3:{count:7,min:3,max:8},QA:{count:7,min:3,max:8},EN:{count:6,min:3,max:8},MN:{count:6,min:3,max:8}},
   events:DEF_EVENTS.map(e=>({...e})),players:[],logs:[],useAmts:{},dragPid:null,
   game:{started:false,phase:'lobby',evIdx:0,pending:false,regroup:false}};
 
@@ -306,18 +305,11 @@ function renderItemRangeCfg(){
   const tb=document.getElementById('item-range-body');if(!tb)return;
   tb.innerHTML=DK.map(dk=>{
     const d=DEPTS[dk],r=S.itemRange[dk];
-    const approx=Math.round((r.pct/100)*S.cfg.np);
     return`<tr>
       <td><span class="dbadge" style="background:${d.color}22;color:${d.color}">${d.icon} ${dk}</span></td>
       <td style="font-size:.68rem;color:var(--dim)">${d.item}</td>
-      <td>
-        <div style="display:flex;align-items:center;gap:4px">
-          <input class="ain" type="number" min="0" max="100" value="${r.pct}" style="width:46px"
-            onchange="S.itemRange['${dk}'].pct=Math.max(0,Math.min(100,+this.value));updatePctBar()">
-          <span style="font-family:var(--mono);font-size:.58rem;color:var(--dim)">%</span>
-        </div>
-      </td>
-      <td id="approx-${dk}" style="font-family:var(--mono);font-size:.65rem;color:var(--amber);text-align:center">${approx}</td>
+      <td><input class="ain" type="number" min="0" max="999" value="${r.count}" style="width:52px"
+          onchange="S.itemRange['${dk}'].count=Math.max(0,+this.value);updatePctBar()"></td>
       <td><input class="ain" type="number" min="0" max="99" value="${r.min}" style="width:46px"
           onchange="S.itemRange['${dk}'].min=Math.min(+this.value,S.itemRange['${dk}'].max);this.value=S.itemRange['${dk}'].min"></td>
       <td><input class="ain" type="number" min="1" max="99" value="${r.max}" style="width:46px"
@@ -327,23 +319,13 @@ function renderItemRangeCfg(){
   updatePctBar();
 }
 function updatePctBar(){
-  const np=S.cfg.np||40;
-  const tot=DK.reduce((s,dk)=>s+(S.itemRange[dk]?.pct||0),0);
-  // อัปเดต approx คน
-  DK.forEach(dk=>{
-    const el=document.getElementById('approx-'+dk);
-    if(el)el.textContent=Math.round(((S.itemRange[dk]?.pct||0)/100)*np);
-  });
-  // total label
+  const tot=DK.reduce((s,dk)=>s+(S.itemRange[dk]?.count||0),0);
   const tEl=document.getElementById('pct-total');
-  if(tEl){tEl.textContent=tot+'%';tEl.style.color=tot===100?'var(--green)':tot>100?'var(--red)':'var(--amber)';}
-  // warn
-  const w=document.getElementById('pct-warn');if(w)w.style.display=tot!==100?'block':'none';
-  // stacked bar
+  if(tEl)tEl.textContent=tot+' คน';
   const bar=document.getElementById('pct-bar');
   if(bar)bar.innerHTML=DK.map(dk=>{
-    const pct=S.itemRange[dk]?.pct||0;
-    return`<div style="flex:${pct};background:${DEPTS[dk]?.color};min-width:${pct?'2px':'0'};transition:flex .2s"></div>`;
+    const c=S.itemRange[dk]?.count||0;
+    return`<div style="flex:${c};background:${DEPTS[dk]?.color};min-width:${c?'2px':'0'};transition:flex .2s" title="${DEPTS[dk]?.icon} ${dk}: ${c} คน"></div>`;
   }).join('');
 }
 function applyConfig(){
@@ -362,19 +344,10 @@ function applyConfig(){
 function genPlayers(){
   const used=new Set(S.players.map(p=>p.name));
   const namePool=THAI_NAMES.filter(n=>!used.has(n));
-  const np=S.cfg.np||40;
-  // คำนวณจำนวนคนต่อ dept จาก %
-  const counts={};let assigned=0;
-  DK.forEach((dk,i)=>{
-    const r=S.itemRange[dk]||{pct:Math.round(100/DK.length),min:3,max:8};
-    // dept สุดท้ายรับส่วนที่เหลือ ป้องกัน rounding error
-    const cnt=i===DK.length-1?np-assigned:Math.round((r.pct/100)*np);
-    counts[dk]=Math.max(0,cnt);assigned+=counts[dk];
-  });
   let added=0;
   for(const dk of DK){
-    const r=S.itemRange[dk]||{min:3,max:8};
-    const cnt=counts[dk]||0;
+    const r=S.itemRange[dk]||{count:7,min:3,max:8};
+    const cnt=r.count||0;
     for(let i=0;i<cnt;i++){
       if(!namePool.length)break;
       const idx=Math.floor(Math.random()*namePool.length);
@@ -384,7 +357,7 @@ function genPlayers(){
       added++;
     }
   }
-  const breakdown=DK.map(dk=>`${DEPTS[dk].icon}${counts[dk]}`).join(' ');
+  const breakdown=DK.map(dk=>`${DEPTS[dk].icon}${S.itemRange[dk]?.count||0}`).join(' ');
   toast('✅ สร้าง '+added+' คน — '+breakdown);renderPlayers();
 }
 function toggleManualForm(){const f=document.getElementById('manual-form');f.style.display=f.style.display==='none'?'block':'none';}
