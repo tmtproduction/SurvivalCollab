@@ -528,12 +528,42 @@ function renderGamePanel() {
   if (phase === 'debrief') {
     const debriefData = S.gs?.debrief ? Object.values(S.gs.debrief) : [];
     const pa = Object.values(S.players);
-    el.innerHTML = h('div','style="text-align:center;padding:24px 20px"',
-      h('div','style="font-size:2.5rem;margin-bottom:8px"','🪞')+
-      h('div','style="font-family:\'Bebas Neue\',sans-serif;font-size:1.3rem;letter-spacing:5px;color:var(--purple)"','DEBRIEF กำลังดำเนินอยู่')+
-      h('div','style="font-family:monospace;font-size:.75rem;color:var(--dim);margin-top:8px"','ตอบแล้ว '+debriefData.length+' / '+pa.length+' คน')+
-      h('div','style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap"',
-        h('a','href="Scoreboard.html?noredirect=1" target="_blank" class="btn btn-g"','🏆 Scoreboard')
+    const total = pa.length;
+    const done = debriefData.length;
+    const pct = total>0 ? Math.round(done/total*100) : 0;
+    const cdActive = S.gs?.countdown?.active;
+    const cdRem = cdActive ? Math.max(0, Math.ceil((S.gs.countdown.endsAt - Date.now())/1000)) : 0;
+
+    const progressBar = h('div','style="background:var(--sur2);border-radius:6px;height:8px;margin:10px 0;overflow:hidden"',
+      h('div','style="height:100%;width:'+pct+'%;background:var(--purple);border-radius:6px;transition:width .4s"','')
+    );
+    const cdDisplay = cdActive
+      ? h('div','style="background:rgba(206,147,216,.08);border:1px solid rgba(206,147,216,.3);border-radius:6px;padding:7px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"',
+          h('span','style="font-family:monospace;font-size:.65rem;color:var(--purple)"','⏱ '+S.gs.countdown.label+' เหลือ '+Math.floor(cdRem/60)+':'+String(cdRem%60).padStart(2,'0'))+
+          h('button','class="btn btn-s" style="font-size:.58rem;padding:2px 8px" onclick="doStopCountdown()"','■ หยุด Timer')
+        )
+      : '';
+
+    el.innerHTML = h('div','style="padding:16px"',
+      h('div','style="display:flex;align-items:center;gap:10px;margin-bottom:14px"',
+        h('span','style="font-size:2rem"','🪞')+
+        h('div','',
+          h('div','style="font-family:\'Bebas Neue\',sans-serif;font-size:1.2rem;letter-spacing:4px;color:var(--purple)"','DEBRIEF กำลังดำเนินอยู่')+
+          h('div','style="font-family:monospace;font-size:.65rem;color:var(--dim);margin-top:2px"','ผู้เล่นกำลังตอบ Reflection')
+        )
+      )+
+      cdDisplay+
+      h('div','style="background:var(--sur2);border:1px solid var(--brd);border-radius:7px;padding:12px 14px;margin-bottom:12px"',
+        h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"',
+          h('span','style="font-family:monospace;font-size:.62rem;color:var(--dim)"','ส่ง Reflection แล้ว')+
+          h('span','style="font-family:\'Bebas Neue\',sans-serif;font-size:1.3rem;color:var(--purple)"',done+' / '+total)
+        )+
+        progressBar+
+        h('div','style="font-family:monospace;font-size:.58rem;color:var(--dim);text-align:right"',pct+'% เสร็จแล้ว')
+      )+
+      h('div','style="display:flex;gap:7px;flex-wrap:wrap"',
+        h('a','href="Scoreboard.html?noredirect=1#debrief" target="_blank" class="btn btn-g"','📊 ดูสรุป Debrief')+
+        h('button','class="btn btn-pu" onclick="doEndDebrief()"','⏹ จบ Debrief')
       )
     );
     return;
@@ -1387,6 +1417,14 @@ async function doKillPlayer(pid) {
   toast('💀 ตัด '+p.name+' แล้ว');
 }
 
+async function doEndDebrief() {
+  if (!confirm('จบ Debrief? Phase จะเปลี่ยนกลับเป็น result')) return;
+  await update(ref(db,'game/state'), { phase:'result' });
+  await update(ref(db,'game/state/countdown'), { active:false });
+  await push(ref(db,'game/logs'), {ts:Date.now(),type:'p',msg:'⏹ Admin จบ Debrief แล้ว'});
+  toast('⏹ Debrief จบแล้ว — กลับ result');
+}
+
 async function doStartDebrief() {
   if (!confirm('เปิด Debrief? ผู้เล่นจะเห็นหน้า Reflection')) return;
   await update(ref(db,'game/state'), { phase:'debrief' });
@@ -1417,7 +1455,7 @@ window.saveEvReq=saveEvReq; window.saveEvCfg=saveEvCfg; window.saveGlobalCfg=sav
 window.saveEvMult=saveEvMult; window.saveCondHeadcount=saveCondHeadcount; window.saveCondReward=saveCondReward;
 window.renderEvCfgTable=renderEvCfgTable; window.scheduleRender=scheduleRender; window.clearLog=clearLog;
 window.doDeletePlayer=doDeletePlayer; window.doKillPlayer=doKillPlayer;
-window.doStartDebrief=doStartDebrief; window.doStartCountdown=doStartCountdown; window.doStopCountdown=doStopCountdown;
+window.doEndDebrief=doEndDebrief; window.doStartDebrief=doStartDebrief; window.doStartCountdown=doStartCountdown; window.doStopCountdown=doStopCountdown;
 window.doQuickTimer=doQuickTimer;
 </script>
 </body>

@@ -110,6 +110,30 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 /* ── LOADING / EMPTY ── */
 .loading{text-align:center;padding:40px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--dim)}
 .refresh-hint{text-align:center;font-family:'Space Mono',monospace;font-size:.58rem;color:var(--dim);margin-top:20px}
+
+/* ── DEBRIEF SUMMARY ── */
+.deb-section{margin-top:28px;padding-top:20px;border-top:2px solid rgba(206,147,216,.2)}
+.deb-q-card{background:var(--sur);border:1px solid var(--brd);border-radius:10px;padding:16px;margin-bottom:12px}
+.deb-q-title{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--purple);letter-spacing:2px;margin-bottom:12px}
+.deb-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.deb-bar-label{font-family:'Space Mono',monospace;font-size:.62rem;color:var(--txt);min-width:90px;flex-shrink:0}
+.deb-bar-wrap{flex:1;height:20px;background:var(--sur2);border-radius:4px;overflow:hidden;position:relative}
+.deb-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.deb-bar-cnt{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-family:'Space Mono',monospace;font-size:.58rem;color:#fff;opacity:.8}
+.deb-bar-pct{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--dim);min-width:36px;text-align:right}
+.deb-q3-item{background:var(--sur2);border-radius:7px;padding:10px 12px;margin-bottom:6px;display:flex;gap:10px;align-items:flex-start}
+.deb-q3-tag{font-family:'Space Mono',monospace;font-size:.54rem;padding:2px 6px;border-radius:3px;font-weight:700;flex-shrink:0;margin-top:2px}
+.deb-q3-text{font-size:.8rem;line-height:1.6;color:var(--txt)}
+.deb-ai-box{background:linear-gradient(135deg,rgba(155,114,208,.08),rgba(58,143,212,.06));border:1px solid rgba(155,114,208,.3);border-radius:10px;padding:16px;margin-bottom:12px}
+.deb-ai-title{font-family:'Space Mono',monospace;font-size:.58rem;color:var(--purple);letter-spacing:2px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.deb-ai-content{font-size:.82rem;line-height:1.8;color:var(--txt);white-space:pre-wrap}
+.deb-ai-loading{display:flex;align-items:center;gap:6px;font-family:'Space Mono',monospace;font-size:.65rem;color:var(--dim)}
+.deb-ai-dot{width:6px;height:6px;border-radius:50%;background:var(--purple);animation:aiPulse .8s ease infinite}
+.deb-ai-dot:nth-child(2){animation-delay:.2s}.deb-ai-dot:nth-child(3){animation-delay:.4s}
+@keyframes aiPulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+.deb-ai-btn{font-family:'Space Mono',monospace;font-size:.6rem;padding:5px 14px;border-radius:6px;border:1px solid rgba(155,114,208,.4);background:transparent;color:var(--purple);cursor:pointer;transition:.15s}
+.deb-ai-btn:hover{background:rgba(155,114,208,.1)}
+#debrief-section{scroll-margin-top:20px}
 </style>
 </head>
 <body>
@@ -165,7 +189,7 @@ const DEFAULT_EVENTS = [
 ];
 const EV_TOTAL = DEFAULT_EVENTS.length;
 
-let D = { gs:null, players:{}, eventHistory:{} };
+let D = { gs:null, players:{}, eventHistory:{}, debrief:[] };
 
 function h(tag, attrs, inner) {
   return '<'+tag+(attrs?' '+attrs:'')+'>'+( inner!==undefined?inner:'')+'</'+tag+'>';
@@ -212,6 +236,10 @@ onValue(ref(db, 'game/state'), snap => {
 });
 onValue(ref(db, 'players'), snap => { D.players=snap.val()||{}; render(); });
 onValue(ref(db, 'game/eventHistory'), snap => { D.eventHistory=snap.val()||{}; render(); });
+onValue(ref(db, 'game/debrief'), snap => {
+  D.debrief = snap.val() ? Object.values(snap.val()) : [];
+  renderDebriefSection();
+});
 
 // ============================================================
 //  COMPUTE
@@ -470,7 +498,267 @@ function render() {
 
   out += h('div','class="refresh-hint"','อัปเดตอัตโนมัติแบบ Real-time · '+new Date().toLocaleString('th-TH'));
   board.innerHTML = out;
+  // render debrief section แยก (ไม่ block render หลัก)
+  renderDebriefSection();
 }
+
+// ============================================================
+//  DEBRIEF SUMMARY
+// ============================================================
+const Q1_OPTS = ['แย่มาก','พอได้','ดี','ดีมาก'];
+const Q2_OPTS = ['ส่ง items ช้า','ไม่รู้ว่าใครมีอะไร','ตัดสินใจช้า','ไม่ได้วางแผนล่วงหน้า'];
+const Q1_COLORS = ['#e84040','#ff9800','#3dba6a','#4fc3f7'];
+const Q2_COLORS = ['#f5a623','#ce93d8','#e84040','#81c784'];
+
+let _aiSummary = null; // cache AI result
+let _aiLoading = false;
+
+function renderDebriefSection() {
+  let el = document.getElementById('debrief-section');
+  if (!el) {
+    // สร้าง section ใต้ #board ถ้ายังไม่มี
+    el = document.createElement('div');
+    el.id = 'debrief-section';
+    el.className = 'wrap';
+    document.querySelector('.wrap').parentNode.appendChild(el);
+  }
+
+  const data = D.debrief || [];
+  if (!data.length) {
+    el.innerHTML = '';
+    return;
+  }
+
+  // ── นับ Q1 ──
+  const q1Count = {};
+  Q1_OPTS.forEach(o => q1Count[o] = 0);
+  data.forEach(d => { if(d.answers?.q1) q1Count[d.answers.q1] = (q1Count[d.answers.q1]||0)+1; });
+  const q1Max = Math.max(...Object.values(q1Count), 1);
+
+  const q1Bars = Q1_OPTS.map((opt,i) => {
+    const cnt = q1Count[opt]||0;
+    const pct = Math.round(cnt/data.length*100);
+    const barW = Math.round(cnt/q1Max*100);
+    return h('div','class="deb-bar-row"',
+      h('div','class="deb-bar-label"',opt)+
+      h('div','class="deb-bar-wrap"',
+        h('div','class="deb-bar-fill" style="width:'+barW+'%;background:'+Q1_COLORS[i]+'"','')+
+        (cnt>0 ? h('div','class="deb-bar-cnt"',cnt+' คน') : '')
+      )+
+      h('div','class="deb-bar-pct"',pct+'%')
+    );
+  }).join('');
+
+  // ── นับ Q2 ──
+  const q2Count = {};
+  Q2_OPTS.forEach(o => q2Count[o] = 0);
+  data.forEach(d => { if(d.answers?.q2) q2Count[d.answers.q2] = (q2Count[d.answers.q2]||0)+1; });
+  const q2Sorted = Q2_OPTS.map((opt,i) => ({opt,cnt:q2Count[opt]||0,col:Q2_COLORS[i]}))
+    .sort((a,b) => b.cnt-a.cnt);
+  const q2Max = Math.max(...q2Sorted.map(x=>x.cnt), 1);
+
+  const q2Bars = q2Sorted.map((item, rank) => {
+    const pct = Math.round(item.cnt/data.length*100);
+    const barW = Math.round(item.cnt/q2Max*100);
+    const medal = rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':'';
+    return h('div','class="deb-bar-row"',
+      h('div','class="deb-bar-label"', medal+' '+item.opt)+
+      h('div','class="deb-bar-wrap"',
+        h('div','class="deb-bar-fill" style="width:'+barW+'%;background:'+item.col+'"','')+
+        (item.cnt>0 ? h('div','class="deb-bar-cnt"',item.cnt+' คน') : '')
+      )+
+      h('div','class="deb-bar-pct"',pct+'%')
+    );
+  }).join('');
+
+  // ── Q3 free text ──
+  const q3Items = data
+    .filter(d => d.answers?.q3 && d.answers.q3.trim())
+    .map(d => {
+      const dept = d.dept||'?';
+      const deptInfo = {PD1:'#4fc3f7',PD2:'#81c784',PD3:'#ffd54f',QA:'#f06292',EN:'#ce93d8',MN:'#ff8a65'};
+      const col = deptInfo[dept]||'#888';
+      return h('div','class="deb-q3-item"',
+        h('div','class="deb-q3-tag" style="background:'+col+'22;color:'+col+';border:1px solid '+col+'44"',dept)+
+        h('div','class="deb-q3-text"', escHtml(d.answers.q3))
+      );
+    }).join('');
+
+  // ── AI Summary box ──
+  let aiHtml = '';
+  if (_aiLoading) {
+    aiHtml = h('div','class="deb-ai-box"',
+      h('div','class="deb-ai-title"','✦ AI สรุปภาพรวม')+
+      h('div','class="deb-ai-loading"',
+        h('div','class="deb-ai-dot"','')+h('div','class="deb-ai-dot"','')+h('div','class="deb-ai-dot"','')+
+        'กำลังวิเคราะห์...'
+      )
+    );
+  } else if (_aiSummary) {
+    aiHtml = h('div','class="deb-ai-box"',
+      h('div','class="deb-ai-title"',
+        '✦ AI สรุปภาพรวม'+
+        h('button','class="deb-ai-btn" onclick="requestAiSummary(true)" style="margin-left:auto"','🔄 สรุปใหม่')
+      )+
+      h('div','class="deb-ai-content"', escHtml(_aiSummary))
+    );
+  } else {
+    const hasQ3 = data.some(d => d.answers?.q3?.trim());
+    aiHtml = h('div','class="deb-ai-box"',
+      h('div','class="deb-ai-title"','✦ AI สรุปภาพรวม')+
+      h('div','style="font-family:monospace;font-size:.65rem;color:var(--dim);margin-bottom:10px"',
+        'ให้ Claude วิเคราะห์ pattern จากคำตอบทั้งหมด'+(hasQ3?'':' (รอให้มีคนตอบ Q3 ก่อน)')
+      )+
+      (hasQ3 ? h('button','class="deb-ai-btn" onclick="requestAiSummary(false)"','✦ สรุป Debrief ด้วย AI') : '')
+    );
+  }
+
+  el.innerHTML = h('div','class="deb-section"',
+    h('div','class="sec-title"','🪞 Debrief Summary ('+data.length+' คนตอบ)')+
+    aiHtml+
+    h('div','class="deb-q-card"',
+      h('div','class="deb-q-title"','Q1 · ทีมคุณสื่อสารกันได้ดีแค่ไหน?')+
+      q1Bars
+    )+
+    h('div','class="deb-q-card"',
+      h('div','class="deb-q-title"','Q2 · จุดที่ทีมพลาดที่สุดคืออะไร? (ranking)')+
+      q2Bars
+    )+
+    (q3Items ? h('div','class="deb-q-card"',
+      h('div','class="deb-q-title"','Q3 · สิ่งนี้เหมือนกับสถานการณ์ในที่ทำงานยังไง? ('+data.filter(d=>d.answers?.q3?.trim()).length+' คนตอบ)')+
+      q3Items
+    ) : '')
+  );
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function requestAiSummary(force) {
+  const data = D.debrief || [];
+  if (!data.length) return;
+  if (_aiLoading) return;
+  if (_aiSummary && !force) return;
+
+  _aiLoading = true;
+  _aiSummary = null;
+  renderDebriefSection();
+
+  // ── 1. Debrief answers ──
+  const q1Count = {}, q2Cnt = {}, q3Texts = [];
+  data.forEach(d => {
+    if(d.answers?.q1) q1Count[d.answers.q1] = (q1Count[d.answers.q1]||0)+1;
+    if(d.answers?.q2) q2Cnt[d.answers.q2] = (q2Cnt[d.answers.q2]||0)+1;
+    if(d.answers?.q3?.trim()) q3Texts.push(d.answers.q3.trim());
+  });
+  const q1Summary = Object.entries(q1Count).sort((a,b)=>b[1]-a[1])
+    .map(([k,v])=>k+' '+v+'คน').join(' | ');
+  const q2Summary = Object.entries(q2Cnt).sort((a,b)=>b[1]-a[1])
+    .map(([k,v],i)=>(i===0?'[1] ':i===1?'[2] ':i===2?'[3] ':'')+k+' '+v+'คน').join(' | ');
+
+  // ── 2. Event history — ผลแต่ละ event ──
+  const evHistory = D.eventHistory || {};
+  const evLines = [];
+  Object.entries(evHistory).sort((a,b)=>+a[0]-+b[0]).forEach(([idx, hist]) => {
+    if (!hist) return;
+    const name = hist.name || ('Event '+(+idx+1));
+    const results = hist.results ? Object.values(hist.results) : [];
+    if (!results.length) { evLines.push('Event '+(+idx+1)+' '+hist.emoji+' '+name+': ดำเนินการเสร็จ'); return; }
+    const passed = results.filter(r=>r.pass).length;
+    const total = results.length;
+    const dmgTotal = results.reduce((s,r)=>s+(r.dmg||0),0);
+    const status = passed===total?'ทุกกลุ่มผ่าน':passed===0?'ไม่มีกลุ่มผ่าน':passed+'/'+total+' กลุ่มผ่าน';
+    evLines.push('• Ev'+(+idx+1)+' '+(hist.emoji||'')+name+': '+status+(dmgTotal>0?' (-'+dmgTotal+'HP รวม)':''));
+  });
+
+  // ── 3. Player survival stats ──
+  const players = Object.values(D.players||{});
+  const aliveCount = players.filter(p=>p.alive).length;
+  const totalP = players.length;
+  const survRate = totalP>0 ? Math.round(aliveCount/totalP*100) : 0;
+  const deptStats = {};
+  players.forEach(p => {
+    if(!deptStats[p.dept]) deptStats[p.dept]={alive:0,dead:0};
+    p.alive ? deptStats[p.dept].alive++ : deptStats[p.dept].dead++;
+  });
+  const deptSummary = Object.entries(deptStats)
+    .map(([d,s])=>d+': รอด '+s.alive+'/'+(s.alive+s.dead)).join(', ');
+
+  // ── สร้าง prompt เชิง Facilitator ──
+  const promptText =
+    'คุณคือ Facilitator มืออาชีพด้าน Experiential Learning ในบริษัทผลิตเหล็ก TMT
+' +
+    'เพิ่งจัดกิจกรรม Survival Team Building จบ ผู้เข้าร่วม ' + totalP + ' คน
+
+' +
+    '═══ ผลการแข่งขัน ═══
+' +
+    'อัตรารอด: ' + aliveCount + '/' + totalP + ' คน (' + survRate + '%)
+' +
+    'รายแผนก: ' + (deptSummary||'ไม่มีข้อมูล') + '
+
+' +
+    '═══ สิ่งที่เกิดขึ้นในเกม (Key Events) ═══
+' +
+    (evLines.length ? evLines.join('
+') : 'ยังไม่มีข้อมูล event') + '
+
+' +
+    '═══ Reflection จากผู้เล่น (' + data.length + ' คนตอบ) ═══
+' +
+    'Q1 ทีมสื่อสารกันดีแค่ไหน: ' + (q1Summary||'ไม่มีข้อมูล') + '
+' +
+    'Q2 จุดที่ทีมพลาดที่สุด (เรียงจากมาก): ' + (q2Summary||'ไม่มีข้อมูล') + '
+' +
+    'Q3 เชื่อมกับที่ทำงานยังไง:
+' +
+    (q3Texts.length ? q3Texts.slice(0,12).map((t,i)=>(i+1)+'. '+t).join('
+') : '(ยังไม่มีคำตอบ)') + '
+
+' +
+    '═══ โจทย์ ═══
+' +
+    'วิเคราะห์ในบทบาท Facilitator เพื่อถอดบทเรียนจากเกมสู่การทำงานจริง
+' +
+    'เชื่อมระหว่างสิ่งที่เกิดในเกม ↔ พฤติกรรมในองค์กร
+
+' +
+    'เขียนในรูปแบบนี้:\n\n' +
+    '🎯 ภาพรวมที่ Facilitator เห็น\n' +
+    '(วิเคราะห์ pattern พฤติกรรมทีมจากผลเกม + reflection 2-3 ประโยค)\n\n' +
+    '⚡ Key Moments ที่ควรยกมาพูด\n' +
+    '(เหตุการณ์จริงในเกมที่สะท้อนพฤติกรรมสำคัญ 2-3 ข้อ ระบุว่าเชื่อมกับที่ทำงานยังไง)\n\n' +
+    '🔍 สิ่งที่ทีมบอกว่าพลาด vs สิ่งที่เกิดจริงในเกม\n' +
+    '(เปรียบ Q2 กับ event results ตรงกันหรือมี blind spot?)\n\n' +
+    '🏭 การนำไปปรับใช้ระหว่างแผนก\n' +
+    'อ้างอิงจากเกม: แผนก PD1/PD2/PD3/QA/EN/MN ต้องพึ่งพากัน สิ่งที่เห็นจากเกมคืออะไร?\n' +
+    'ระบุ 2-3 สถานการณ์ที่แผนกต้องประสานแต่ทำได้ไม่ดี\n' +
+    'แปลงเป็น 2-3 ข้อปฏิบัติที่พนักงาน TMT เอาไปทำได้จริงในสัปดาห์หน้า\n' +
+    '(เช่น วิธีแชร์ข้อมูลข้ามสาย การตัดสินใจร่วม การส่งงานข้ามแผนก)\n\n' +
+    '💬 คำถามสำหรับ Facilitator ถามห้อง\n' +
+    '(2 คำถามเชื่อมเกมกับการทำงานข้ามแผนกจริง)\n\n' +
+    'เขียนภาษาไทย กระชับ ใช้ได้จริงในห้อง ไม่เกิน 400 คำ';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1600,
+        messages: [{ role: 'user', content: promptText }]
+      })
+    });
+    const json = await res.json();
+    _aiSummary = json.content?.[0]?.text || 'ไม่สามารถสรุปได้ในขณะนี้';
+  } catch(e) {
+    _aiSummary = '❌ เกิดข้อผิดพลาด: '+e.message;
+  }
+  _aiLoading = false;
+  renderDebriefSection();
+}
+window.requestAiSummary = requestAiSummary;
 </script>
 </body>
 </html>
