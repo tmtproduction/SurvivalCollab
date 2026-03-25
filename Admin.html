@@ -602,7 +602,7 @@ function renderGamePanel() {
     ).join('');
     const cdDisplay2 = cdActive2
       ? h('div','style="display:flex;align-items:center;gap:6px;padding:5px 0"',
-          h('span','style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--amber)"',
+          h('span','style="font-family:var(--deco),sans-serif;font-size:1.3rem;color:var(--amber)"',
             Math.floor(cdRem2/60)+':'+String(cdRem2%60).padStart(2,'0'))+
           h('span','style="font-family:monospace;font-size:.58rem;color:var(--dim)"',S.gs.countdown.label||'เวลา'))
       : h('div','style="font-family:monospace;font-size:.6rem;color:var(--dim);padding:4px 0"','ยังไม่มี Timer');
