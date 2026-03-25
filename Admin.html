@@ -1134,9 +1134,9 @@ function renderGroupNameInputs() {
     const cur = _customGroupNames[i] || GN[i] || ('G'+(i+1));
     return `<div class="gname-item">
       <div class="gname-lbl">กลุ่ม ${i+1}</div>
-      <input class="gname-inp" id="gname-${i}" value="${cur}"
-        oninput="_customGroupNames[${i}]=this.value.toUpperCase()||GN[${i}]||'G${i+1}'"
-        onblur="this.value=this.value.toUpperCase()||GN[${i}]">
+      <input class="gname-inp" id="gname-${i}" value="${cur}" data-idx="${i}"
+        oninput="updateGroupName(this)"
+        onblur="this.value=this.value.toUpperCase()||GN[this.dataset.idx]||'G'+(+this.dataset.idx+1)">
     </div>`;
   }).join('');
 }
@@ -1144,6 +1144,18 @@ function renderGroupNameInputs() {
 function resetGroupNames() {
   _customGroupNames = [...GN];
   renderGroupNameInputs();
+}
+
+// ── helpers สำหรับ inline oninput (ต้อง expose เป็น window เพราะ type=module) ──
+function updateGroupName(el) {
+  const idx = +el.dataset.idx;
+  _customGroupNames[idx] = el.value.toUpperCase() || GN[idx] || ('G'+(idx+1));
+}
+function updateEventName(el) {
+  const idx = +el.dataset.idx;
+  const field = el.dataset.field;
+  if (field === 'emoji') _customEventNames[idx].emoji = el.value || DEFAULT_EVENTS[idx].emoji;
+  if (field === 'name')  _customEventNames[idx].name  = el.value || DEFAULT_EVENTS[idx].name;
 }
 
 function renderEventNameInputs() {
@@ -1158,10 +1170,10 @@ function renderEventNameInputs() {
     const typeLabel = TYPE_LABEL[DEFAULT_EVENTS[i]?.type]||DEFAULT_EVENTS[i]?.type||'';
     return `<div class="evname-row">
       <span class="evname-num">${i+1}</span>
-      <input class="evname-emoji-inp" id="evemoji-${i}" value="${ev.emoji}"
-        oninput="_customEventNames[${i}].emoji=this.value||DEFAULT_EVENTS[${i}].emoji">
-      <input class="evname-name-inp" id="evname-${i}" value="${ev.name}" placeholder="ชื่อ Event ${i+1}"
-        oninput="_customEventNames[${i}].name=this.value||DEFAULT_EVENTS[${i}].name">
+      <input class="evname-emoji-inp" id="evemoji-${i}" value="${ev.emoji}" data-idx="${i}" data-field="emoji"
+        oninput="updateEventName(this)">
+      <input class="evname-name-inp" id="evname-${i}" value="${ev.name}" placeholder="ชื่อ Event ${i+1}" data-idx="${i}" data-field="name"
+        oninput="updateEventName(this)">
       <span class="evname-type">${typeLabel}</span>
     </div>`;
   }).join('');
@@ -1695,7 +1707,7 @@ async function doStopCountdown() {
 
 window.switchTab=switchTab; window.renderGamePanel=renderGamePanel;
 window.doInitGame=doInitGame; window.doStartGame=doStartGame;
-window.renderGroupNameInputs=renderGroupNameInputs; window.renderEventNameInputs=renderEventNameInputs;
+window.renderGroupNameInputs=renderGroupNameInputs; window.renderEventNameInputs=renderEventNameInputs; window.updateGroupName=updateGroupName; window.updateEventName=updateEventName;
 window.resetGroupNames=resetGroupNames; window.resetEventNames=resetEventNames;
 window.showStartPreview=showStartPreview; window.closeStartPreview=closeStartPreview;
 window.doConfirmStart=doConfirmStart;
