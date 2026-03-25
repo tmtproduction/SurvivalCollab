@@ -1434,10 +1434,8 @@ async function doConfirmEvent() {
       }
     }
     if (overGroups.length > 0) {
-      const detail = overGroups.map(g=>`${g.name}: ${g.total} ชิ้น (เกิน ${g.over})`).join('
-');
-      toast('❌ ยังมีกลุ่มถือของเกิน '+cap+' ชิ้น!
-'+detail, true);
+      const detail = overGroups.map(g=>g.name+': '+g.total+' ชิ้น (เกิน '+g.over+')').join(' | ');
+      toast('❌ กลุ่มถือของเกิน '+cap+' ชิ้น — '+detail, true);
       setBtn('btn-conf-ev', null, false);
       return;
     }
