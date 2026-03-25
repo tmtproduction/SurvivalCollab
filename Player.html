@@ -313,6 +313,39 @@ function getPhase(){
   return'wait';
 }
 
+
+// ── SOUND ENGINE ──────────────────────────────────────────
+const _audio = (()=>{
+  let ctx=null;
+  function getCtx(){ if(!ctx){ try{ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} } return ctx; }
+  function beep(freq,dur,vol,type='sine',fadeOut=true){
+    const c=getCtx(); if(!c)return;
+    const osc=c.createOscillator();
+    const gain=c.createGain();
+    osc.connect(gain); gain.connect(c.destination);
+    osc.type=type; osc.frequency.setValueAtTime(freq,c.currentTime);
+    gain.gain.setValueAtTime(vol,c.currentTime);
+    if(fadeOut) gain.gain.exponentialRampToValueAtTime(0.001,c.currentTime+dur);
+    osc.start(c.currentTime); osc.stop(c.currentTime+dur);
+  }
+  return {
+    eventOpen(){ // เสียงแจ้ง event เปิด — 3 tone rising
+      beep(440,.12,.18,'square');
+      setTimeout(()=>beep(554,.12,.15,'square'),130);
+      setTimeout(()=>beep(660,.25,.2,'square'),260);
+    },
+    regroup(){ // เสียง regroup — dramatic
+      beep(330,.15,.2,'sawtooth');
+      setTimeout(()=>beep(220,.3,.18,'sawtooth'),160);
+    },
+    countdown(){ beep(880,.07,.12,'sine'); }, // tick เมื่อเหลือ 10 วิ
+    countdownEnd(){ beep(440,.08,.15,'sine'); setTimeout(()=>beep(330,.4,.2,'sine'),90); },
+    debrief(){ beep(528,.2,.15,'sine'); setTimeout(()=>beep(660,.4,.12,'sine'),210); },
+  };
+})();
+
+let _lastEventKey = null; // ใช้ detect event เปลี่ยน
+let _cdUrgentPlayed = false;
 // FIREBASE
 let _cdInterval=null;
 function startListeners(){
@@ -322,18 +355,38 @@ function startListeners(){
     S.gs=d.state||null;
     S.logs=d.logs?Object.values(d.logs).sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-40):[];
     if(!S.gs?.pendingConfirm){S.useAmt=0;S.discardAmt=0;S.submitted=false;}
-    // countdown ticker
+
+    // ── Sound: detect event เปิด (pendingConfirm เปลี่ยนเป็น true)
+    const newEventKey = (S.gs?.currentEvent||0)+'_'+(S.gs?.pendingConfirm?'1':'0')+'_'+(S.gs?.phase||'');
+    if(newEventKey!==_lastEventKey && _lastEventKey!==null){
+      if(S.gs?.pendingConfirm){
+        const evType=EVENTS[S.gs?.currentEvent||0]?.type||'';
+        if(evType==='regroup') _audio.regroup();
+        else _audio.eventOpen();
+      }
+      if(S.gs?.phase==='debrief') _audio.debrief();
+    }
+    _lastEventKey=newEventKey;
+
+    // ── Countdown ticker
     clearInterval(_cdInterval);
+    _cdUrgentPlayed=false;
     if(S.gs?.countdown?.active&&S.gs.countdown.endsAt){
       _cdInterval=setInterval(()=>{
         const rem=S.gs.countdown.endsAt-Date.now();
-        if(rem<=0){clearInterval(_cdInterval);}
-        // re-render countdown bar only (ไม่ re-render ทั้งหน้า)
+        if(rem<=0){
+          clearInterval(_cdInterval);
+          _audio.countdownEnd();
+          return;
+        }
+        const s=Math.max(0,Math.ceil(rem/1000));
+        // เสียง tick เมื่อเหลือ 10 วิ (ครั้งแรกเท่านั้น)
+        if(s<=10&&!_cdUrgentPlayed){ _cdUrgentPlayed=true; _audio.countdown(); }
+        // re-render countdown bar only
         const fill=document.querySelector('.countdown-fill');
         const num=document.querySelector('.cd-num');
         if(fill&&num){
           const total=S.gs.countdown.totalSec||60;
-          const s=Math.max(0,Math.ceil(rem/1000));
           const pct=Math.max(0,Math.min(100,s/total*100));
           const col=s<=10?'var(--red)':s<=20?'#ff9800':'var(--amber)';
           fill.style.width=pct+'%';fill.style.background=col;
@@ -373,7 +426,10 @@ async function doLogin(){
   const player={id:uid,name,dept,row:row||'',items,maxItems:items,hp,maxHp:hp,alive:true,groupId:-1};
   await set(ref(db,'players/'+uid),player);
   await push(ref(db,'game/logs'),{ts:Date.now(),type:'i',msg:name+' ('+dept+') เข้าร่วม — '+items+' items'});
-  S.pid=uid;S.player=player;saveSession(uid);S.loading=false;render();
+  S.pid=uid;S.player=player;saveSession(uid);S.loading=false;
+  _lastAmbKey=null; // force ambient refresh หลัง login
+  render();
+  syncAmbient(true);
 }
 
 function doLogout(){
@@ -1070,6 +1126,10 @@ function renderPerGroupInfo(ev,evIdx,mg,p,d){
 
 // ── DEBRIEF ────────────────────────────────────────────────
 function renderDebrief(app){
+  // Fix: ล้าง amb-dead เพื่อให้ debrief มีสีปกติ
+  document.body.classList.remove('amb-dead');
+  document.body.classList.remove('amb-dead-off');
+
   if(S.debrief.submitted){
     app.innerHTML=`<div class="debrief-outer" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;text-align:center">
       <div style="font-size:3rem;margin-bottom:10px">🙏</div>
@@ -1292,6 +1352,7 @@ function getAmbientKey(){
   const p=S.player;
   if(p&&!p.alive) return 'dead';
   if(!S.pid||phase==='lobby') return 'lobby';
+  if(phase==='debrief') return 'ev10';
   if(phase==='result') return 'ev10';
   if(phase==='regrouping') return 'regroup';
   const evIdx=gs.currentEvent||0;
@@ -1302,9 +1363,12 @@ function getAmbientKey(){
   if(t==='regroup'&&gs.pendingConfirm){
     return id===4?'quake':'ev8_fire';
   }
-  // map event id → key
+  // map event id → key — ใช้ pendingConfirm เป็นตัวบอกว่า event นี้กำลัง active
   const MAP={1:'ev1',2:'ev2',3:'ev3',4:'quake','4b':'ev4b',5:'ev5',6:'ev6',7:'ev7',8:'ev8_fire',9:'ev9',10:'ev10'};
-  return MAP[String(id)]||'lobby';
+  if(gs.pendingConfirm) return MAP[String(id)]||'lobby';
+  // ถ้ายังไม่ได้เปิด event ให้คงสีของ event ก่อนหน้าไว้ (ไม่กลับ lobby)
+  const prevId=EVENTS[Math.max(0,evIdx-1)]?.id;
+  return MAP[String(prevId)]||'lobby';
 }
 
 // Particle system
@@ -1384,9 +1448,9 @@ function _ambLoop(){
 
 // Main sync function — called every Firebase update
 let _lastAmbKey=null;
-function syncAmbient(){
+function syncAmbient(force){
   const key=getAmbientKey();
-  if(key===_lastAmbKey) return; // ไม่เปลี่ยนถ้า key เดิม
+  if(key===_lastAmbKey&&!force) return; // ไม่เปลี่ยนถ้า key เดิม
   _lastAmbKey=key;
   setAmbient(key);
 }
@@ -1447,7 +1511,9 @@ if(saved){
   onValue(ref(db,'players/'+saved),snap=>{
     off(ref(db,'players/'+saved));
     if(snap.val()){S.pid=saved;S.player=snap.val();}
+    _lastAmbKey=null; // force ambient refresh หลัง session restore
     render();
+    syncAmbient(true);
   },{onlyOnce:true});
 }else{render();}
 </script>

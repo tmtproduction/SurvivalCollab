@@ -174,13 +174,38 @@ function h(tag, attrs, inner) {
 // ============================================================
 //  FIREBASE
 // ============================================================
+// Auto-refresh countdown display ทุก 1 วิ (ไม่ต้องรอ Firebase)
+setInterval(()=>{
+  if(!D.gs?.countdown?.active) return;
+  const sb = document.getElementById('sb-cd');
+  if(!sb) return;
+  const rem = Math.max(0, Math.ceil((D.gs.countdown.endsAt - Date.now())/1000));
+  const col = rem<=10?'#e84040':rem<=20?'#ff9800':'#f5a623';
+  const mm = String(Math.floor(rem/60)).padStart(2,'0');
+  const ss = String(rem%60).padStart(2,'0');
+  sb.textContent = mm+':'+ss;
+  sb.style.color = col;
+}, 1000);
+
 onValue(ref(db, '.info/connected'), snap => {
   const c = snap.val();
   const dot = document.getElementById('conn-dot'); if (dot) dot.className='pdot'+(c?'':' off');
   const txt = document.getElementById('conn-txt'); if (txt) txt.textContent=c?'live':'offline';
 });
 
-onValue(ref(db, 'game/state'), snap => { D.gs=snap.val(); render(); });
+onValue(ref(db, 'game/state'), snap => {
+  D.gs=snap.val();
+  // Bug fix: ถ้า phase เปลี่ยนเป็น debrief ให้ redirect player กลับ Player.html
+  if(D.gs?.phase==='debrief'){
+    const savedPid = (()=>{try{return localStorage.getItem('sv3_pid')}catch(e){return null}})();
+    if(savedPid){
+      // player มี session → redirect กลับ Player.html เพื่อตอบ Debrief
+      window.location.href='Player.html';
+      return;
+    }
+  }
+  render();
+});
 onValue(ref(db, 'players'), snap => { D.players=snap.val()||{}; render(); });
 onValue(ref(db, 'game/eventHistory'), snap => { D.eventHistory=snap.val()||{}; render(); });
 
@@ -236,22 +261,51 @@ function render() {
   let out = '';
 
   // ── LIVE BANNER (if game in progress) ──
-  if (phase !== 'result' && gs.gameStarted) {
-    const types=DEFAULT_EVENTS.map(e=>e.type);
-    let dotHtml='';
+  if (phase !== 'result' && phase !== 'debrief' && gs.gameStarted) {
+    const curEv = DEFAULT_EVENTS[evIdx];
+    const types = DEFAULT_EVENTS.map(e=>e.type);
+    let dotHtml = '';
     for(let i=0;i<EV_TOTAL;i++){
-      const t=types[i]||'';let cls='evdot';
-      if(i<evIdx)cls+=' done';
-      else if(i===evIdx)cls+=(t==='regroup'?' cur-rg':t==='discard'?' cur-disc':t==='headcount_reward'?' cur-rg':' cur');
-      dotHtml+=h('div','class="'+cls+'" title="Event '+(i+1)+': '+DEFAULT_EVENTS[i]?.name+'"','');
+      const t=types[i]||''; let cls='evdot';
+      if(i<evIdx) cls+=' done';
+      else if(i===evIdx) cls+=(t==='regroup'?' cur-rg':t==='discard'?' cur-disc':t==='headcount_reward'?' cur-rg':' cur');
+      dotHtml += h('div','class="'+cls+'" title="Event '+(i+1)+': '+DEFAULT_EVENTS[i]?.name+'"','');
     }
-    out += h('div','class="live-banner"',
-      h('span','','🎮 เกมกำลังดำเนินอยู่ — Event '+(evIdx+1)+'/'+EV_TOTAL)+
-      h('div','class="ev-progress"',dotHtml)
+    // countdown
+    const cd = gs.countdown;
+    const cdHtml = (cd?.active && cd.endsAt)
+      ? (()=>{
+          const rem = Math.max(0, Math.ceil((cd.endsAt - Date.now())/1000));
+          const col = rem<=10?'#e84040':rem<=20?'#ff9800':'#f5a623';
+          const mm = String(Math.floor(rem/60)).padStart(2,'0');
+          const ss = String(rem%60).padStart(2,'0');
+          return h('span','style="font-family:monospace;font-size:.65rem;color:'+col+'"','⏱ '+mm+':'+ss);
+        })()
+      : '';
+    const pendingBadge = gs.pendingConfirm
+      ? h('span','style="font-family:monospace;font-size:.58rem;padding:2px 8px;border-radius:10px;background:rgba(232,64,64,.12);color:#e84040;border:1px solid rgba(232,64,64,.3)"','⚡ รอ Items')
+      : h('span','style="font-family:monospace;font-size:.58rem;padding:2px 8px;border-radius:10px;background:rgba(80,96,112,.12);color:var(--dim);border:1px solid var(--brd2)"','⏳ รอ Admin');
+    out += h('div','class="live-banner" style="flex-direction:column;gap:8px;align-items:stretch"',
+      h('div','style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"',
+        h('div','style="display:flex;align-items:center;gap:8px"',
+          h('span','style="font-size:1.3rem"', curEv?.emoji||'🎮')+
+          h('div','',
+            h('div','style="font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:3px;color:var(--amber)"',
+              'EVENT '+(evIdx+1)+'/'+EV_TOTAL+' — '+(curEv?.name||'รอ'))+
+            h('div','style="font-size:.7rem;color:var(--dim);margin-top:1px"', curEv?.desc||'')
+          )
+        )+
+        h('div','style="display:flex;align-items:center;gap:8px"', pendingBadge+cdHtml)
+      )+
+      h('div','class="ev-progress"', dotHtml)
     );
   } else if (phase==='result') {
     out += h('div','style="background:rgba(61,186,106,.07);border:1px solid rgba(61,186,106,.3);border-radius:10px;padding:14px 18px;margin-bottom:18px;text-align:center"',
       h('span','style="font-family:\'Bebas Neue\',sans-serif;font-size:1.1rem;letter-spacing:5px;color:var(--green)"','🏁 เกมจบแล้ว! — ดูผลการแข่งขันด้านล่าง')
+    );
+  } else if (phase==='debrief') {
+    out += h('div','style="background:rgba(155,114,208,.07);border:1px solid rgba(155,114,208,.3);border-radius:10px;padding:14px 18px;margin-bottom:18px;text-align:center"',
+      h('span','style="font-family:\'Bebas Neue\',sans-serif;font-size:1.1rem;letter-spacing:5px;color:var(--purple)"','🪞 Debrief กำลังดำเนินอยู่')
     );
   }
 

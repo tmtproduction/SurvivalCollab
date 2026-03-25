@@ -569,14 +569,49 @@ function renderGamePanel() {
   }
 
   if (!pending) {
-    out += h('div','style="margin-top:9px;display:flex;gap:7px;flex-wrap:wrap"',
-      h('button','id="btn-run-ev" class="btn btn-p" onclick="doRunEvent()"','⚡ เปิด Event '+(evIdx+1)+(ev?' '+ev.emoji+' '+ev.name:''))
+    // ── Quick Timer selector (Bug 4 fix)
+    const cdActive = S.gs?.countdown?.active;
+    const cdRem = cdActive ? Math.max(0, Math.ceil((S.gs.countdown.endsAt - Date.now())/1000)) : 0;
+    const timerPresets = [0,30,60,90,120,180].map(s =>
+      h('button','class="btn btn-s" style="font-size:.58rem;padding:3px 8px" onclick="doQuickTimer('+s+')"',
+        s===0 ? '✕ ไม่ใช้' : Math.floor(s/60)+'m'+(s%60?s%60+'s':''))
+    ).join('');
+    const cdBar = cdActive
+      ? h('div','style="margin-top:6px;background:var(--sur2);border:1px solid rgba(245,166,35,.3);border-radius:6px;padding:7px 10px;display:flex;align-items:center;gap:8px"',
+          h('span','style="font-family:monospace;font-size:.6rem;color:var(--amber)"','⏱ Timer: '+Math.floor(cdRem/60)+':'+String(cdRem%60).padStart(2,'0'))+
+          h('button','class="btn btn-s" style="font-size:.58rem;padding:2px 7px" onclick="doStopCountdown()"','■ หยุด'))
+      : '';
+
+    out += h('div','style="margin-top:9px"',
+      h('div','style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:7px"',
+        h('button','id="btn-run-ev" class="btn btn-p" onclick="doRunEvent()"','⚡ เปิด Event '+(evIdx+1)+(ev?' '+ev.emoji+' '+ev.name:''))
+      )+
+      h('div','style="background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:7px 10px"',
+        h('div','style="font-family:monospace;font-size:.52rem;color:var(--dim);margin-bottom:5px"','⏱ TIMER (ตั้งพร้อมกับเปิด Event)')+
+        h('div','style="display:flex;flex-wrap:wrap;gap:4px"',timerPresets)+
+        cdBar
+      )
     );
   } else {
+    // ── Confirm box พร้อม countdown display + quick timer
+    const cdActive2 = S.gs?.countdown?.active;
+    const cdRem2 = cdActive2 ? Math.max(0, Math.ceil((S.gs.countdown.endsAt - Date.now())/1000)) : 0;
+    const timerPresets2 = [0,30,60,90,120].map(s =>
+      h('button','class="btn btn-s" style="font-size:.58rem;padding:3px 8px" onclick="doQuickTimer('+s+')"',
+        s===0 ? '✕ หยุด' : Math.floor(s/60)+'m'+(s%60?s%60+'s':''))
+    ).join('');
+    const cdDisplay2 = cdActive2
+      ? h('div','style="display:flex;align-items:center;gap:6px;padding:5px 0"',
+          h('span','style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--amber)"',
+            Math.floor(cdRem2/60)+':'+String(cdRem2%60).padStart(2,'0'))+
+          h('span','style="font-family:monospace;font-size:.58rem;color:var(--dim)"',S.gs.countdown.label||'เวลา'))
+      : h('div','style="font-family:monospace;font-size:.6rem;color:var(--dim);padding:4px 0"','ยังไม่มี Timer');
+
     out += h('div','class="confirm-box"',
-      h('div','class="confirm-box-title"','รอผู้เล่นใช้ Items...')+
-      h('div','style="font-size:.75rem;margin-bottom:9px;color:var(--txt)"','ผู้เล่นกำลังเลือกว่าจะใช้ Items กี่ชิ้น หลังจากทุกคนพร้อมแล้วกด Confirm')+
-      h('button','id="btn-conf-ev" class="btn btn-p" onclick="doConfirmEvent()"','✅ Confirm → Apply Damage')
+      h('div','class="confirm-box-title"','⚡ Event เปิดอยู่ — รอผู้เล่นส่ง Items')+
+      h('div','style="margin-bottom:8px"',cdDisplay2)+
+      h('div','style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px"',timerPresets2)+
+      h('button','id="btn-conf-ev" class="btn btn-p" style="width:100%" onclick="doConfirmEvent()"','✅ Confirm → Apply Damage & Next Event')
     );
   }
 
@@ -1293,6 +1328,20 @@ function applyDamage(ev, playerArr, poolMap, gs, poolCap, updates, logs, groupRe
 // ============================================================
 //  DEBRIEF & COUNTDOWN
 // ============================================================
+// Quick Timer — ตั้งเวลาพร้อมกับเปิด event (Bug 4 fix)
+async function doQuickTimer(sec) {
+  if (sec === 0) {
+    await update(ref(db,'game/state/countdown'), {active:false});
+    toast('■ Timer หยุดแล้ว');
+    return;
+  }
+  const label = document.getElementById('cd-label')?.value || 'เวลา Event';
+  const endsAt = Date.now() + sec*1000;
+  await update(ref(db,'game/state/countdown'), {active:true, endsAt, totalSec:sec, label});
+  await push(ref(db,'game/logs'), {ts:Date.now(),type:'w',msg:'⏱ Timer: '+label+' '+Math.floor(sec/60)+'m'+(sec%60?sec%60+'s':'')});
+  toast('⏱ Timer '+Math.floor(sec/60)+'m'+(sec%60?sec%60+'s':'')+' เริ่มแล้ว');
+}
+
 async function doStartDebrief() {
   if (!confirm('เปิด Debrief? ผู้เล่นจะเห็นหน้า Reflection')) return;
   await update(ref(db,'game/state'), { phase:'debrief' });
@@ -1323,6 +1372,7 @@ window.saveEvReq=saveEvReq; window.saveEvCfg=saveEvCfg; window.saveGlobalCfg=sav
 window.saveEvMult=saveEvMult; window.saveCondHeadcount=saveCondHeadcount; window.saveCondReward=saveCondReward;
 window.renderEvCfgTable=renderEvCfgTable; window.scheduleRender=scheduleRender; window.clearLog=clearLog;
 window.doStartDebrief=doStartDebrief; window.doStartCountdown=doStartCountdown; window.doStopCountdown=doStopCountdown;
+window.doQuickTimer=doQuickTimer;
 </script>
 </body>
 </html>
