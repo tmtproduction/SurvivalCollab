@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>สคริปต์พิธีกร — SURVIVAL</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090d;--sur:#0f141c;--sur2:#151d28;--sur3:#1a2535;
+  --brd:rgba(255,255,255,.08);--brd2:rgba(255,255,255,.14);
+  --txt:#dce8f0;--dim:#5a7080;--dim2:#3a4a55;
+  --amber:#f0a500;--amber-dim:rgba(240,165,0,.12);--amber-brd:rgba(240,165,0,.3);
+  --green:#2eb872;--green-dim:rgba(46,184,114,.12);--green-brd:rgba(46,184,114,.3);
+  --red:#e03e3e;--red-dim:rgba(224,62,62,.12);--red-brd:rgba(224,62,62,.3);
+  --blue:#3a8fd4;--blue-dim:rgba(58,143,212,.1);
+  --purple:#9b72d0;--purple-dim:rgba(155,114,208,.12);
+  --orange:#e06b30;
+  --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);min-height:100%}
+body{color:var(--txt);font-family:'Sarabun',sans-serif;font-size:18px;line-height:1.65}
+
+/* ── HEADER ── */
+.hdr{background:var(--sur);border-bottom:3px solid var(--amber);padding:14px 18px;position:sticky;top:0;z-index:200}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.hdr-title{font-size:1.1rem;font-weight:800;color:var(--amber)}
+.hdr-sub{font-size:.72rem;color:var(--dim);font-family:var(--mono)}
+.progress-bar{height:3px;background:var(--brd2);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--amber);border-radius:2px;transition:width .4s ease}
+
+/* ── NAV ── */
+.nav-wrap{background:var(--sur2);border-bottom:1px solid var(--brd);position:sticky;top:74px;z-index:100}
+.nav{display:flex;overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.ntab{flex-shrink:0;padding:11px 16px;font-size:.85rem;font-weight:700;color:var(--dim);border-bottom:3px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap;transition:.15s}
+.ntab.on{color:var(--amber);border-bottom-color:var(--amber);background:var(--amber-dim)}
+
+/* ── PAGE ── */
+.page{max-width:640px;margin:0 auto;padding-bottom:80px}
+
+/* ── INTRO SECTION ── */
+.intro{padding:28px 18px 0}
+.intro-badge{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:700;letter-spacing:.1em;padding:4px 12px;border-radius:20px;background:var(--amber-dim);border:1px solid var(--amber-brd);color:var(--amber);margin-bottom:10px}
+.intro-title{font-size:2rem;font-weight:800;color:var(--txt);line-height:1.1;margin-bottom:8px}
+.intro-lead{font-size:.95rem;color:var(--dim);line-height:1.7;margin-bottom:20px}
+
+/* ── HOW TO USE ── */
+.how-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.how-card{background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:12px 14px}
+.how-icon{font-size:1.5rem;margin-bottom:5px}
+.how-label{font-size:.78rem;font-weight:700;color:var(--amber);margin-bottom:2px}
+.how-text{font-size:.8rem;color:var(--dim);line-height:1.5}
+
+/* ── EVENT CARD ── */
+.ev-section{padding:28px 18px 0;scroll-margin-top:130px}
+.ev-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px}
+.ev-num{font-family:var(--mono);font-size:.7rem;font-weight:600;color:var(--dim);background:var(--sur2);border:1px solid var(--brd2);padding:3px 8px;border-radius:6px;white-space:nowrap;margin-top:3px}
+.ev-emoji{font-size:2.2rem;flex-shrink:0}
+.ev-name{font-size:1.5rem;font-weight:800;color:var(--amber);line-height:1.1}
+.ev-type{font-size:.75rem;font-weight:600;color:var(--dim);font-family:var(--mono);margin-top:3px}
+
+/* ── STORY BLOCK ── */
+.story{background:var(--sur);border:1px solid var(--brd);border-left:4px solid var(--amber);border-radius:0 12px 12px 0;padding:16px 18px;margin-bottom:12px}
+.story-label{font-size:.68rem;font-weight:700;letter-spacing:.15em;color:var(--amber);font-family:var(--mono);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.story-label::before{content:'🎙';font-size:.9rem}
+.story-text{font-size:1rem;color:var(--txt);line-height:1.8}
+.story-text em{color:var(--amber);font-style:normal;font-weight:700}
+.story-text strong{color:var(--txt);font-weight:800}
+
+/* ── CONDITION BLOCK ── */
+.cond{background:var(--sur2);border:1px solid var(--brd2);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.cond-title{font-size:.72rem;font-weight:700;letter-spacing:.12em;color:var(--green);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.cond-title::before{content:'📋'}
+.cond-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--brd)}
+.cond-row:last-child{border:none;padding-bottom:0}
+.cond-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:7px}
+.cond-body{flex:1}
+.cond-head{font-size:.9rem;font-weight:700;color:var(--txt);margin-bottom:2px}
+.cond-desc{font-size:.82rem;color:var(--dim);line-height:1.6}
+.cond-tag{display:inline-block;font-family:var(--mono);font-size:.65rem;padding:2px 8px;border-radius:5px;margin-top:4px;font-weight:600}
+
+/* ── TIP BLOCK ── */
+.tip{background:var(--blue-dim);border:1px solid rgba(58,143,212,.3);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:flex;gap:10px;font-size:.88rem;line-height:1.65}
+.tip-icon{font-size:1.2rem;flex-shrink:0;margin-top:-1px}
+.tip strong{color:var(--txt);font-weight:700}
+
+/* ── DIVIDER ── */
+.hr{height:1px;background:var(--brd);margin:28px 18px 0}
+
+/* ── TIMING BADGE ── */
+.timing{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:.68rem;font-weight:600;padding:3px 10px;border-radius:6px;margin-bottom:12px}
+.t-before{background:var(--amber-dim);border:1px solid var(--amber-brd);color:var(--amber)}
+.t-during{background:var(--green-dim);border:1px solid var(--green-brd);color:var(--green)}
+.t-after{background:var(--purple-dim);border:1px solid rgba(155,114,208,.3);color:var(--purple)}
+
+/* ── DEPT PILLS ── */
+.dept-row{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.dpill{font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:4px}
+
+/* ── PHASE DIVIDER ── */
+.phase-div{margin:28px 18px 0;padding:12px 16px;background:var(--sur2);border:1px solid var(--brd2);border-radius:10px;display:flex;align-items:center;gap:10px}
+.phase-div-text{font-size:.82rem;font-weight:700;color:var(--dim);font-family:var(--mono);letter-spacing:.08em}
+
+/* ── FOOTER ── */
+.footer{text-align:center;padding:24px 18px;font-size:.78rem;color:var(--dim);border-top:1px solid var(--brd)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <div>
+      <div class="hdr-title">📜 สคริปต์พิธีกร — SURVIVAL</div>
+      <div class="hdr-sub">TMT Team Building · 11 เหตุการณ์</div>
+    </div>
+    <div style="font-family:var(--mono);font-size:.75rem;color:var(--dim)" id="progress-txt">0/11</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+</div>
+
+<div class="nav-wrap">
+  <div class="nav" id="nav">
+    <a class="ntab on" href="#intro">เริ่มต้น</a>
+    <a class="ntab" href="#ev1">1 หลงทาง</a>
+    <a class="ntab" href="#ev2">2 หิวโหย</a>
+    <a class="ntab" href="#ev3">3 บาดเจ็บ</a>
+    <a class="ntab" href="#ev4">4 แผ่นดินไหว</a>
+    <a class="ntab" href="#ev4b">5 พบแหล่งน้ำ</a>
+    <a class="ntab" href="#ev5">6 สร้างแพ</a>
+    <a class="ntab" href="#ev6">7 ฉุกเฉิน</a>
+    <a class="ntab" href="#ev7">8 หนาวจัด</a>
+    <a class="ntab" href="#ev8">9 ไฟป่า</a>
+    <a class="ntab" href="#ev9">10 โรคระบาด</a>
+    <a class="ntab" href="#ev10">11 หนีรอด</a>
+    <a class="ntab" href="#end">จบเกม</a>
+  </div>
+</div>
+
+<div class="page">
+
+<!-- ════════════════════════
+     INTRO
+════════════════════════ -->
+<div class="intro" id="intro">
+  <div class="intro-badge">🎙 สคริปต์พิธีกร</div>
+  <div class="intro-title">คำอธิบายก่อนเริ่มเกม</div>
+  <div class="intro-lead">อ่านออกเสียงให้ผู้เล่นฟัง ก่อน Admin กด Start — ใช้เวลาประมาณ 5 นาที</div>
+
+  <div class="how-grid">
+    <div class="how-card">
+      <div class="how-icon">🎙</div>
+      <div class="how-label">ข้อความสีขาว</div>
+      <div class="how-text">อ่านออกเสียงให้ผู้เล่นฟัง</div>
+    </div>
+    <div class="how-card">
+      <div class="how-icon">📋</div>
+      <div class="how-label">กรอบสีเขียว</div>
+      <div class="how-text">เงื่อนไขเกม — อ่านให้ชัดเจน</div>
+    </div>
+    <div class="how-card">
+      <div class="how-icon">💡</div>
+      <div class="how-label">กรอบสีน้ำเงิน</div>
+      <div class="how-text">เกร็ดสำหรับพิธีกรเท่านั้น ไม่ต้องอ่าน</div>
+    </div>
+    <div class="how-card">
+      <div class="how-icon">⏱</div>
+      <div class="how-label">แถบสีบน</div>
+      <div class="how-text">จังหวะที่พูด (ก่อน/ระหว่าง/หลัง)</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">เปิดเกม — อ่านให้ผู้เล่นฟัง</div>
+    <div class="story-text">
+      สวัสดีครับ/ค่ะ ทุกท่าน<br><br>
+      วันนี้เราจะมาร่วมกันเล่นเกม <em>SURVIVAL</em> — เกม Team Building ที่จะทดสอบว่า
+      ทีมของเราสื่อสารกันดีแค่ไหน และช่วยเหลือกันได้ดีแค่ไหนในสถานการณ์กดดัน<br><br>
+      ทุกท่านจะสวมบทบาทเป็น <em>ผู้รอดชีวิต</em> ที่ต้องเผชิญกับ <em>11 สถานการณ์อันตราย</em>
+      ตั้งแต่หลงทาง หิวโหย ไปจนถึงโรคระบาดและไฟป่า<br><br>
+      กติกาง่ายมาก — <em>ทีมต้องช่วยกันส่งของ</em> ให้ครบตามที่แต่ละสถานการณ์กำหนด
+      ถ้าส่งไม่ครบ ทุกคนในทีมจะ<em>เสียพลังชีวิต</em> และถ้าพลังชีวิตเป็น 0 จะถูกตัดออกจากเกม
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อธิบายระบบ "ของ"</div>
+    <div class="story-text">
+      แต่ละท่านมีของประจำแผนกของตัวเอง<br><br>
+      <em>PD1</em> มี เข็มทิศ 🧭 &nbsp;·&nbsp;
+      <em>PD2</em> มี ข้อมูล 📋 &nbsp;·&nbsp;
+      <em>PD3</em> มี อาหาร 🍖<br>
+      <em>QA</em> มี เงิน 💰 &nbsp;·&nbsp;
+      <em>EN</em> มี ยา 💊 &nbsp;·&nbsp;
+      <em>MN</em> มี เครื่องมือ 🔧<br><br>
+      จำนวนของที่ได้รับขึ้นอยู่กับ<em>จำนวนพยัญชนะในชื่อ</em>ของท่าน
+      ยิ่งชื่อยาว ยิ่งได้ของเยอะ
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อธิบายวิธีใช้มือถือ</div>
+    <div class="story-text">
+      เมื่อสถานการณ์เปิด หน้าจอมือถือของท่านจะเปลี่ยนเองอัตโนมัติ<br><br>
+      ท่านจะเห็น <em>ปุ่ม + และ −</em> ให้กดเพื่อเลือกว่าจะส่งของกี่ชิ้น
+      แล้วกด <em>ปุ่มสีเหลือง</em> เพื่อยืนยัน<br><br>
+      ไม่ต้องรีบ — มีเวลาให้คุยกับทีมก่อนส่ง แต่ต้องส่งก่อนที่ Admin จะกด Confirm
+    </div>
+  </div>
+
+  <div class="tip">
+    <div class="tip-icon">💡</div>
+    <div><strong>สำหรับพิธีกร:</strong> ให้ Admin Init Game และผู้เล่น Login + เลือกทีม ให้เสร็จก่อนอ่านสคริปต์เหตุการณ์ ใช้เวลาประมาณ 5-10 นาที</div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ════════════════════════
+     EVENT 1
+════════════════════════ -->
+<div class="ev-section" id="ev1">
+  <div class="timing t-during">⚡ ระหว่างเกม — Admin เปิด Event 1</div>
+  <div class="ev-header">
+    <div class="ev-num">EVENT 01/11</div>
+    <div class="ev-emoji">🗺</div>
+    <div>
+      <div class="ev-name">หลงทาง</div>
+      <div class="ev-type">ทุกทีมส่งของพร้อมกัน</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อ่านให้ผู้เล่นฟัง</div>
+    <div class="story-text">
+      สถานการณ์ที่ 1 — <em>หลงทาง</em><br><br>
+      ทีมของเราออกเดินทางเข้าสู่ป่า แต่ไม่มีใครจำเส้นทางได้
+      ทุกคนเดินวนซ้ำซากอยู่ในที่เดิม<br><br>
+      <strong>วิธีรอด:</strong> แต่ละทีมต้องรวบรวม <em>เข็มทิศ 5 ชิ้น</em>
+      เพื่อนำทางออกจากป่าให้ได้
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cond-title">เงื่อนไขสถานการณ์</div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--green)"></div>
+      <div class="cond-body">
+        <div class="cond-head">แต่ละทีมต้องส่ง 🧭 เข็มทิศ รวม 5 ชิ้น</div>
+        <div class="cond-desc">PD1 เท่านั้นที่มีเข็มทิศ — ทีมต้องรวมกันให้ครบ 5</div>
+        <div class="cond-tag" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green-brd)">ผ่าน → ปลอดภัย</div>
+      </div>
+    </div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--red)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ถ้าส่งไม่ครบ 5 ชิ้น</div>
+        <div class="cond-desc">ทุกคนในทีมนั้นเสีย <strong>−2 พลังชีวิต</strong></div>
+        <div class="cond-tag" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red-brd)">ไม่ผ่าน → −2 HP</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip">
+    <div class="tip-icon">💡</div>
+    <div><strong>พิธีกร:</strong> ถ้า PD1 ในทีมมีของไม่พอ ให้บอกว่า "ทีมต้องช่วยกันวางแผนว่าใครส่งเท่าไหร่" — เป็นการเรียนรู้การสื่อสารครั้งแรก</div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ════════════════════════
+     EVENT 2
+════════════════════════ -->
+<div class="ev-section" id="ev2">
+  <div class="timing t-during">⚡ ระหว่างเกม — Admin เปิด Event 2</div>
+  <div class="ev-header">
+    <div class="ev-num">EVENT 02/11</div>
+    <div class="ev-emoji">🍖</div>
+    <div>
+      <div class="ev-name">หิวโหย</div>
+      <div class="ev-type">ทุกทีมส่งของพร้อมกัน</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อ่านให้ผู้เล่นฟัง</div>
+    <div class="story-text">
+      สถานการณ์ที่ 2 — <em>หิวโหย</em><br><br>
+      เดินป่ามาหลายชั่วโมง ร่างกายเริ่มอ่อนแรง
+      ทีมต้องการอาหารเพื่อรักษาแรงเดินต่อไป<br><br>
+      <strong>วิธีรอด:</strong> แต่ละทีมต้องรวบรวม <em>อาหาร 5 ชิ้น</em>
+      ให้เพียงพอสำหรับทุกคนในทีม
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cond-title">เงื่อนไขสถานการณ์</div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--green)"></div>
+      <div class="cond-body">
+        <div class="cond-head">แต่ละทีมต้องส่ง 🍖 อาหาร รวม 5 ชิ้น</div>
+        <div class="cond-desc">PD3 เท่านั้นที่มีอาหาร</div>
+        <div class="cond-tag" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green-brd)">ผ่าน → ปลอดภัย</div>
+      </div>
+    </div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--red)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ถ้าส่งไม่ครบ 5 ชิ้น</div>
+        <div class="cond-desc">ทุกคนในทีมนั้นเสีย <strong>−2 พลังชีวิต</strong></div>
+        <div class="cond-tag" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red-brd)">ไม่ผ่าน → −2 HP</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ════════════════════════
+     EVENT 3
+════════════════════════ -->
+<div class="ev-section" id="ev3">
+  <div class="timing t-during">⚡ ระหว่างเกม — Admin เปิด Event 3</div>
+  <div class="ev-header">
+    <div class="ev-num">EVENT 03/11</div>
+    <div class="ev-emoji">🩹</div>
+    <div>
+      <div class="ev-name">บาดเจ็บ</div>
+      <div class="ev-type">ทุกทีมส่งของพร้อมกัน</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อ่านให้ผู้เล่นฟัง</div>
+    <div class="story-text">
+      สถานการณ์ที่ 3 — <em>บาดเจ็บ</em><br><br>
+      ขณะเดินป่า สมาชิกหลายคนเดินสะดุดหิน บาดแผลเริ่มลุกลาม
+      ถ้าไม่รักษาเดี๋ยวนี้ อาจติดเชื้อได้<br><br>
+      <strong>วิธีรอด:</strong> แต่ละทีมต้องรวบรวม <em>ยา 6 ชิ้น</em>
+      เพื่อรักษาบาดแผลของทุกคน
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cond-title">เงื่อนไขสถานการณ์</div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--green)"></div>
+      <div class="cond-body">
+        <div class="cond-head">แต่ละทีมต้องส่ง 💊 ยา รวม 6 ชิ้น</div>
+        <div class="cond-desc">EN เท่านั้นที่มียา — ต้องการมากกว่า event ก่อน</div>
+        <div class="cond-tag" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green-brd)">ผ่าน → ปลอดภัย</div>
+      </div>
+    </div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--red)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ถ้าส่งไม่ครบ 6 ชิ้น</div>
+        <div class="cond-desc">ทุกคนในทีมนั้นเสีย <strong>−2 พลังชีวิต</strong></div>
+        <div class="cond-tag" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red-brd)">ไม่ผ่าน → −2 HP</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ════════════════════════
+     EVENT 4 — REGROUP
+════════════════════════ -->
+<div class="ev-section" id="ev4">
+  <div class="timing t-during">⚡ ระหว่างเกม — Admin เปิด Event 4</div>
+  <div class="ev-header">
+    <div class="ev-num">EVENT 04/11</div>
+    <div class="ev-emoji">🌋</div>
+    <div>
+      <div class="ev-name">แผ่นดินไหว</div>
+      <div class="ev-type" style="color:var(--purple)">⚠️ จัดกลุ่มใหม่!</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อ่านให้ผู้เล่นฟัง</div>
+    <div class="story-text">
+      สถานการณ์ที่ 4 — <em>แผ่นดินไหว</em><br><br>
+      พื้นดินสั่นสะเทือนอย่างรุนแรง ทีมทุกทีมถูกพัดกระจัดกระจาย
+      ทุกคนต้องรีบหาเพื่อนร่วมทีมใหม่เพื่อเอาตัวรอด<br><br>
+      <strong>ทุกท่านต้องเลือกทีมใหม่</strong> ในโทรศัพท์ของตัวเอง
+      ทีมเดิมถูกยุบทั้งหมดแล้ว — <em>รีบเลือกก่อนใครเต็ม!</em>
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cond-title">เงื่อนไขสถานการณ์</div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--purple)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ไม่ต้องส่งของ — แต่ต้องเลือกทีมใหม่</div>
+        <div class="cond-desc">ทุกคนต้องกดเลือกทีมในโทรศัพท์ ก่อน Admin กด Confirm</div>
+        <div class="cond-tag" style="background:var(--purple-dim);color:var(--purple);border:1px solid rgba(155,114,208,.3)">จัดกลุ่มใหม่ทั้งหมด</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip">
+    <div class="tip-icon">💡</div>
+    <div><strong>พิธีกร:</strong> ช่วงนี้จะวุ่นวายหน่อย ให้บอกว่า "ดูในโทรศัพท์ เลือกทีมได้เลย" และรอให้ทุกคนเลือกครบก่อน Admin Confirm</div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ════════════════════════
+     EVENT 4b
+════════════════════════ -->
+<div class="ev-section" id="ev4b">
+  <div class="timing t-during">⚡ ระหว่างเกม — Admin เปิด Event 5</div>
+  <div class="ev-header">
+    <div class="ev-num">EVENT 05/11</div>
+    <div class="ev-emoji">💧</div>
+    <div>
+      <div class="ev-name">พบแหล่งน้ำ</div>
+      <div class="ev-type" style="color:var(--green)">✨ โอกาสรับรางวัล!</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อ่านให้ผู้เล่นฟัง</div>
+    <div class="story-text">
+      สถานการณ์ที่ 5 — <em>พบแหล่งน้ำ</em><br><br>
+      ท่ามกลางความยากลำบาก ทีมของเราพบลำธารใสสะอาดในป่า
+      นี่คือโอกาสฟื้นฟูร่างกายและเติมเสบียง<br><br>
+      <strong>ไม่ต้องส่งของ</strong> — ระบบจะตรวจสอบ<em>จำนวนคนในทีม</em>จากแต่ละแผนก
+      ถ้าครบเงื่อนไข ทีมจะได้รับ<em>รางวัลพิเศษ</em>ทันที
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cond-title">เงื่อนไขรับรางวัล — ผ่านได้หลายข้อพร้อมกัน</div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--green)"></div>
+      <div class="cond-body">
+        <div class="cond-head">มี PD1 ≥ 2 คน + QA ≥ 1 คน</div>
+        <div class="cond-desc">ทุกคนในทีมได้รับ +2 พลังชีวิต</div>
+        <div class="cond-tag" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green-brd)">รางวัล: +2 HP ทั้งทีม</div>
+      </div>
+    </div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--green)"></div>
+      <div class="cond-body">
+        <div class="cond-head">มี PD2 ≥ 2 คน + EN ≥ 1 คน</div>
+        <div class="cond-desc">PD1, PD2, PD3 ได้รับของเพิ่ม +2 ชิ้น</div>
+        <div class="cond-tag" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green-brd)">รางวัล: 🧭📋🍖 +2 ชิ้น</div>
+      </div>
+    </div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--green)"></div>
+      <div class="cond-body">
+        <div class="cond-head">มี PD3 ≥ 2 คน + MN ≥ 2 คน</div>
+        <div class="cond-desc">QA, EN, MN ได้รับของเพิ่ม +2 ชิ้น</div>
+        <div class="cond-tag" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green-brd)">รางวัล: 💰💊🔧 +2 ชิ้น</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip">
+    <div class="tip-icon">💡</div>
+    <div><strong>พิธีกร:</strong> event นี้เป็น "ข่าวดี" — บอกให้ผู้เล่นดูโทรศัพท์ว่าทีมผ่านเงื่อนไขไหนบ้าง ไม่ต้องกดอะไร รอดูผลได้เลย</div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ════════════════════════
+     EVENT 5
+════════════════════════ -->
+<div class="ev-section" id="ev5">
+  <div class="timing t-during">⚡ ระหว่างเกม — Admin เปิด Event 6</div>
+  <div class="ev-header">
+    <div class="ev-num">EVENT 06/11</div>
+    <div class="ev-emoji">🛖</div>
+    <div>
+      <div class="ev-name">สร้างแพ</div>
+      <div class="ev-type">ยิ่งคนมาก ยิ่งต้องการของมาก</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อ่านให้ผู้เล่นฟัง</div>
+    <div class="story-text">
+      สถานการณ์ที่ 6 — <em>สร้างแพ</em><br><br>
+      ทีมมาถึงแม่น้ำกว้าง ต้องสร้างแพเพื่อข้ามฝั่ง
+      ยิ่งมีคนในทีมมาก ยิ่งต้องใช้เครื่องมือมาก<br><br>
+      <strong>วิธีรอด:</strong> ต้องส่ง <em>เครื่องมือ</em> ให้เท่ากับ
+      <em>จำนวนคนที่ยังมีชีวิต × 2</em>
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cond-title">เงื่อนไขสถานการณ์</div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--amber)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ต้องส่ง 🔧 เครื่องมือ = จำนวนคนในทีม × 2</div>
+        <div class="cond-desc">เช่น ทีม 5 คน ต้องส่งเครื่องมือ 10 ชิ้น / ทีม 3 คน ต้องส่ง 6 ชิ้น</div>
+        <div class="cond-tag" style="background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-brd)">MN เป็นคนส่งหลัก</div>
+      </div>
+    </div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--red)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ถ้าส่งไม่ครบ</div>
+        <div class="cond-desc">ทุกคนในทีมนั้นเสีย <strong>−2 พลังชีวิต</strong></div>
+        <div class="cond-tag" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red-brd)">ไม่ผ่าน → −2 HP</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ════════════════════════
+     EVENT 6 — DISCARD
+════════════════════════ -->
+<div class="ev-section" id="ev6">
+  <div class="timing t-during">⚡ ระหว่างเกม — Admin เปิด Event 7</div>
+  <div class="ev-header">
+    <div class="ev-num">EVENT 07/11</div>
+    <div class="ev-emoji">⚖</div>
+    <div>
+      <div class="ev-name">สถานการณ์ฉุกเฉิน</div>
+      <div class="ev-type" style="color:var(--orange)">⚠️ ต้องทิ้งของ!</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อ่านให้ผู้เล่นฟัง</div>
+    <div class="story-text">
+      สถานการณ์ที่ 7 — <em>สถานการณ์ฉุกเฉิน</em><br><br>
+      เกิดเหตุฉุกเฉิน ทีมต้องเคลื่อนที่อย่างเร็ว
+      แบกของเยอะเกินไปจะทำให้เดินช้าและเป็นอันตราย<br><br>
+      <strong>แต่ละทีมถือของได้ไม่เกิน 55 ชิ้น</strong>
+      ถ้าถือเกิน ต้องช่วยกัน<em>ตัดสินใจทิ้งของออก</em>
+      ก่อนที่ Admin จะสรุปผล
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cond-title">เงื่อนไขสถานการณ์</div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--orange)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ของในทีมรวมกันต้องไม่เกิน 55 ชิ้น</div>
+        <div class="cond-desc">ดูตัวเลขรวมในโทรศัพท์ — ถ้าเกินต้องคุยกันว่าใครทิ้งเท่าไหร่</div>
+        <div class="cond-tag" style="background:rgba(224,107,48,.12);color:var(--orange);border:1px solid rgba(224,107,48,.3)">ใช้ปุ่มสีส้ม "ทิ้งของ"</div>
+      </div>
+    </div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--red)"></div>
+      <div class="cond-body">
+        <div class="cond-head">Admin กด Confirm ไม่ได้ถ้าทีมยังเกิน</div>
+        <div class="cond-desc">ต้องทิ้งจนครบก่อน ระบบจะล็อคปุ่มไว้</div>
+        <div class="cond-tag" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red-brd)">⚠️ ของที่ทิ้งหายถาวร</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip">
+    <div class="tip-icon">💡</div>
+    <div><strong>พิธีกร:</strong> event นี้สอนเรื่องการตัดสินใจร่วมกัน บอกผู้เล่นว่า "คุยกับทีมก่อนว่าใครทิ้งเท่าไหร่ ก่อนกดปุ่มสีส้ม"</div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ════════════════════════
+     EVENT 7
+════════════════════════ -->
+<div class="ev-section" id="ev7">
+  <div class="timing t-during">⚡ ระหว่างเกม — Admin เปิด Event 8</div>
+  <div class="ev-header">
+    <div class="ev-num">EVENT 08/11</div>
+    <div class="ev-emoji">🥶</div>
+    <div>
+      <div class="ev-name">หนาวจัด</div>
+      <div class="ev-type">ต้องส่ง 2 ประเภทพร้อมกัน</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อ่านให้ผู้เล่นฟัง</div>
+    <div class="story-text">
+      สถานการณ์ที่ 8 — <em>หนาวจัด</em><br><br>
+      อากาศเปลี่ยนกะทันหัน อุณหภูมิลดลงอย่างรวดเร็ว
+      ทีมต้องหาทั้งอาหารและเครื่องมือเพื่อสร้างที่กำบังลม<br><br>
+      <strong>วิธีรอด:</strong> แต่ละทีมต้องส่ง <em>อาหาร 1 ชิ้น</em>
+      และ <em>เครื่องมือ 2 ชิ้น</em> — <strong>ต้องครบทั้งสองอย่าง</strong>
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cond-title">เงื่อนไขสถานการณ์</div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--blue)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ต้องส่ง 🍖 อาหาร 1 ชิ้น และ 🔧 เครื่องมือ 2 ชิ้น</div>
+        <div class="cond-desc">PD3 ส่งอาหาร + MN ส่งเครื่องมือ ต้องครบทั้งคู่</div>
+        <div class="cond-tag" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green-brd)">ผ่าน → ปลอดภัย</div>
+      </div>
+    </div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--red)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ขาดอย่างใดอย่างหนึ่ง = ไม่ผ่าน</div>
+        <div class="cond-desc">ทุกคนในทีมนั้นเสีย <strong>−2 พลังชีวิต</strong></div>
+        <div class="cond-tag" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red-brd)">ไม่ผ่าน → −2 HP</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ════════════════════════
+     EVENT 8 — REGROUP
+════════════════════════ -->
+<div class="ev-section" id="ev8">
+  <div class="timing t-during">⚡ ระหว่างเกม — Admin เปิด Event 9</div>
+  <div class="ev-header">
+    <div class="ev-num">EVENT 09/11</div>
+    <div class="ev-emoji">🔥</div>
+    <div>
+      <div class="ev-name">ไฟป่า</div>
+      <div class="ev-type" style="color:var(--purple)">⚠️ จัดกลุ่มใหม่อีกครั้ง!</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อ่านให้ผู้เล่นฟัง</div>
+    <div class="story-text">
+      สถานการณ์ที่ 9 — <em>ไฟป่า</em><br><br>
+      ไฟลุกลามอย่างรวดเร็ว ทุกทีมต้องหนีอย่างเร่งด่วน
+      ในความโกลาหลครั้งนี้ ทีมถูกพัดกระจัดกระจายอีกครั้ง<br><br>
+      <strong>ทุกท่านต้องเลือกทีมใหม่อีกครั้ง</strong>
+      คิดให้ดี — <em>เลือกทีมที่จะช่วยให้รอดได้</em>
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cond-title">เงื่อนไขสถานการณ์</div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--purple)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ไม่ต้องส่งของ — ต้องเลือกทีมใหม่</div>
+        <div class="cond-desc">ทีมเดิมถูกยุบทั้งหมด ทุกคนต้องกดเลือกทีมในโทรศัพท์</div>
+        <div class="cond-tag" style="background:var(--purple-dim);color:var(--purple);border:1px solid rgba(155,114,208,.3)">จัดกลุ่มใหม่ครั้งที่ 2</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ════════════════════════
+     EVENT 9 — COLLECTIVE
+════════════════════════ -->
+<div class="ev-section" id="ev9">
+  <div class="timing t-during">⚡ ระหว่างเกม — Admin เปิด Event 10</div>
+  <div class="ev-header">
+    <div class="ev-num">EVENT 10/11</div>
+    <div class="ev-emoji">🦠</div>
+    <div>
+      <div class="ev-name">โรคระบาด</div>
+      <div class="ev-type" style="color:var(--amber)">🤝 ทุกทีมช่วยกันทั้งห้อง!</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อ่านให้ผู้เล่นฟัง</div>
+    <div class="story-text">
+      สถานการณ์ที่ 10 — <em>โรคระบาด</em><br><br>
+      โรคลึกลับแพร่ระบาดทั่วค่าย รักษาได้ด้วยยา เงิน และเครื่องมือเท่านั้น
+      แต่ครั้งนี้ <em>ไม่ใช่แค่แต่ละทีม — ทุกทีมต้องช่วยกัน</em><br><br>
+      ของทั้งหมดจะ<em>รวมเข้ากองกลาง</em>ของทั้งห้อง
+      ถ้ากองกลางครบ ทุกคนรอด — ถ้าไม่ครบ ทุกคนเสียพลังชีวิต
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cond-title">เงื่อนไขสถานการณ์ — กองกลางทั้งห้อง</div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--amber)"></div>
+      <div class="cond-body">
+        <div class="cond-head">รวมทั้งห้องต้องส่ง 💊 ยา 40 + 💰 เงิน 20 + 🔧 เครื่องมือ 40</div>
+        <div class="cond-desc">ทุกทีมส่งรวมกัน ดูความคืบหน้าได้ในโทรศัพท์</div>
+        <div class="cond-tag" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green-brd)">ครบ → ทุกคนปลอดภัย</div>
+      </div>
+    </div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--red)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ถ้ากองกลางไม่ครบ</div>
+        <div class="cond-desc">ยิ่งขาดมาก ยิ่งเสีย HP มาก — ขาดน้อย -1 HP / ขาดปานกลาง -2 HP / ขาดมาก -3 HP</div>
+        <div class="cond-tag" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red-brd)">−1 ถึง −3 HP ตามระดับ</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip">
+    <div class="tip-icon">💡</div>
+    <div><strong>พิธีกร:</strong> event นี้คือจุดไคลแมกซ์ — เน้นว่า "ครั้งนี้ไม่ใช่แข่งกัน แต่ต้องร่วมมือกันทั้งห้อง" เหมาะสำหรับถอดบทเรียนเรื่องการทำงานข้ามแผนก</div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ════════════════════════
+     EVENT 10 — FINAL
+════════════════════════ -->
+<div class="ev-section" id="ev10">
+  <div class="timing t-during">⚡ ระหว่างเกม — Admin เปิด Event สุดท้าย</div>
+  <div class="ev-header">
+    <div class="ev-num">EVENT 11/11</div>
+    <div class="ev-emoji">🚁</div>
+    <div>
+      <div class="ev-name">หนีรอด</div>
+      <div class="ev-type" style="color:var(--amber)">⭐ สถานการณ์สุดท้าย!</div>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">อ่านให้ผู้เล่นฟัง</div>
+    <div class="story-text">
+      สถานการณ์สุดท้าย — <em>หนีรอด</em><br><br>
+      เฮลิคอปเตอร์กู้ภัยมาถึงแล้ว! แต่มีเงื่อนไขว่า
+      ทีมที่จะขึ้นได้ต้อง<em>มีครบทุกทักษะ</em> — ทั้งเข็มทิศ ข้อมูล อาหาร เงิน ยา และเครื่องมือ<br><br>
+      นี่คือการทดสอบสุดท้าย ว่าทีมของคุณ<em>สมบูรณ์พร้อม</em>แค่ไหน
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cond-title">เงื่อนไขสถานการณ์</div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--green)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ทีมต้องมีของครบทุกประเภท (อย่างน้อย 1 ชิ้น/ประเภท)</div>
+        <div class="cond-desc">🧭📋🍖💰💊🔧 ต้องมีครบทั้ง 6 ประเภท</div>
+        <div class="cond-tag" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green-brd)">ครบ → รอดแล้ว! 🎉</div>
+      </div>
+    </div>
+    <div class="cond-row">
+      <div class="cond-dot" style="background:var(--red)"></div>
+      <div class="cond-body">
+        <div class="cond-head">ขาดของประเภทไหน = เสีย HP ตามจำนวนที่ขาด</div>
+        <div class="cond-desc">ขาด 1 ประเภท −2 HP / ขาด 2 ประเภท −4 HP / ขาด 3+ ประเภท −6 HP</div>
+        <div class="cond-tag" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red-brd)">−2 HP ต่อประเภทที่ขาด</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ════════════════════════
+     END
+════════════════════════ -->
+<div class="ev-section" id="end">
+  <div class="timing t-after">🪞 หลังจบเกม</div>
+  <div class="intro-title" style="margin-bottom:10px">ปิดเกมและเปิด Reflection</div>
+
+  <div class="story">
+    <div class="story-label">อ่านให้ผู้เล่นฟัง — หลัง Admin สรุปผล</div>
+    <div class="story-text">
+      เกมจบแล้วครับ/ค่ะ ขอแสดงความยินดีกับทุกท่านที่รอดชีวิต
+      และขอบคุณทุกท่านที่ร่วมเล่น<br><br>
+      ก่อนเราจะถอดบทเรียนร่วมกัน ขอให้ทุกท่าน<em>ตอบคำถามสั้นๆ</em>
+      ในโทรศัพท์สัก 3 นาที — คำตอบของคุณจะช่วยให้เราเรียนรู้ร่วมกันได้ดีขึ้น<br><br>
+      ดูโทรศัพท์ได้เลยนะครับ/ค่ะ
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="story-label">หลังทุกคนตอบครบ — เปิด Scoreboard</div>
+    <div class="story-text">
+      ผลการแข่งขันและบทสรุปของห้องนี้จะแสดงบนจอ
+      เราจะมาวิเคราะห์ร่วมกันว่า <em>อะไรที่ทีมทำได้ดี</em>
+      และ <em>อะไรที่เราสามารถนำไปปรับใช้กับการทำงานจริงๆ</em>
+    </div>
+  </div>
+
+  <div class="tip">
+    <div class="tip-icon">💡</div>
+    <div><strong>พิธีกร:</strong> ใช้ข้อมูลจาก Scoreboard → Debrief Summary เป็นตัวนำการสนทนา โดยเฉพาะส่วน "AI สรุปภาพรวม" ที่วิเคราะห์จากคำตอบจริงของผู้เล่น</div>
+  </div>
+</div>
+
+<div class="footer">สคริปต์พิธีกร SURVIVAL · TMT Team Building · 11 เหตุการณ์</div>
+</div>
+
+<script>
+// Progress bar + nav scroll
+const secs = document.querySelectorAll('.ev-section[id], .intro[id], .ev-section[id="end"]');
+const tabs = document.querySelectorAll('.ntab');
+const fill = document.getElementById('progress-fill');
+const ptxt = document.getElementById('progress-txt');
+const evIds = ['ev1','ev2','ev3','ev4','ev4b','ev5','ev6','ev7','ev8','ev9','ev10'];
+
+function setActive(id) {
+  tabs.forEach(t => t.classList.remove('on'));
+  const active = document.querySelector(`.ntab[href="#${id}"]`);
+  if (!active) return;
+  active.classList.add('on');
+  const nav = document.getElementById('nav');
+  nav.scrollTo({ left: active.offsetLeft - nav.offsetWidth/2 + active.offsetWidth/2, behavior:'smooth' });
+
+  // update progress
+  const idx = evIds.indexOf(id);
+  if (idx >= 0) {
+    const pct = Math.round((idx+1)/evIds.length*100);
+    fill.style.width = pct + '%';
+    ptxt.textContent = (idx+1) + '/11';
+  } else if (id === 'end') {
+    fill.style.width = '100%';
+    ptxt.textContent = '11/11 ✓';
+  } else {
+    fill.style.width = '0%';
+    ptxt.textContent = '0/11';
+  }
+}
+
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); });
+}, { threshold:0.25, rootMargin:'-125px 0px -50% 0px' });
+
+document.querySelectorAll('[id]').forEach(s => {
+  if (document.querySelector(`.ntab[href="#${s.id}"]`)) io.observe(s);
+});
+
+tabs.forEach(t => {
+  t.addEventListener('click', e => {
+    e.preventDefault();
+    document.getElementById(t.getAttribute('href').slice(1))?.scrollIntoView({behavior:'smooth'});
+  });
+});
+</script>
+</body>
+</html>

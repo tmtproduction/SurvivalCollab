@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>คู่มือเล่นเกม SURVIVAL</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090d;--sur:#0f141c;--sur2:#151d28;
+  --brd:rgba(255,255,255,.1);
+  --txt:#e8f0f8;--dim:#6a8090;
+  --amber:#f0a500;--amber-bg:rgba(240,165,0,.14);--amber-brd:rgba(240,165,0,.35);
+  --green:#2eb872;--green-bg:rgba(46,184,114,.14);--green-brd:rgba(46,184,114,.35);
+  --red:#e03e3e;--red-bg:rgba(224,62,62,.14);--red-brd:rgba(224,62,62,.35);
+  --purple:#9b72d0;
+  --orange:#e06b30;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);min-height:100%}
+body{color:var(--txt);font-family:'Sarabun',sans-serif;font-size:20px;line-height:1.6}
+
+/* ── HEADER ── */
+.hdr{background:var(--sur);border-bottom:3px solid var(--amber);padding:16px 20px;position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:12px}
+.hdr-icon{font-size:2rem}
+.hdr-title{font-size:1.3rem;font-weight:800;color:var(--amber);line-height:1.1}
+.hdr-sub{font-size:.8rem;color:var(--dim);margin-top:1px}
+
+/* ── NAV BAR ── */
+.nav-wrap{position:sticky;top:76px;z-index:100;background:var(--sur2);border-bottom:1px solid var(--brd)}
+.nav{display:flex;overflow-x:auto;scrollbar-width:none;padding:0}
+.nav::-webkit-scrollbar{display:none}
+.ntab{flex-shrink:0;padding:13px 18px;font-size:.95rem;font-weight:700;color:var(--dim);border-bottom:3px solid transparent;cursor:pointer;text-decoration:none;transition:.15s;white-space:nowrap}
+.ntab.on{color:var(--amber);border-bottom-color:var(--amber);background:var(--amber-bg)}
+
+/* ── CONTENT ── */
+.page{max-width:640px;margin:0 auto;padding-bottom:80px}
+
+/* ── SECTION ── */
+.sec{padding:32px 20px 0;scroll-margin-top:138px}
+.sec-label{display:inline-flex;align-items:center;gap:8px;font-size:.85rem;font-weight:700;letter-spacing:.1em;padding:5px 14px;border-radius:20px;margin-bottom:12px}
+.lbl-a{background:var(--amber-bg);border:1px solid var(--amber-brd);color:var(--amber)}
+.lbl-g{background:var(--green-bg);border:1px solid var(--green-brd);color:var(--green)}
+.lbl-r{background:var(--red-bg);border:1px solid var(--red-brd);color:var(--red)}
+.lbl-p{background:rgba(155,114,208,.14);border:1px solid rgba(155,114,208,.35);color:var(--purple)}
+.lbl-d{background:var(--sur2);border:1px solid var(--brd);color:var(--dim)}
+
+.sec-title{font-size:1.75rem;font-weight:800;color:var(--txt);line-height:1.15;margin-bottom:10px}
+.sec-desc{font-size:1rem;color:var(--dim);margin-bottom:22px;line-height:1.7}
+.hr{height:1px;background:var(--brd);margin:32px 20px 0}
+
+/* ── STEPS ── */
+.steps{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.step{display:grid;grid-template-columns:56px 1fr;border-radius:16px;overflow:hidden;border:1px solid var(--brd)}
+.step-n{background:var(--amber);color:#000;font-size:1.8rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+.step-body{background:var(--sur);padding:14px 16px}
+.step-head{font-size:1.05rem;font-weight:800;color:var(--txt);margin-bottom:4px}
+.step-text{font-size:.9rem;color:var(--dim);line-height:1.65}
+.step-hint{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:.85rem;padding:4px 12px;border-radius:8px;background:var(--amber-bg);border:1px solid var(--amber-brd);color:var(--amber);font-weight:600}
+
+/* ── ALERT ── */
+.al{border-radius:14px;padding:14px 16px;margin-bottom:12px;display:flex;gap:12px;align-items:flex-start}
+.al-icon{font-size:1.6rem;flex-shrink:0;margin-top:-2px}
+.al-body{flex:1}
+.al-head{font-size:1rem;font-weight:800;margin-bottom:3px}
+.al-text{font-size:.9rem;line-height:1.65}
+.al-tip{background:var(--green-bg);border:1px solid var(--green-brd)}
+.al-tip .al-head{color:var(--green)}
+.al-warn{background:var(--red-bg);border:1px solid var(--red-brd)}
+.al-warn .al-head{color:var(--red)}
+.al-info{background:var(--amber-bg);border:1px solid var(--amber-brd)}
+.al-info .al-head{color:var(--amber)}
+
+/* ── SCREEN MOCKUP ── */
+.phone{background:var(--sur2);border:2px solid var(--brd);border-radius:20px;padding:14px;margin-bottom:16px;position:relative}
+.phone::before{content:'หน้าจอที่จะเห็น 📱';display:block;font-size:.8rem;font-weight:700;color:var(--amber);margin-bottom:10px;letter-spacing:.05em}
+.m-bar{background:var(--bg);border-radius:10px 10px 0 0;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;margin:-14px -14px 12px;border-bottom:1px solid var(--brd)}
+.m-logo{font-size:.95rem;font-weight:800;letter-spacing:.2em;color:var(--amber)}
+.m-dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+
+/* mockup cards */
+.mc{border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.mc-a{background:var(--amber-bg);border:2px solid var(--amber-brd)}
+.mc-g{background:var(--green-bg);border:2px solid var(--green-brd)}
+.mc-r{background:var(--red-bg);border:2px solid var(--red-brd)}
+.mc-s{background:var(--sur);border:1px solid var(--brd)}
+.mc-o{background:rgba(224,107,48,.12);border:2px solid rgba(224,107,48,.4)}
+
+.m-ev-title{font-size:1.15rem;font-weight:800;color:var(--amber);margin-top:4px}
+.m-ev-desc{font-size:.85rem;color:var(--dim);margin-top:3px}
+
+/* input fields */
+.m-inp{background:var(--sur);border:2px solid var(--amber-brd);border-radius:10px;padding:11px 14px;font-size:1rem;color:var(--txt);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.m-inp-idle{background:var(--sur);border:1px solid var(--brd);border-radius:10px;padding:11px 14px;font-size:1rem;color:var(--dim);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.m-lbl{font-size:.78rem;font-weight:700;color:var(--dim);margin-bottom:5px;letter-spacing:.05em}
+.m-preview{background:var(--sur2);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:12px;margin-bottom:10px}
+
+/* buttons */
+.m-btn{border-radius:12px;padding:14px;font-size:1rem;font-weight:800;text-align:center;margin-bottom:6px}
+.m-btn-y{background:var(--amber);color:#000}
+.m-btn-o{background:var(--orange);color:#fff}
+.m-btn-g{background:var(--green);color:#fff}
+.m-btn-off{background:var(--sur2);border:1px solid var(--brd);color:var(--dim)}
+
+/* stepper */
+.m-stepper{background:var(--sur);border:1px solid var(--brd);border-radius:14px;padding:16px;margin-bottom:8px;text-align:center}
+.m-strow{display:flex;align-items:center;justify-content:center;gap:24px;margin-bottom:8px}
+.m-stbtn{width:56px;height:56px;border-radius:50%;border:2px solid var(--brd);background:var(--sur2);font-size:1.8rem;display:flex;align-items:center;justify-content:center;color:var(--txt)}
+.m-stnum{font-size:3.5rem;font-weight:800;color:var(--amber);min-width:70px;line-height:1}
+.m-stlbl{font-size:.85rem;color:var(--dim)}
+
+/* progress */
+.m-pbar{height:10px;background:var(--brd);border-radius:6px;overflow:hidden;margin:8px 0}
+.m-pfill{height:100%;border-radius:6px}
+
+/* status bar */
+.m-sb{background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-around;align-items:center;margin-top:8px}
+.m-sb-item{text-align:center}
+.m-sb-val{font-size:1.4rem;font-weight:800;line-height:1}
+.m-sb-lbl{font-size:.65rem;color:var(--dim);margin-top:2px}
+.m-sb-div{width:1px;background:var(--brd);height:34px}
+.pips{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;max-width:78px}
+.pip{width:11px;height:11px;border-radius:50%}
+
+/* group cards */
+.m-grp{background:var(--sur);border:2px solid var(--brd);border-radius:12px;padding:13px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.m-grp.me{border-color:var(--amber-brd);background:var(--amber-bg)}
+.m-grp-name{font-size:1.1rem;font-weight:800;color:var(--amber)}
+.m-grp-sub{font-size:.8rem;color:var(--dim);margin-top:2px}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:.82rem;font-weight:700;padding:4px 11px;border-radius:8px;display:inline-flex;align-items:center;gap:4px}
+.chip-ok{background:var(--green-bg);border:1px solid var(--green-brd);color:var(--green)}
+.chip-fail{background:var(--red-bg);border:1px solid var(--red-brd);color:var(--red)}
+
+/* reflect */
+.r-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.r-box{background:var(--sur2);border-radius:12px;padding:12px;text-align:center}
+.r-val{font-size:1.4rem;font-weight:800;line-height:1}
+.r-lbl{font-size:.72rem;color:var(--dim);margin-top:3px}
+.q-box{background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:13px 15px;margin-bottom:8px}
+.q-lbl{font-size:.85rem;font-weight:700;color:var(--amber);margin-bottom:8px}
+.q-opts{display:flex;gap:6px;flex-wrap:wrap}
+.q-opt{padding:9px 14px;border-radius:10px;border:1px solid var(--brd);background:var(--sur2);font-size:.92rem;font-weight:600;color:var(--txt)}
+.q-opt.sel{background:var(--amber-bg);border-color:var(--amber-brd);color:var(--amber)}
+
+/* dept grid */
+.dept-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.dept-card{background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px}
+.dept-emoji{font-size:1.8rem}
+.dept-label{font-size:.8rem;color:var(--dim)}
+.dept-name{font-size:.95rem;font-weight:700;color:var(--txt)}
+
+/* flow */
+.flow{display:flex;flex-direction:column;gap:0;border-radius:16px;overflow:hidden;border:2px solid var(--brd);margin-bottom:20px}
+.flow-row{display:flex;align-items:center;gap:14px;padding:15px 18px;background:var(--sur);border-bottom:1px solid var(--brd)}
+.flow-row:last-child{border-bottom:none}
+.flow-num{font-size:1.2rem;font-weight:800;color:var(--amber);min-width:28px}
+.flow-icon{font-size:1.5rem;flex-shrink:0}
+.flow-name{font-size:1rem;font-weight:700;color:var(--txt)}
+.flow-desc{font-size:.82rem;color:var(--dim);margin-top:1px}
+.flow-badge{margin-left:auto;font-size:.72rem;padding:4px 10px;border-radius:8px;font-weight:700;flex-shrink:0;white-space:nowrap}
+
+/* summary */
+.sum-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.sum-row{background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:13px 16px;display:flex;align-items:center;gap:14px}
+.sum-n{font-size:1.4rem;font-weight:800;color:var(--amber);min-width:32px}
+.sum-text{font-size:.98rem;font-weight:600;color:var(--txt);line-height:1.5}
+
+.footer{text-align:center;padding:24px 20px;font-size:.82rem;color:var(--dim);border-top:1px solid var(--brd)}
+
+/* ══════════════════════════════════════
+   ANIMATION ENGINE — GIF-style loop
+══════════════════════════════════════ */
+.anim-wrap{position:relative;margin-bottom:20px}
+.anim-label{font-size:.82rem;font-weight:700;color:var(--amber);margin-bottom:8px;letter-spacing:.05em;display:flex;align-items:center;gap:6px}
+.anim-label::before{content:'▶';font-size:.7rem;background:var(--amber);color:#000;padding:2px 6px;border-radius:4px}
+
+/* Phone shell */
+.aphone{background:var(--sur2);border:3px solid var(--brd2);border-radius:28px;overflow:hidden;width:100%;max-width:300px;margin:0 auto;position:relative;box-shadow:0 0 0 1px rgba(255,255,255,.04)}
+.aphone-bar{background:var(--bg);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--brd)}
+.aphone-logo{font-size:.9rem;font-weight:800;letter-spacing:.2em;color:var(--amber)}
+.aphone-dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.aphone-body{padding:12px 14px;min-height:260px;position:relative}
+
+/* Finger cursor */
+.finger{position:absolute;font-size:1.8rem;pointer-events:none;z-index:10;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+
+/* ── ANIMATION 1: Login ── */
+/* Step 1: พิมพ์ชื่อ */
+@keyframes a1-finger-type{
+  0%,5%{transform:translate(30px,18px) scale(1)}
+  15%{transform:translate(30px,18px) scale(.85)}
+  25%{transform:translate(30px,18px) scale(1)}
+  60%,100%{transform:translate(30px,18px) scale(1)}
+}
+@keyframes a1-text-appear{
+  0%,10%{width:0;opacity:0}
+  12%{opacity:1}
+  40%,100%{width:100%;opacity:1}
+}
+@keyframes a1-finger-move-dept{
+  0%,40%{transform:translate(30px,18px)}
+  55%{transform:translate(30px,66px)}
+  70%,100%{transform:translate(30px,66px)}
+}
+@keyframes a1-dept-highlight{
+  0%,52%{background:var(--sur);border-color:var(--brd)}
+  55%,100%{background:var(--amber-bg);border-color:var(--amber-brd)}
+}
+@keyframes a1-finger-move-btn{
+  0%,70%{transform:translate(30px,66px)}
+  82%{transform:translate(80px,130px)}
+  95%,100%{transform:translate(80px,130px)}
+}
+@keyframes a1-btn-flash{
+  0%,80%{transform:scale(1);filter:brightness(1)}
+  88%{transform:scale(.95);filter:brightness(1.3)}
+  94%,100%{transform:scale(1);filter:brightness(1)}
+}
+.a1-finger{animation:a1-finger-move-btn 4s ease-in-out infinite}
+.a1-text{display:inline-block;overflow:hidden;white-space:nowrap;vertical-align:middle;animation:a1-text-appear 4s ease-in-out infinite}
+.a1-inp{animation:a1-dept-highlight 4s ease-in-out infinite;transition:.3s}
+.a1-btn{animation:a1-btn-flash 4s ease-in-out infinite}
+
+/* ── ANIMATION 2: เลือกทีม ── */
+@keyframes a2-finger-down{
+  0%,10%{transform:translate(60px,20px)}
+  25%{transform:translate(60px,75px) scale(.85)}
+  35%{transform:translate(60px,75px) scale(1)}
+  60%,100%{transform:translate(60px,75px)}
+}
+@keyframes a2-grp-select{
+  0%,20%{background:var(--sur);border-color:var(--brd)}
+  30%,100%{background:var(--amber-bg);border-color:var(--amber-brd)}
+}
+@keyframes a2-tick-appear{
+  0%,25%{opacity:0;transform:scale(0)}
+  35%{opacity:1;transform:scale(1.2)}
+  45%,100%{opacity:1;transform:scale(1)}
+}
+@keyframes a2-status-appear{
+  0%,30%{opacity:0;transform:translateY(6px)}
+  45%,100%{opacity:1;transform:translateY(0)}
+}
+.a2-finger{animation:a2-finger-down 3.5s ease-in-out infinite}
+.a2-grp{animation:a2-grp-select 3.5s ease-in-out infinite}
+.a2-tick{animation:a2-tick-appear 3.5s ease-in-out infinite}
+.a2-status{animation:a2-status-appear 3.5s ease-in-out infinite}
+
+/* ── ANIMATION 3: ส่งของ ── */
+@keyframes a3-plus-tap{
+  0%,5%{transform:scale(1)}
+  10%{transform:scale(.85)}
+  15%,30%{transform:scale(1)}
+  35%{transform:scale(.85)}
+  40%,60%{transform:scale(1)}
+}
+@keyframes a3-num-count{
+  0%,5%{content:'0'}
+  16%,34%{content:'1'}
+  36%,100%{content:'2'}
+}
+@keyframes a3-finger-plus{
+  0%,5%{transform:translate(130px,80px)}
+  10%{transform:translate(130px,80px) scale(.85)}
+  15%,30%{transform:translate(130px,80px)}
+  35%{transform:translate(130px,80px) scale(.85)}
+  40%,58%{transform:translate(130px,80px)}
+  65%{transform:translate(80px,140px)}
+  78%{transform:translate(80px,140px) scale(.85)}
+  85%,100%{transform:translate(80px,140px)}
+}
+@keyframes a3-btn-on{
+  0%,60%{background:var(--sur2);color:var(--dim);border:1px solid var(--brd)}
+  68%,100%{background:var(--amber);color:#000;border-color:var(--amber)}
+}
+@keyframes a3-num-up{
+  0%,14%{content:'0'}
+  15%,33%{content:'1'}
+  34%,100%{content:'2'}
+}
+.a3-finger{animation:a3-finger-plus 4s ease-in-out infinite}
+.a3-btn-txt{animation:a3-btn-on 4s ease-in-out infinite;border-radius:12px;padding:13px;font-size:.95rem;font-weight:800;text-align:center;transition:.3s}
+.a3-num::after{animation:a3-num-up 4s step-end infinite;content:'0'}
+
+/* ── ANIMATION 4: ทิ้งของ ── */
+@keyframes a4-warn-pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(224,62,62,.0)}
+  50%{box-shadow:0 0 0 8px rgba(224,62,62,.25)}
+}
+@keyframes a4-finger-plus{
+  0%,10%{transform:translate(130px,95px)}
+  18%{transform:translate(130px,95px) scale(.85)}
+  25%,42%{transform:translate(130px,95px)}
+  50%{transform:translate(80px,158px)}
+  62%{transform:translate(80px,158px) scale(.85)}
+  72%,100%{transform:translate(80px,158px)}
+}
+@keyframes a4-num-up{
+  0%,22%{content:'0'}
+  24%,100%{content:'4'}
+}
+@keyframes a4-btn-on{
+  0%,55%{background:var(--sur2);color:var(--dim);border:1px solid var(--brd)}
+  65%,100%{background:var(--orange);color:#fff;border-color:var(--orange)}
+}
+.a4-warn{animation:a4-warn-pulse 2s ease-in-out infinite}
+.a4-finger{animation:a4-finger-plus 4.5s ease-in-out infinite}
+.a4-num::after{animation:a4-num-up 4.5s step-end infinite;content:'0'}
+.a4-btn{animation:a4-btn-on 4.5s ease-in-out infinite;border-radius:12px;padding:13px;font-size:.95rem;font-weight:800;text-align:center;transition:.3s}
+
+/* ── ANIMATION 5: ทบทวน ── */
+@keyframes a5-opt1-select{
+  0%,20%{background:var(--sur2);border-color:var(--brd);color:var(--txt)}
+  30%,100%{background:var(--amber-bg);border-color:var(--amber-brd);color:var(--amber)}
+}
+@keyframes a5-opt2-select{
+  0%,48%{background:var(--sur2);border-color:var(--brd);color:var(--txt)}
+  58%,100%{background:var(--amber-bg);border-color:var(--amber-brd);color:var(--amber)}
+}
+@keyframes a5-btn-unlock{
+  0%,65%{background:var(--sur2);color:var(--dim);border:1px solid var(--brd)}
+  72%,100%{background:var(--amber);color:#000;border-color:var(--amber)}
+}
+@keyframes a5-finger-q1{
+  0%,5%{transform:translate(50px,85px)}
+  18%{transform:translate(50px,85px) scale(.85)}
+  25%,43%{transform:translate(50px,85px)}
+  52%{transform:translate(50px,168px)}
+  62%{transform:translate(50px,168px) scale(.85)}
+  70%,88%{transform:translate(50px,168px)}
+  92%{transform:translate(100px,240px)}
+  98%{transform:translate(100px,240px) scale(.85)}
+  100%{transform:translate(100px,240px)}
+}
+.a5-opt1{animation:a5-opt1-select 5s ease-in-out infinite;padding:9px 14px;border-radius:10px;border:1px solid var(--brd);background:var(--sur2);font-size:.92rem;font-weight:600;transition:.3s}
+.a5-opt2{animation:a5-opt2-select 5s ease-in-out infinite;padding:9px 14px;border-radius:10px;border:1px solid var(--brd);background:var(--sur2);font-size:.92rem;font-weight:600;transition:.3s}
+.a5-btn{animation:a5-btn-unlock 5s ease-in-out infinite;border-radius:12px;padding:13px;font-size:.95rem;font-weight:800;text-align:center;transition:.3s}
+.a5-finger{animation:a5-finger-q1 5s ease-in-out infinite}
+
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-icon">📋</div>
+  <div>
+    <div class="hdr-title">คู่มือเล่นเกม SURVIVAL</div>
+    <div class="hdr-sub">TMT Team Building · อ่านก่อนเล่น</div>
+  </div>
+</div>
+
+<div class="nav-wrap">
+  <div class="nav" id="nav">
+    <a class="ntab on" href="#overview">ภาพรวม</a>
+    <a class="ntab" href="#login">ลงชื่อเข้า</a>
+    <a class="ntab" href="#group">เลือกทีม</a>
+    <a class="ntab" href="#send">ส่งของ</a>
+    <a class="ntab" href="#discard">ทิ้งของ</a>
+    <a class="ntab" href="#hp">พลังชีวิต</a>
+    <a class="ntab" href="#reflect">ทบทวน</a>
+    <a class="ntab" href="#summary">สรุป</a>
+  </div>
+</div>
+
+<div class="page">
+
+<!-- ══════════════════════════
+     ภาพรวม
+═══════════════════════════ -->
+<div class="sec" id="overview">
+  <div class="sec-label lbl-a">ภาพรวม</div>
+  <div class="sec-title">เกมนี้เล่นยังไง?</div>
+  <div class="sec-desc">เปิดลิงก์ในมือถือ แล้วทำตามขั้นตอน 5 ข้อด้านล่างนี้ตามลำดับ</div>
+
+  <div class="flow">
+    <div class="flow-row">
+      <div class="flow-num">1</div>
+      <div class="flow-icon">📱</div>
+      <div>
+        <div class="flow-name">ลงชื่อเข้าเกม</div>
+        <div class="flow-desc">พิมพ์ชื่อ + เลือกแผนก → กดปุ่มเหลือง</div>
+      </div>
+      <div class="flow-badge" style="background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-brd)">ทำครั้งเดียว</div>
+    </div>
+    <div class="flow-row">
+      <div class="flow-num">2</div>
+      <div class="flow-icon">👥</div>
+      <div>
+        <div class="flow-name">เลือกทีม</div>
+        <div class="flow-desc">กดชื่อทีมที่ต้องการ → รอ</div>
+      </div>
+      <div class="flow-badge" style="background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-brd)">ทำครั้งเดียว</div>
+    </div>
+    <div class="flow-row">
+      <div class="flow-num">3</div>
+      <div class="flow-icon">⚡</div>
+      <div>
+        <div class="flow-name">เมื่อสถานการณ์เปิด</div>
+        <div class="flow-desc">อ่านเงื่อนไข → กด + แล้วกดปุ่มเหลือง</div>
+      </div>
+      <div class="flow-badge" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-brd)">ทำซ้ำ 11 รอบ</div>
+    </div>
+    <div class="flow-row">
+      <div class="flow-num">4</div>
+      <div class="flow-icon">❤️</div>
+      <div>
+        <div class="flow-name">ระวังพลังชีวิต</div>
+        <div class="flow-desc">ดูวงกลมล่างซ้าย — อย่าให้เป็น 0</div>
+      </div>
+      <div class="flow-badge" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-brd)">ตลอดเกม</div>
+    </div>
+    <div class="flow-row" style="border-bottom:none">
+      <div class="flow-num">5</div>
+      <div class="flow-icon">🪞</div>
+      <div>
+        <div class="flow-name">ตอบคำถามทบทวน</div>
+        <div class="flow-desc">หลังเกมจบ — ใช้เวลา 3 นาที</div>
+      </div>
+      <div class="flow-badge" style="background:rgba(155,114,208,.14);color:var(--purple);border:1px solid rgba(155,114,208,.35)">หลังจบเกม</div>
+    </div>
+  </div>
+
+  <div class="al al-info">
+    <div class="al-icon">📦</div>
+    <div class="al-body">
+      <div class="al-head">ของ คืออะไร?</div>
+      <div class="al-text">แต่ละแผนกมีของประจำตัว เช่น PD1 มีเข็มทิศ EN มียา<br>ทีมต้องช่วยกันส่งของให้ครบตามที่กำหนดในแต่ละสถานการณ์</div>
+    </div>
+  </div>
+
+  <div class="dept-grid">
+    <div class="dept-card"><div class="dept-emoji">🧭</div><div><div class="dept-label">PD1</div><div class="dept-name">เข็มทิศ</div></div></div>
+    <div class="dept-card"><div class="dept-emoji">📋</div><div><div class="dept-label">PD2</div><div class="dept-name">ข้อมูล</div></div></div>
+    <div class="dept-card"><div class="dept-emoji">🍖</div><div><div class="dept-label">PD3</div><div class="dept-name">อาหาร</div></div></div>
+    <div class="dept-card"><div class="dept-emoji">💰</div><div><div class="dept-label">QA</div><div class="dept-name">เงิน</div></div></div>
+    <div class="dept-card"><div class="dept-emoji">💊</div><div><div class="dept-label">EN</div><div class="dept-name">ยา</div></div></div>
+    <div class="dept-card"><div class="dept-emoji">🔧</div><div><div class="dept-label">MN</div><div class="dept-name">เครื่องมือ</div></div></div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ══════════════════════════
+     ลงชื่อเข้า
+═══════════════════════════ -->
+<div class="sec" id="login">
+  <div class="sec-label lbl-a">ขั้นตอนที่ 1</div>
+  <div class="sec-title">ลงชื่อเข้าเกม</div>
+  <div class="sec-desc">ทำแค่ครั้งเดียวตอนเริ่ม</div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-body">
+        <div class="step-head">พิมพ์ชื่อตัวเอง เป็นภาษาไทย</div>
+        <div class="step-text">ชื่อจริง ภาษาไทย เท่านั้น เช่น "สมชาย"</div>
+        <div class="step-hint">⚠️ ห้ามพิมพ์ภาษาอังกฤษ</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-body">
+        <div class="step-head">กดช่องแผนก แล้วเลือกแผนกของตัวเอง</div>
+        <div class="step-text">กดช่องสีเทาที่มีลูกศร ▼ แล้วเลือกแผนกของคุณจากรายการ</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <div class="step-body">
+        <div class="step-head">กดปุ่มสีเหลือง "เข้าร่วมเกม"</div>
+        <div class="step-text">หน้าจอจะเปลี่ยนไปหน้ารายชื่อทีม</div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="anim-wrap">
+    <div class="anim-label">ดูตัวอย่าง — วิธีลงชื่อเข้าเกม</div>
+    <div class="aphone">
+      <div class="aphone-bar"><span class="aphone-logo">SURVIVAL</span><span class="aphone-dot"></span></div>
+      <div class="aphone-body">
+        <div style="text-align:center;margin-bottom:14px">
+          <div style="font-size:1.3rem;font-weight:800;letter-spacing:.2em;color:var(--amber)">SURVIVAL</div>
+        </div>
+        <div style="font-size:.72rem;font-weight:700;color:var(--dim);margin-bottom:4px">ชื่อ (ภาษาไทย)</div>
+        <div style="background:var(--sur);border:2px solid var(--amber-brd);border-radius:10px;padding:10px 12px;font-size:.95rem;color:var(--txt);margin-bottom:8px;min-height:42px;display:flex;align-items:center">
+          <span class="a1-text" style="color:var(--txt)">สมชาย</span>
+          <span style="border-right:2px solid var(--amber);height:18px;margin-left:2px"></span>
+        </div>
+        <div style="font-size:.72rem;font-weight:700;color:var(--dim);margin-bottom:4px">แผนก</div>
+        <div class="a1-inp" style="border-radius:10px;padding:10px 12px;font-size:.95rem;color:var(--txt);margin-bottom:10px;display:flex;justify-content:space-between">
+          <span>🧭 PD1 — เข็มทิศ</span><span style="color:var(--dim)">▼</span>
+        </div>
+        <div class="a1-btn m-btn m-btn-y" style="margin-bottom:0">เข้าร่วมเกม →</div>
+        <div class="finger a1-finger">👆</div>
+      </div>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="m-bar"><span class="m-logo">SURVIVAL</span><span class="m-dot"></span></div>
+    <div style="text-align:center;padding:8px 0 16px">
+      <div style="font-size:1.6rem;font-weight:800;letter-spacing:.2em;color:var(--amber)">SURVIVAL</div>
+      <div style="font-size:.82rem;color:var(--dim)">TMT Team Building</div>
+    </div>
+    <div class="m-lbl">ชื่อ (ภาษาไทยเท่านั้น)</div>
+    <div class="m-inp">สมชาย<span style="border-right:2px solid var(--amber);margin-left:2px">&nbsp;</span></div>
+    <div class="m-lbl">แผนก</div>
+    <div class="m-inp-idle">🧭 PD1 — เข็มทิศ <span>▼</span></div>
+    <div class="m-preview">
+      <span style="font-size:1.6rem">🧭</span>
+      <div>
+        <div style="font-size:1.3rem;font-weight:800;color:var(--amber)">12</div>
+        <div style="font-size:.78rem;color:var(--dim)">ของที่คุณจะได้รับ</div>
+      </div>
+    </div>
+    <div class="m-btn m-btn-y">เข้าร่วมเกม →</div>
+  </div>
+
+  <div class="al al-tip">
+    <div class="al-icon">✅</div>
+    <div class="al-body">
+      <div class="al-head">ปิดแล้วกลับเข้าได้</div>
+      <div class="al-text">ถ้าปิดหน้าต่างแล้วเปิดลิงก์ใหม่ ระบบจำชื่อคุณไว้ให้ ไม่ต้องพิมพ์ใหม่</div>
+    </div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ══════════════════════════
+     เลือกทีม
+═══════════════════════════ -->
+<div class="sec" id="group">
+  <div class="sec-label lbl-a">ขั้นตอนที่ 2</div>
+  <div class="sec-title">เลือกทีม</div>
+  <div class="sec-desc">กดชื่อทีมที่ต้องการ แล้วรอให้ Admin เริ่มเกม</div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-body">
+        <div class="step-head">กดชื่อทีมที่ต้องการเข้าร่วม</div>
+        <div class="step-text">ทีมที่กดแล้วจะเปลี่ยนเป็นสีเหลือง และมีเครื่องหมาย ★</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-body">
+        <div class="step-head">รอนิ่งๆ ไม่ต้องทำอะไร</div>
+        <div class="step-text">รอให้ Admin กดเริ่ม หน้าจอจะเปลี่ยนเองเมื่อเกมเริ่มต้น</div>
+        <div class="step-hint">💡 เปลี่ยนทีมได้ตลอดก่อนเกมเริ่ม</div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="anim-wrap">
+    <div class="anim-label">ดูตัวอย่าง — วิธีเลือกทีม</div>
+    <div class="aphone">
+      <div class="aphone-bar"><span class="aphone-logo">SURVIVAL</span><span class="aphone-dot"></span></div>
+      <div class="aphone-body">
+        <div class="a2-status" style="background:var(--green-bg);border:2px solid var(--green-brd);border-radius:12px;padding:10px 14px;text-align:center;margin-bottom:10px;opacity:0">
+          <div style="font-size:.95rem;font-weight:800;color:var(--green)">✓ คุณอยู่ทีม ALPHA แล้ว</div>
+        </div>
+        <div class="a2-grp" style="border-radius:12px;padding:13px 15px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;border:2px solid var(--brd)">
+          <div>
+            <div style="font-size:1.05rem;font-weight:800;color:var(--amber)">
+              <span class="a2-tick" style="opacity:0;display:inline">★ </span>ALPHA
+            </div>
+            <div style="font-size:.78rem;color:var(--dim);margin-top:2px">กดเพื่อเลือก</div>
+          </div>
+          <div style="font-size:.82rem;color:var(--dim)">2/7 คน</div>
+        </div>
+        <div style="background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:13px 15px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:1.05rem;font-weight:800;color:var(--amber)">BETA</div>
+          <div style="font-size:.82rem;color:var(--dim)">1/7 คน</div>
+        </div>
+        <div style="background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:13px 15px;opacity:.3;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:1.05rem;font-weight:800;color:var(--amber)">GAMMA</div>
+          <div style="font-size:.82rem;color:var(--red);font-weight:700">เต็มแล้ว</div>
+        </div>
+        <div class="finger a2-finger">👆</div>
+      </div>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="m-bar"><span class="m-logo">SURVIVAL</span><span class="m-dot"></span></div>
+    <div class="mc mc-g" style="text-align:center;margin-bottom:12px">
+      <div style="font-size:1.05rem;font-weight:800;color:var(--green)">✓ คุณอยู่ทีม ALPHA แล้ว</div>
+      <div style="font-size:.85rem;color:var(--dim);margin-top:3px">รอให้ Admin เริ่มเกม</div>
+    </div>
+    <div class="m-grp me">
+      <div>
+        <div class="m-grp-name">★ ALPHA</div>
+        <div class="m-grp-sub">คุณอยู่ทีมนี้แล้ว</div>
+      </div>
+      <div style="font-size:.85rem;color:var(--dim)">2/7 คน</div>
+    </div>
+    <div class="m-grp">
+      <div class="m-grp-name">BETA</div>
+      <div style="font-size:.85rem;color:var(--dim)">1/7 คน</div>
+    </div>
+    <div class="m-grp" style="opacity:.35;pointer-events:none">
+      <div class="m-grp-name">GAMMA</div>
+      <div style="font-size:.85rem;color:var(--red);font-weight:700">เต็มแล้ว</div>
+    </div>
+  </div>
+
+  <div class="al al-warn">
+    <div class="al-icon">⛔</div>
+    <div class="al-body">
+      <div class="al-head">ถ้าทีมแสดงว่า "เต็มแล้ว"</div>
+      <div class="al-text">กดไม่ได้ ต้องเลือกทีมอื่น</div>
+    </div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ══════════════════════════
+     ส่งของ
+═══════════════════════════ -->
+<div class="sec" id="send">
+  <div class="sec-label lbl-g">ระหว่างเล่น</div>
+  <div class="sec-title">วิธีส่งของในแต่ละสถานการณ์</div>
+  <div class="sec-desc">เมื่อสถานการณ์เปิด หน้าจอจะเปลี่ยนเอง แล้วทำตาม 4 ขั้นตอนนี้</div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-body">
+        <div class="step-head">อ่านกล่องสีเหลืองด้านบน</div>
+        <div class="step-text">บอกว่าสถานการณ์นี้ต้องการของอะไร กี่ชิ้น</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-body">
+        <div class="step-head">กดปุ่ม + เพื่อเพิ่มจำนวน</div>
+        <div class="step-text">ดูตัวเลขตรงกลาง — นั่นคือจำนวนที่จะส่ง กด − เพื่อลด</div>
+        <div class="step-hint">📦 ส่งได้เฉพาะของตัวเองเท่านั้น</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <div class="step-body">
+        <div class="step-head">กดปุ่มสีเหลือง "ยืนยันส่ง"</div>
+        <div class="step-text">ของจะหักออกจากคุณทันที หน้าจอเปลี่ยนเป็น "ส่งแล้ว"</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">4</div>
+      <div class="step-body">
+        <div class="step-head">รอนิ่งๆ ไม่ต้องกดอะไรเพิ่ม</div>
+        <div class="step-text">Admin จะกดยืนยันเอง แล้วไปสถานการณ์ถัดไป</div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="anim-wrap">
+    <div class="anim-label">ดูตัวอย่าง — วิธีส่งของ</div>
+    <div class="aphone">
+      <div class="aphone-bar"><span class="aphone-logo">SURVIVAL</span><span class="aphone-dot"></span></div>
+      <div class="aphone-body">
+        <div style="background:var(--amber-bg);border:2px solid var(--amber-brd);border-radius:12px;padding:11px 13px;margin-bottom:8px">
+          <div style="font-size:.72rem;color:var(--dim)">สถานการณ์ที่ 1</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
+            <span style="font-size:1.5rem">🗺</span>
+            <div style="font-size:1rem;font-weight:800;color:var(--amber)">หลงทาง</div>
+          </div>
+          <div style="font-size:.82rem;color:var(--dim);margin-top:3px">ต้องมีเข็มทิศรวม 5 ชิ้น</div>
+        </div>
+        <div style="background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:13px;margin-bottom:8px;text-align:center">
+          <div style="font-size:.8rem;color:var(--dim);margin-bottom:8px">จะส่งกี่ชิ้น?</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:6px">
+            <div style="width:52px;height:52px;border-radius:50%;border:2px solid var(--brd);background:var(--sur2);font-size:1.7rem;display:flex;align-items:center;justify-content:center">−</div>
+            <div style="font-size:3.2rem;font-weight:800;color:var(--amber);min-width:62px;text-align:center"><span class="a3-num"></span></div>
+            <div style="width:52px;height:52px;border-radius:50%;border:2px solid var(--brd);background:var(--sur2);font-size:1.7rem;display:flex;align-items:center;justify-content:center">+</div>
+          </div>
+          <div style="font-size:.8rem;color:var(--dim)">🧭 เข็มทิศ</div>
+        </div>
+        <div class="a3-btn-txt">เลือกจำนวนก่อน</div>
+        <div class="finger a3-finger">👆</div>
+      </div>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="m-bar"><span class="m-logo">SURVIVAL</span><span class="m-dot"></span></div>
+
+    <div class="mc mc-a" style="margin-bottom:8px">
+      <div style="font-size:.75rem;color:var(--dim)">สถานการณ์ที่ 1 จาก 11</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+        <span style="font-size:2rem">🗺</span>
+        <div class="m-ev-title">หลงทาง</div>
+      </div>
+      <div class="m-ev-desc">ทีมต้องมีเข็มทิศรวมกัน 5 ชิ้น</div>
+      <div class="chips">
+        <div class="chip chip-fail">🧭 ยังขาดอยู่</div>
+      </div>
+    </div>
+
+    <div style="background:var(--sur2);border:1px solid var(--brd);border-radius:14px;padding:13px;margin-bottom:8px">
+      <div style="font-size:.82rem;color:var(--dim);margin-bottom:6px">ทีม ALPHA ส่งรวมกันแล้ว</div>
+      <div style="display:flex;align-items:baseline;gap:10px;justify-content:center;margin-bottom:8px">
+        <span style="font-size:2.5rem;font-weight:800;color:var(--amber)">2</span>
+        <span style="font-size:1rem;color:var(--dim)">จาก</span>
+        <span style="font-size:2.5rem;font-weight:800;color:var(--dim)">5</span>
+        <span style="font-size:.9rem;color:var(--dim)">ชิ้น</span>
+      </div>
+      <div class="m-pbar"><div class="m-pfill" style="width:40%;background:var(--amber)"></div></div>
+      <div style="font-size:.82rem;color:var(--amber);text-align:center">ยังขาดอีก 3 ชิ้น</div>
+    </div>
+
+    <div class="m-stepper">
+      <div class="m-stlbl">จะส่งกี่ชิ้น? &nbsp;(คุณมี 12 ชิ้น)</div>
+      <div class="m-strow">
+        <div class="m-stbtn">−</div>
+        <div class="m-stnum">3</div>
+        <div class="m-stbtn">+</div>
+      </div>
+      <div class="m-stlbl">🧭 เข็มทิศ</div>
+    </div>
+    <div class="m-btn m-btn-y">ยืนยันส่ง 3 ชิ้น</div>
+  </div>
+
+  <div class="phone">
+    <div style="font-size:.85rem;font-weight:700;color:var(--green);margin-bottom:8px;letter-spacing:.05em">หลังกดส่งแล้ว 📱</div>
+    <div class="mc mc-g" style="text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:6px">✅</div>
+      <div style="font-size:1.2rem;font-weight:800;color:var(--green)">ส่งของแล้ว</div>
+      <div style="font-size:.88rem;color:var(--dim);margin-top:4px">รอเพื่อนในทีม<br>แล้ว Admin จะยืนยัน</div>
+    </div>
+  </div>
+
+  <div class="al al-info">
+    <div class="al-icon">ℹ️</div>
+    <div class="al-body">
+      <div class="al-head">ถ้าไม่มีของที่ต้องการ</div>
+      <div class="al-text">หน้าจอจะบอกว่า "ไม่ต้องส่งรอบนี้" แค่รอดูผลได้เลย ไม่ต้องทำอะไร</div>
+    </div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ══════════════════════════
+     ทิ้งของ
+═══════════════════════════ -->
+<div class="sec" id="discard">
+  <div class="sec-label lbl-r">สถานการณ์พิเศษ</div>
+  <div class="sec-title">วิธีทิ้งของ</div>
+  <div class="sec-desc">มี 1 สถานการณ์ที่ทีมถือของรวมกันได้ไม่เกินจำนวนที่กำหนด ถ้าเกิน ทุกคนต้องช่วยกันทิ้งออก</div>
+
+  <div class="al al-warn" style="margin-bottom:20px">
+    <div class="al-icon">⚠️</div>
+    <div class="al-body">
+      <div class="al-head">คุยกับเพื่อนก่อน</div>
+      <div class="al-text">ตกลงกันว่า <strong style="color:var(--txt)">ใครทิ้งกี่ชิ้น</strong> เพื่อให้รวมกันครบพอดี<br>ของที่ทิ้งแล้ว <strong style="color:var(--red)">หายถาวร กลับมาไม่ได้</strong></div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-body">
+        <div class="step-head">ดูว่าทีมถือของเกินกี่ชิ้น</div>
+        <div class="step-text">อ่านตัวเลขสีแดงในกล่อง เช่น "รวม 63 ชิ้น เกิน 8 ชิ้น"</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-body">
+        <div class="step-head">คุยกับเพื่อนก่อนว่าใครทิ้งเท่าไหร่</div>
+        <div class="step-text">เช่น ต้องทิ้งรวม 8 ชิ้น → คุณทิ้ง 4 เพื่อนทิ้ง 4</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <div class="step-body">
+        <div class="step-head">กด + แล้วกดปุ่มสีส้ม "ทิ้ง X ชิ้น"</div>
+        <div class="step-text">ระบบถามยืนยัน 1 ครั้ง กด "ตกลง" เพื่อยืนยัน</div>
+        <div class="step-hint">⚠️ ทิ้งแล้วหายถาวร</div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="anim-wrap">
+    <div class="anim-label">ดูตัวอย่าง — วิธีทิ้งของ</div>
+    <div class="aphone">
+      <div class="aphone-bar"><span class="aphone-logo">SURVIVAL</span><span class="aphone-dot"></span></div>
+      <div class="aphone-body">
+        <div class="a4-warn" style="background:rgba(224,62,62,.1);border:2px solid var(--red-brd);border-radius:12px;padding:11px 13px;margin-bottom:8px">
+          <div style="font-size:.72rem;color:var(--dim)">สถานการณ์พิเศษ</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
+            <span style="font-size:1.5rem">⚖</span>
+            <div style="font-size:1rem;font-weight:800;color:var(--orange)">สถานการณ์ฉุกเฉิน</div>
+          </div>
+          <div style="font-size:.9rem;margin-top:5px">รวม <span style="color:var(--red);font-weight:800">63</span> ชิ้น — <span style="color:var(--red);font-weight:700">เกิน 8 ชิ้น!</span></div>
+          <div style="font-size:.8rem;color:var(--dim);margin-top:2px">ถือได้ไม่เกิน 55 ชิ้น</div>
+        </div>
+        <div style="background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:13px;margin-bottom:8px;text-align:center">
+          <div style="font-size:.8rem;color:var(--dim);margin-bottom:8px">จะทิ้งกี่ชิ้น?</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:6px">
+            <div style="width:52px;height:52px;border-radius:50%;border:2px solid var(--brd);background:var(--sur2);font-size:1.7rem;display:flex;align-items:center;justify-content:center">−</div>
+            <div style="font-size:3.2rem;font-weight:800;color:var(--orange);min-width:62px;text-align:center"><span class="a4-num"></span></div>
+            <div style="width:52px;height:52px;border-radius:50%;border:2px solid var(--brd);background:var(--sur2);font-size:1.7rem;display:flex;align-items:center;justify-content:center">+</div>
+          </div>
+          <div style="font-size:.8rem;color:var(--dim)">🧭 เข็มทิศ</div>
+        </div>
+        <div class="a4-btn">เลือกจำนวนก่อน</div>
+        <div class="finger a4-finger">👆</div>
+      </div>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="m-bar"><span class="m-logo">SURVIVAL</span><span class="m-dot"></span></div>
+    <div class="mc mc-o" style="margin-bottom:8px">
+      <div style="font-size:.75rem;color:var(--dim)">สถานการณ์พิเศษ</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+        <span style="font-size:2rem">⚖</span>
+        <div style="font-size:1.15rem;font-weight:800;color:var(--orange)">สถานการณ์ฉุกเฉิน</div>
+      </div>
+      <div style="font-size:.95rem;margin-top:6px">ทีมรวม <span style="color:var(--red);font-weight:800">63</span> ชิ้น — <span style="color:var(--red);font-weight:700">เกิน 8 ชิ้น!</span></div>
+      <div style="font-size:.85rem;color:var(--dim);margin-top:2px">ถือได้ไม่เกิน 55 ชิ้น</div>
+    </div>
+    <div class="m-stepper">
+      <div class="m-stlbl">จะทิ้งกี่ชิ้น? &nbsp;(คุณมี 12 ชิ้น)</div>
+      <div class="m-strow">
+        <div class="m-stbtn">−</div>
+        <div class="m-stnum" style="color:var(--orange)">4</div>
+        <div class="m-stbtn">+</div>
+      </div>
+    </div>
+    <div class="m-btn m-btn-o">ทิ้ง 4 ชิ้น</div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ══════════════════════════
+     พลังชีวิต
+═══════════════════════════ -->
+<div class="sec" id="hp">
+  <div class="sec-label lbl-d">ดูสถานะ</div>
+  <div class="sec-title">พลังชีวิต และของที่มี</div>
+  <div class="sec-desc">แถบด้านล่างสุดของหน้าจอ แสดงข้อมูลของคุณตลอดเวลา</div>
+
+  <div class="phone">
+    <div style="font-size:.85rem;font-weight:700;color:var(--amber);margin-bottom:8px;letter-spacing:.05em">แถบสถานะด้านล่าง 📱</div>
+    <div class="m-sb">
+      <div class="m-sb-item">
+        <div class="pips">
+          <div class="pip" style="background:var(--green)"></div>
+          <div class="pip" style="background:var(--green)"></div>
+          <div class="pip" style="background:var(--green)"></div>
+          <div class="pip" style="background:var(--green)"></div>
+          <div class="pip" style="background:var(--green)"></div>
+          <div class="pip" style="background:var(--green)"></div>
+          <div class="pip" style="background:var(--green)"></div>
+          <div class="pip" style="background:var(--green)"></div>
+          <div class="pip" style="background:#2a3a45"></div>
+          <div class="pip" style="background:#2a3a45"></div>
+        </div>
+        <div class="m-sb-lbl">8/10 พลังชีวิต</div>
+      </div>
+      <div class="m-sb-div"></div>
+      <div class="m-sb-item">
+        <div style="display:flex;align-items:center;gap:3px">
+          <span style="font-size:1.1rem">🧭</span>
+          <span class="m-sb-val" style="color:var(--amber)">9</span>
+        </div>
+        <div class="m-sb-lbl">ของที่มี</div>
+      </div>
+      <div class="m-sb-div"></div>
+      <div class="m-sb-item">
+        <div class="m-sb-val" style="color:var(--green)">12</div>
+        <div class="m-sb-lbl">คนรอด</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-n" style="background:var(--green)">❤️</div>
+      <div class="step-body">
+        <div class="step-head">วงกลมสีเขียว = พลังชีวิตที่เหลือ</div>
+        <div class="step-text">วงกลมสีเทา = ที่เสียไปแล้ว &nbsp;|&nbsp; ถ้าเป็น 0 ทั้งหมด = ออกจากเกม</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n" style="background:var(--sur2);border:2px solid var(--amber-brd);color:var(--amber)">📦</div>
+      <div class="step-body">
+        <div class="step-head">ตัวเลขตรงกลาง = ของที่คุณถืออยู่</div>
+        <div class="step-text">จำนวนนี้จะลดลงทุกครั้งที่ส่งหรือทิ้งของ</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="al al-warn">
+    <div class="al-icon">🔴</div>
+    <div class="al-body">
+      <div class="al-head">สังเกตสีวงกลม</div>
+      <div class="al-text">
+        🟢 สีเขียว = ปลอดภัย<br>
+        🟠 สีส้ม = เริ่มน้อย ระวัง<br>
+        🔴 สีแดง = อันตราย — รีบบอกเพื่อนทีม
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ══════════════════════════
+     ทบทวน
+═══════════════════════════ -->
+<div class="sec" id="reflect">
+  <div class="sec-label lbl-p">หลังจบเกม</div>
+  <div class="sec-title">ตอบคำถามทบทวน</div>
+  <div class="sec-desc">เมื่อเกมจบ หน้าจอจะเปลี่ยนเองอัตโนมัติ ตอบคำถาม 2-3 ข้อ ใช้เวลา 3 นาที</div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-body">
+        <div class="step-head">หน้าจอเปลี่ยนเอง ไม่ต้องทำอะไร</div>
+        <div class="step-text">ระบบพาคุณมาหน้านี้อัตโนมัติ</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-body">
+        <div class="step-head">กดเลือกคำตอบ ข้อ 1 และ ข้อ 2</div>
+        <div class="step-text">กดคำตอบที่รู้สึกว่าตรงที่สุด — ไม่มีผิดไม่มีถูก</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <div class="step-body">
+        <div class="step-head">กดปุ่มสีเหลือง "ส่งคำตอบ"</div>
+        <div class="step-text">ปุ่มจะกดได้เมื่อตอบครบ 2 ข้อแล้ว</div>
+        <div class="step-hint">ส่งได้ครั้งเดียว แก้ไม่ได้หลังส่ง</div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="anim-wrap">
+    <div class="anim-label">ดูตัวอย่าง — วิธีตอบคำถามทบทวน</div>
+    <div class="aphone">
+      <div class="aphone-bar"><span class="aphone-logo">SURVIVAL</span><span class="aphone-dot"></span></div>
+      <div class="aphone-body">
+        <div style="text-align:center;padding:6px 0 10px">
+          <div style="font-size:1.2rem;font-weight:800;color:var(--amber)">🪞 ทบทวนหลังเกม</div>
+        </div>
+        <div style="background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:12px 13px;margin-bottom:8px">
+          <div style="font-size:.78rem;font-weight:700;color:var(--amber);margin-bottom:8px">ข้อ 1 · ทีมสื่อสารกันดีแค่ไหน?</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <div class="a5-opt1">ดี</div>
+            <div style="padding:9px 14px;border-radius:10px;border:1px solid var(--brd);background:var(--sur2);font-size:.92rem;font-weight:600;color:var(--txt)">ดีมาก</div>
+          </div>
+        </div>
+        <div style="background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:12px 13px;margin-bottom:8px">
+          <div style="font-size:.78rem;font-weight:700;color:var(--amber);margin-bottom:8px">ข้อ 2 · ทีมพลาดตรงไหน?</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <div class="a5-opt2">ตัดสินใจช้า</div>
+            <div style="padding:9px 14px;border-radius:10px;border:1px solid var(--brd);background:var(--sur2);font-size:.92rem;font-weight:600;color:var(--txt)">ส่งของช้า</div>
+          </div>
+        </div>
+        <div class="a5-btn">ส่งคำตอบ →</div>
+        <div class="finger a5-finger">👆</div>
+      </div>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="m-bar"><span class="m-logo">SURVIVAL</span><span class="m-dot"></span></div>
+    <div style="text-align:center;padding:10px 0 14px">
+      <div style="font-size:1.5rem;font-weight:800;color:var(--amber)">🪞 ทบทวนหลังเกม</div>
+      <div style="font-size:.85rem;color:var(--dim);margin-top:3px">ใช้เวลาประมาณ 3 นาที</div>
+    </div>
+    <div class="r-grid">
+      <div class="r-box"><div class="r-val" style="color:var(--green)">รอด</div><div class="r-lbl">ผลของคุณ</div></div>
+      <div class="r-box"><div class="r-val" style="color:var(--amber)">75%</div><div class="r-lbl">คนรอดทั้งหมด</div></div>
+    </div>
+    <div class="q-box">
+      <div class="q-lbl">ข้อ 1 · ทีมสื่อสารกันดีแค่ไหน?</div>
+      <div class="q-opts">
+        <div class="q-opt sel">ดี</div>
+        <div class="q-opt">ดีมาก</div>
+        <div class="q-opt">พอได้</div>
+        <div class="q-opt">แย่มาก</div>
+      </div>
+    </div>
+    <div class="q-box">
+      <div class="q-lbl">ข้อ 2 · ทีมพลาดตรงไหนมากที่สุด?</div>
+      <div class="q-opts">
+        <div class="q-opt sel">ตัดสินใจช้า</div>
+        <div class="q-opt">ส่งของช้า</div>
+        <div class="q-opt">ไม่ได้วางแผน</div>
+      </div>
+    </div>
+    <div class="m-btn m-btn-y">ส่งคำตอบ →</div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ══════════════════════════
+     สรุป
+═══════════════════════════ -->
+<div class="sec" id="summary">
+  <div class="sec-label lbl-d">สรุป</div>
+  <div class="sec-title">จำแค่ 5 ข้อนี้</div>
+
+  <div class="sum-list">
+    <div class="sum-row">
+      <div class="sum-n">1</div>
+      <div class="sum-text">พิมพ์ชื่อ<strong>ภาษาไทย</strong> + เลือกแผนก → กดปุ่มเหลือง</div>
+    </div>
+    <div class="sum-row">
+      <div class="sum-n">2</div>
+      <div class="sum-text">กดชื่อทีมที่ต้องการ → รอ</div>
+    </div>
+    <div class="sum-row">
+      <div class="sum-n">3</div>
+      <div class="sum-text">เมื่อสถานการณ์เปิด → กด + แล้วกด<strong>ปุ่มสีเหลือง</strong></div>
+    </div>
+    <div class="sum-row">
+      <div class="sum-n">4</div>
+      <div class="sum-text">ดูวงกลมล่างซ้าย — อย่าให้<strong style="color:var(--red)">เป็น 0</strong></div>
+    </div>
+    <div class="sum-row">
+      <div class="sum-n">5</div>
+      <div class="sum-text">เกมจบ → ตอบคำถาม 2 ข้อ → กด<strong>ปุ่มสีเหลือง</strong></div>
+    </div>
+  </div>
+
+  <div class="al al-tip">
+    <div class="al-icon">📞</div>
+    <div class="al-body">
+      <div class="al-head">มีปัญหาให้แจ้ง Admin</div>
+      <div class="al-text">ถ้าหน้าจอค้าง หรือทำไม่ได้ ให้ยกมือแจ้ง Admin ได้เลย</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">คู่มือเล่นเกม SURVIVAL · TMT Team Building</div>
+</div>
+
+<script>
+// ── Fix nav scroll bug: active pill scrolls into view ──
+const secs = document.querySelectorAll('.sec[id]');
+const tabs = document.querySelectorAll('.ntab');
+
+function setActive(id) {
+  tabs.forEach(t => t.classList.remove('on'));
+  const active = document.querySelector(`.ntab[href="#${id}"]`);
+  if (!active) return;
+  active.classList.add('on');
+  // scroll nav pill into center view
+  const nav = document.getElementById('nav');
+  const btnLeft = active.offsetLeft;
+  const btnW = active.offsetWidth;
+  const navW = nav.offsetWidth;
+  nav.scrollTo({ left: btnLeft - navW / 2 + btnW / 2, behavior: 'smooth' });
+}
+
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) setActive(e.target.id);
+  });
+}, { threshold: 0.3, rootMargin: '-130px 0px -50% 0px' });
+
+secs.forEach(s => io.observe(s));
+
+// smooth scroll on tab click
+tabs.forEach(t => {
+  t.addEventListener('click', e => {
+    e.preventDefault();
+    const id = t.getAttribute('href').slice(1);
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+</script>
+</body>
+</html>
