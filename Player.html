@@ -120,9 +120,13 @@ body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 .done-box{text-align:center;padding:22px 16px;background:var(--green-dim);border:1px solid var(--green-brd);border-radius:var(--rl)}
 .done-title{font-family:var(--deco);font-size:1.2rem;letter-spacing:.1em;color:var(--green)}
 .done-sub{font-size:.82rem;color:var(--dim);margin-top:4px;line-height:1.6}
-.dead-box{text-align:center;padding:14px;background:var(--red-dim);border:1px solid var(--red-brd);border-radius:var(--rl)}
-.dead-title{font-family:var(--deco);font-size:1.1rem;letter-spacing:.1em;color:var(--red)}
-.dead-sub{font-size:.78rem;color:var(--dim);margin-top:3px}
+.dead-box{text-align:center;padding:22px 16px;background:rgba(40,20,20,.6);border:1px solid var(--red-brd);border-radius:var(--rl)}
+.dead-title{font-family:var(--deco);font-size:1.4rem;letter-spacing:.12em;color:var(--red)}
+.dead-sub{font-size:.82rem;color:var(--dim);margin-top:4px;line-height:1.6}
+/* cemetery zone in group */
+.cemetery-zone{background:rgba(30,10,10,.5);border:1px dashed rgba(232,62,62,.25);border-radius:var(--r);padding:8px 10px;margin-top:8px}
+.cemetery-lbl{font-family:var(--mono);font-size:.54rem;color:rgba(232,62,62,.5);letter-spacing:.1em;margin-bottom:5px}
+.cemetery-row{display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:5px;font-size:.7rem;opacity:.45;text-decoration:line-through}
 
 /* login */
 .login-outer{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;gap:18px;background:var(--bg)}
@@ -149,9 +153,31 @@ body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 .fade-up{animation:fadeUp .2s ease}
 @keyframes pulseAmber{0%,100%{box-shadow:0 0 0 0 transparent}55%{box-shadow:0 0 0 7px rgba(240,165,0,.12)}}
 .pulse-amber{animation:pulseAmber 2.4s ease infinite}
+
+/* ── AMBIENT SYSTEM ── */
+#ambient-bg{position:fixed;inset:0;z-index:-2;transition:background 1.4s ease}
+#ambient-canvas{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.85}
+#ambient-overlay{position:fixed;inset:0;z-index:-1;pointer-events:none;transition:background 1.2s ease,opacity .8s}
+@media(prefers-reduced-motion:reduce){
+  #ambient-bg,#ambient-overlay{transition:none}
+}
+@keyframes amb-shake{0%,100%{transform:none}20%{transform:translate(-4px,2px) rotate(-.4deg)}40%{transform:translate(5px,-2px) rotate(.4deg)}60%{transform:translate(-3px,3px)}80%{transform:translate(3px,-1px)}}
+@keyframes amb-flicker{0%,100%{opacity:.06}30%{opacity:.2}60%{opacity:.03}80%{opacity:.16}}
+@keyframes amb-frost{0%,100%{opacity:.04}50%{opacity:.11}}
+@keyframes amb-breathe{0%,100%{opacity:.03}50%{opacity:.09}}
+@keyframes amb-static{0%,100%{opacity:.04}33%{opacity:.1}66%{opacity:.02}}
+body.amb-flicker #ambient-overlay{animation:amb-flicker .35s ease infinite}
+body.amb-frost   #ambient-overlay{animation:amb-frost 2.8s ease infinite}
+body.amb-breathe #ambient-overlay{animation:amb-breathe 3.2s ease infinite}
+body.amb-static  #ambient-overlay{animation:amb-static .18s steps(3) infinite}
+body.amb-dead{filter:grayscale(.8) brightness(.65);transition:filter .8s}
+body.amb-dead-off{filter:none;transition:filter .8s}
 </style>
 </head>
 <body>
+<div id="ambient-bg"></div>
+<canvas id="ambient-canvas"></canvas>
+<div id="ambient-overlay"></div>
 <div id="app"></div>
 
 <script type="module">
@@ -260,13 +286,15 @@ function startListeners(){
     const d=snap.val()||{};
     S.gs=d.state||null;
     S.logs=d.logs?Object.values(d.logs).sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-40):[];
-    if(!S.gs?.pendingConfirm){S.useAmt=0;S.discardAmt=0;S.submitted=false;} // #3 reset submitted เมื่อ event จบ
+    if(!S.gs?.pendingConfirm){S.useAmt=0;S.discardAmt=0;S.submitted=false;}
     buildGroups();render();
+    syncAmbient(); // ← ambient hook
   });
   onValue(ref(db,'players'),snap=>{
     S.players=snap.val()||{};
     if(S.pid&&S.players[S.pid])S.player=S.players[S.pid];
     buildGroups();render();
+    syncAmbient(); // ← ambient hook
   });
   onValue(ref(db,'.info/connected'),snap=>{
     S.connected=snap.val();
@@ -487,7 +515,17 @@ function renderContent(phase){
   const p=S.player||{},gs=S.gs||{},evIdx=gs.currentEvent||0,ev=EVENTS[evIdx],d=DEPTS[p.dept]||{},mg=myGroup();
   // dead but game still going
   if(!p.alive&&phase!=='lobby'&&phase!=='regroup'){
-    return`<div class="dead-box"><div class="dead-title">💀 คุณถูกตัดออกแล้ว</div><div class="dead-sub">ดูเกมต่อได้ในฐานะผู้ชม</div></div>${evCard(ev,evIdx,mg)}${groupInfo(mg,ev)}`;
+    const d=DEPTS[p.dept]||{};
+    return`
+    <div class="dead-box">
+      <div style="font-size:2.8rem;margin-bottom:8px">💀</div>
+      <div class="dead-title">คุณถูกตัดออกแล้ว</div>
+      <div class="dead-sub">${d.icon} ${p.name}<br>HP: 0 — ออกจากเกมแล้ว</div>
+      <a href="Scoreboard.html" style="display:inline-block;margin-top:14px;padding:11px 22px;background:var(--red);color:#fff;border-radius:var(--r);font-family:var(--mono);font-weight:600;font-size:.72rem;letter-spacing:.06em;text-decoration:none;touch-action:manipulation">
+        🏆 ดู Scoreboard
+      </a>
+    </div>
+    ${evCard(ev,evIdx,mg)}${groupInfo(mg,ev)}`;
   }
   if(phase==='lobby')  return renderLobby(mg);
   if(phase==='regroup')return renderRegroup(mg);
@@ -495,7 +533,11 @@ function renderContent(phase){
     if(ev?.type==='collective_pool')return renderCollectivePool(ev,evIdx,mg,p,d);
     return renderAction(ev,evIdx,mg,p,d);
   }
-  if(phase==='wait')   return renderWait(ev,evIdx,mg);
+  if(phase==='wait'){
+    if(ev?.type==='headcount_reward') return renderHeadcountInfo(ev,evIdx,mg);
+    if(ev?.type==='per_group')        return renderPerGroupInfo(ev,evIdx,mg,p,d);
+    return renderWait(ev,evIdx,mg);
+  }
   if(phase==='discard')return renderDiscard(ev,evIdx,mg,p,d);
   return renderWait(ev,evIdx,mg);
 }
@@ -874,6 +916,82 @@ function renderDiscard(ev,evIdx,mg,p,d){
   ${groupInfo(mg,ev)}`;
 }
 
+function renderPerGroupInfo(ev,evIdx,mg,p,d){
+  // ดึง config จาก Firebase ถ้ามี
+  const cfg=S.gs?.eventConfig?.[ev.id]||{};
+  const dmgPer=cfg.dmgPerMissType??ev.dmgPerMissType??2;
+  const maxMiss=cfg.maxMissTypes??ev.maxMissTypes??3;
+  const checkDepts=cfg.checkDepts??ev.checkDepts??DK;
+
+  // pool ของกลุ่ม (items คงเหลือ — per_group ใช้ remaining ไม่ใช่ contributed)
+  const pool=mg?.pool||{};
+  const aliveInGroup=mg?mg.members.filter(m=>S.players[m.id]?.alive??m.alive):[];
+
+  // ตรวจ dept ไหนมี/ขาด
+  const missingDepts=checkDepts.filter(dk=>!(pool[dk]>0));
+  const presentDepts=checkDepts.filter(dk=>pool[dk]>0);
+  const dmg=dmgPer*Math.min(missingDepts.length,maxMiss);
+  const pass=missingDepts.length===0;
+
+  // แถว dept แต่ละตัว
+  const deptRows=checkDepts.map(dk=>{
+    const have=pool[dk]||0;
+    const ok=have>0;
+    const isMe=dk===p.dept;
+    return`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:${ok?'rgba(46,184,114,.06)':'rgba(224,62,62,.06)'};margin-bottom:3px">
+      <span style="font-size:1rem">${DEPTS[dk]?.icon||dk}</span>
+      <span style="font-family:var(--mono);font-size:.7rem;color:${DEPTS[dk]?.color};flex:1">${dk}${isMe?' ← คุณ':''}</span>
+      <span style="font-family:var(--deco);font-size:1.1rem;color:${ok?'var(--green)':'var(--red)'}">${have}</span>
+      <span style="font-family:var(--mono);font-size:.6rem;color:var(--dim)">ชิ้น</span>
+      <span style="font-size:.9rem">${ok?'✓':'✗'}</span>
+    </div>`;
+  }).join('');
+
+  // penalty table
+  const penaltyRows=[];
+  for(let m=0;m<=maxMiss;m++){
+    const d2=dmgPer*Math.min(m,maxMiss);
+    const isCur=m===missingDepts.length;
+    penaltyRows.push(`<span style="font-family:var(--mono);font-size:.6rem;padding:2px 7px;border-radius:4px;background:${isCur?(d2===0?'rgba(46,184,114,.2)':'rgba(224,62,62,.2)'):'var(--sur2)'};border:1px solid ${isCur?(d2===0?'var(--green-brd)':'var(--red-brd)'):'var(--brd2)'};color:${isCur?(d2===0?'var(--green)':'var(--red)'):'var(--dim)'}">
+      ${m===0?'ครบ ✓':'ขาด '+m+(m===maxMiss?'+':'')+' → -'+d2+' HP'}
+    </span>`);
+  }
+
+  const statusBg=pass?'rgba(46,184,114,.07)':'rgba(224,62,62,.07)';
+  const statusBrd=pass?'var(--green-brd)':'var(--red-brd)';
+  const statusCol=pass?'var(--green)':'var(--red)';
+  const statusTxt=pass?'✓ ครบทุก type! รอ Admin Confirm':`✗ ขาด ${missingDepts.length} type → -${dmg} HP`;
+
+  return`
+  <div class="card ca-amber" style="padding:14px 16px">
+    <div style="font-family:var(--mono);font-size:.56rem;color:var(--dim);margin-bottom:4px">EVENT ${evIdx+1} / ${EV_TOTAL}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <span style="font-size:1.7rem;line-height:1">${ev.emoji}</span>
+      <div>
+        <div style="font-family:var(--deco);font-size:1.3rem;letter-spacing:.06em;color:var(--amber)">${ev.name}</div>
+        <div style="font-size:.78rem;color:var(--dim);margin-top:1px">ต้องมี items ครบทุก dept ในกลุ่ม</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:.6rem;color:var(--dim);margin:4px 2px 8px">ตรวจ items ที่กลุ่มถืออยู่ตอนนี้</div>
+
+  <div style="background:var(--sur2);border:1px solid var(--brd2);border-radius:var(--rl);padding:12px 14px;margin-bottom:8px">
+    ${deptRows}
+  </div>
+
+  <div style="background:${statusBg};border:1px solid ${statusBrd};border-radius:var(--r);padding:12px 14px;text-align:center;margin-bottom:8px">
+    <div style="font-family:var(--deco);font-size:1rem;letter-spacing:.06em;color:${statusCol};margin-bottom:2px">${statusTxt}</div>
+    <div style="font-family:var(--mono);font-size:.58rem;color:var(--dim)">Admin จะกด Confirm เพื่อคำนวณ</div>
+  </div>
+
+  <div style="background:var(--sur2);border:1px solid var(--brd2);border-radius:var(--r);padding:10px 12px;margin-bottom:4px">
+    <div style="font-family:var(--mono);font-size:.56rem;color:var(--dim);margin-bottom:6px">ตารางโทษ</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px">${penaltyRows.join('')}</div>
+  </div>
+  ${groupInfo(mg,ev)}`;
+}
+
 // shared components
 function evCard(ev,evIdx,mg){
   if(!ev)return'';
@@ -901,28 +1019,229 @@ function groupInfo(mg,ev){
     const have=pool[dk]||0,need=req[dk]||0,cls=!hasReq||!need?'':have>=need?' p-ok':' p-fail';
     return`<div class="pchip${cls}">${DEPTS[dk]?.icon||dk}<span class="pval">${have}</span>${need?`<span style="font-size:.55rem;opacity:.6">/${need}</span>`:''}</div>`;
   }).join('');
-  const rows=mg.members.map(m=>{
+
+  // แยก alive กับ dead
+  const aliveMembers=mg.members.filter(m=>S.players[m.id]?.alive??m.alive);
+  const deadMembers=mg.members.filter(m=>!(S.players[m.id]?.alive??m.alive));
+
+  const aliveRows=aliveMembers.map(m=>{
     const md=DEPTS[m.dept]||{},me=m.id===S.pid;
-    return`<div class="mrow${me?' mrow-me':''}${m.alive?'':' mrow-dead'}">
+    return`<div class="mrow${me?' mrow-me':''}">
       <span style="display:flex;align-items:center;gap:6px">
         <span class="dbadge" style="background:${md.color}22;color:${md.color};border:1px solid ${md.color}44">${m.dept}</span>
         ${m.name}${me?'<span style="font-size:.7rem;color:var(--amber);margin-left:4px">← ฉัน</span>':''}
       </span>
-      <span style="font-family:var(--mono);font-size:.7rem;color:${md.color||'var(--dim)'}">${m.items||0}</span>
+      <span style="font-family:var(--mono);font-size:.7rem;color:${md.color||'var(--dim)'}">${S.players[m.id]?.items??m.items??0}</span>
     </div>`;
   }).join('');
+
+  // cemetery zone — แสดงเฉพาะเมื่อมีคนตาย
+  const cemeteryHtml=deadMembers.length?`
+    <div class="cemetery-zone">
+      <div class="cemetery-lbl">⚰ สุสาน · ${deadMembers.length} คน</div>
+      ${deadMembers.map(m=>{
+        const md=DEPTS[m.dept]||{};
+        return`<div class="cemetery-row">
+          <span class="dbadge" style="background:${md.color}11;color:${md.color}55;border:1px solid ${md.color}22">${m.dept}</span>
+          <span>${m.name}</span>
+        </div>`;
+      }).join('')}
+    </div>`:'';
+
   return`<div class="card" style="padding:12px 14px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <span style="font-family:var(--deco);font-size:.95rem;letter-spacing:.12em;color:var(--amber)">${mg.name}</span>
-      <span style="font-family:var(--mono);font-size:.58rem;color:var(--dim)">${mg.members.filter(m=>S.players[m.id]?.alive).length} alive</span>
+      <span style="font-family:var(--mono);font-size:.58rem;color:var(--dim)">${aliveMembers.length} alive${deadMembers.length?' · '+deadMembers.length+' dead':''}</span>
     </div>
     <div class="pool-row" style="margin-bottom:10px">${chips}</div>
-    <div>${rows}</div>
+    <div>${aliveRows}</div>
+    ${cemeteryHtml}
   </div>`;
 }
 
+// ============================================================
+//  AMBIENT ENGINE
+// ============================================================
+const AMBIENT_SCENES = {
+  lobby:    {bg:'#07090d',ac:'#f0a500',ov:'rgba(240,165,0,.0)',anim:'breathe',
+             p:{count:20,type:'star',col:'rgba(240,165,0,',sz:1.2,spd:.12,dr:.25}},
+  ev1:      {bg:'#0d0900',ac:'#f0a500',ov:'rgba(240,165,0,.04)',anim:'breathe',
+             p:{count:18,type:'dot',col:'rgba(240,165,0,',sz:1.4,spd:.18,dr:.35}},
+  ev2:      {bg:'#0d0600',ac:'#ffd54f',ov:'rgba(255,213,79,.04)',anim:'breathe',
+             p:{count:18,type:'dot',col:'rgba(255,200,50,',sz:1.4,spd:.18,dr:.35}},
+  ev3:      {bg:'#0d0400',ac:'#e03e3e',ov:'rgba(224,62,62,.05)',anim:'breathe',
+             p:{count:20,type:'drop',col:'rgba(224,80,60,',sz:1.6,spd:.22,dr:.2}},
+  regroup:  {bg:'#0d0015',ac:'#ce93d8',ov:'rgba(130,0,200,.05)',anim:'breathe',shake:true,
+             p:{count:28,type:'scatter',col:'rgba(180,100,220,',sz:1.8,spd:.3,dr:1.4}},
+  ev4b:     {bg:'#00120e',ac:'#2eb872',ov:'rgba(29,158,117,.04)',anim:'frost',
+             p:{count:15,type:'ripple',col:'rgba(46,184,114,',sz:3,spd:.16,dr:.1}},
+  ev5:      {bg:'#0a0800',ac:'#ff8a65',ov:'rgba(255,138,101,.05)',anim:'breathe',
+             p:{count:20,type:'dot',col:'rgba(255,150,80,',sz:1.5,spd:.2,dr:.4}},
+  ev6:      {bg:'#0a0500',ac:'#ff6b35',ov:'rgba(255,107,53,.06)',anim:'breathe',
+             p:{count:22,type:'dot',col:'rgba(255,120,40,',sz:1.3,spd:.15,dr:.3}},
+  ev7:      {bg:'#00060d',ac:'#4fc3f7',ov:'rgba(150,220,255,.05)',anim:'frost',
+             p:{count:38,type:'snow',col:'rgba(200,235,255,',sz:2.2,spd:.14,dr:1.1}},
+  ev8_fire: {bg:'#150200',ac:'#ff6b35',ov:'rgba(200,50,0,.07)',anim:'flicker',shake:true,
+             p:{count:32,type:'ember',col:'rgba(255,120,20,',sz:2.2,spd:.55,dr:.9}},
+  ev9:      {bg:'#010d03',ac:'#3dba6a',ov:'rgba(0,120,40,.06)',anim:'breathe',
+             p:{count:22,type:'spore',col:'rgba(80,200,80,',sz:1.7,spd:.13,dr:.55}},
+  ev10:     {bg:'#0a0a00',ac:'#f5c842',ov:'rgba(255,220,0,.05)',anim:'flicker',
+             p:{count:14,type:'light',col:'rgba(255,230,100,',sz:2.8,spd:.3,dr:.2}},
+  quake:    {bg:'#150500',ac:'#e06b30',ov:'rgba(200,80,20,.08)',anim:'flicker',shake:true,
+             p:{count:28,type:'ember',col:'rgba(230,100,30,',sz:2,spd:.48,dr:.75}},
+  dead:     {bg:'#050505',ac:'#606060',ov:'rgba(0,0,0,.35)',anim:'static',dead:true,
+             p:{count:0,type:'none',col:'rgba(0,0,0,',sz:0,spd:0,dr:0}},
+};
+
+// Map game state → scene key
+function getAmbientKey(){
+  const gs=S.gs||{},phase=gs.phase||'lobby';
+  const p=S.player;
+  if(p&&!p.alive) return 'dead';
+  if(!S.pid||phase==='lobby') return 'lobby';
+  if(phase==='result') return 'ev10';
+  if(phase==='regrouping') return 'regroup';
+  const evIdx=gs.currentEvent||0;
+  const ev=EVENTS[evIdx];
+  const t=ev?.type||'';
+  const id=ev?.id;
+  // regroup events
+  if(t==='regroup'&&gs.pendingConfirm){
+    return id===4?'quake':'ev8_fire';
+  }
+  // map event id → key
+  const MAP={1:'ev1',2:'ev2',3:'ev3',4:'quake','4b':'ev4b',5:'ev5',6:'ev6',7:'ev7',8:'ev8_fire',9:'ev9',10:'ev10'};
+  return MAP[String(id)]||'lobby';
+}
+
+// Particle system
+const _ambCanvas=document.getElementById('ambient-canvas');
+const _ambCtx=_ambCanvas.getContext('2d');
+let _ambParts=[],_ambKey=null,_ambFrame=null;
+
+function _resizeAmbCanvas(){
+  _ambCanvas.width=window.innerWidth;
+  _ambCanvas.height=window.innerHeight;
+}
+_resizeAmbCanvas();
+window.addEventListener('resize',_resizeAmbCanvas);
+
+function _makeParts(scene){
+  const p=scene.p;
+  if(!p||!p.count) return [];
+  return Array.from({length:p.count},()=>({
+    x:Math.random()*_ambCanvas.width,
+    y:Math.random()*_ambCanvas.height,
+    vx:(Math.random()-.5)*p.dr,
+    vy:p.type==='snow'? Math.random()*p.spd+.06 : -Math.random()*p.spd-.05,
+    a:Math.random()*.55+.15,
+    sz:Math.random()*p.sz+.5,
+    life:Math.random(),
+    maxL:.75+Math.random()*.45,
+    type:p.type, col:p.col
+  }));
+}
+
+function _tickParts(scene){
+  const p=scene.p;
+  _ambParts.forEach(pt=>{
+    pt.x+=pt.vx; pt.y+=pt.vy; pt.life-=.0025;
+    if(pt.type==='snow') pt.x+=Math.sin(pt.life*7)*.35;
+    if(pt.type==='ember'||pt.type==='spore'){pt.vy-=.0015;pt.vx+=(Math.random()-.5)*.04;}
+    if(pt.type==='scatter'){pt.vx+=(Math.random()-.5)*.04;pt.vy+=(Math.random()-.5)*.04;}
+    if(pt.type==='light') pt.a=.25+Math.sin(Date.now()*.003+pt.x)*.18;
+    const oob=pt.y<-20||pt.y>_ambCanvas.height+20||pt.x<-20||pt.x>_ambCanvas.width+20;
+    if(pt.life<=0||oob){
+      pt.x=Math.random()*_ambCanvas.width;
+      pt.y=pt.type==='snow'?-4:_ambCanvas.height+4;
+      if(pt.type==='star'||pt.type==='scatter'||pt.type==='spore'||pt.type==='dot'){
+        pt.y=Math.random()*_ambCanvas.height; pt.x=Math.random()*_ambCanvas.width;
+      }
+      pt.life=pt.maxL;
+      pt.vx=(Math.random()-.5)*p.dr;
+      pt.vy=pt.type==='snow'? Math.random()*p.spd+.06 : -Math.random()*p.spd-.05;
+    }
+  });
+}
+
+function _drawParts(){
+  _ambCtx.clearRect(0,0,_ambCanvas.width,_ambCanvas.height);
+  _ambParts.forEach(pt=>{
+    const alpha=Math.max(0,pt.life/pt.maxL)*pt.a;
+    _ambCtx.beginPath();
+    if(pt.type==='ripple'){
+      _ambCtx.strokeStyle=pt.col+alpha+')';
+      _ambCtx.lineWidth=.8;
+      const r=pt.sz*(1-pt.life/pt.maxL)*28;
+      _ambCtx.arc(pt.x,pt.y,r,0,Math.PI*2);
+      _ambCtx.stroke();
+    } else {
+      _ambCtx.fillStyle=pt.col+alpha+')';
+      _ambCtx.arc(pt.x,pt.y,pt.sz,0,Math.PI*2);
+      _ambCtx.fill();
+    }
+  });
+}
+
+function _ambLoop(){
+  const scene=AMBIENT_SCENES[_ambKey]||AMBIENT_SCENES.lobby;
+  _tickParts(scene); _drawParts();
+  _ambFrame=requestAnimationFrame(_ambLoop);
+}
+
+// Main sync function — called every Firebase update
+let _lastAmbKey=null;
+function syncAmbient(){
+  const key=getAmbientKey();
+  if(key===_lastAmbKey) return; // ไม่เปลี่ยนถ้า key เดิม
+  _lastAmbKey=key;
+  setAmbient(key);
+}
+
+function setAmbient(key){
+  _ambKey=key;
+  const scene=AMBIENT_SCENES[key]||AMBIENT_SCENES.lobby;
+
+  // Layer 1 — BG color
+  const bgEl=document.getElementById('ambient-bg');
+  if(bgEl) bgEl.style.background=scene.bg;
+
+  // Layer 2 — Overlay
+  const ovEl=document.getElementById('ambient-overlay');
+  if(ovEl){ ovEl.style.background=scene.ov||'transparent'; ovEl.style.opacity='1'; }
+
+  // Layer 3 — body animation class
+  const ANIMS=['amb-flicker','amb-frost','amb-breathe','amb-static'];
+  ANIMS.forEach(c=>document.body.classList.remove(c));
+  if(scene.anim) document.body.classList.add('amb-'+scene.anim);
+
+  // Dead desaturate
+  document.body.classList.toggle('amb-dead', !!scene.dead);
+
+  // Shake (regroup/quake/fire)
+  if(scene.shake){
+    const shell=document.getElementById('shell');
+    if(shell){
+      shell.style.animation='none';
+      requestAnimationFrame(()=>{
+        shell.style.animation='amb-shake .5s ease';
+        setTimeout(()=>shell.style.animation='none',600);
+      });
+    }
+    try{navigator.vibrate&&navigator.vibrate(key==='quake'?[150,60,150]:key==='ev8_fire'?[100,40,100]:[80]);}catch(e){}
+  }
+
+  // Particles — restart
+  _ambParts=_makeParts(scene);
+  cancelAnimationFrame(_ambFrame);
+  _ambLoop();
+}
+
+// Start with lobby
+setAmbient('lobby');
+
 // expose
-window.doLogin=doLogin;window.doLogout=doLogout;window.doJoinGroup=doJoinGroup;
+window.switchTab=switchTab;window.renderGamePanel=renderGamePanel;
 window.doUseItems=doUseItems;window.doDiscardItems=doDiscardItems;
 window.stepUse=stepUse;window.stepDiscard=stepDiscard;
 window.toggleLog=toggleLog;window.updatePreview=updatePreview;

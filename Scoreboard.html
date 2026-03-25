@@ -274,79 +274,73 @@ function render() {
     )
   );
 
-  // ── GROUP LEADERBOARD ──
-  out += h('div','class="sec-title"','🏅 จัดอันดับกลุ่ม');
-  out += h('div','class="lb-grid"',
-    ranked.map((g, idx) => {
-      const rank = idx+1;
-      const rankClass = rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'rank-other';
-      const rankEmoji = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'#'+rank;
-      const isElim = g.alive.length===0;
-
-      const poolChips = DK.map(dk => h('div','class="lb-chip"',
-        (DEPTS[dk]?.icon||dk)+h('span','class="lb-chip-val"',g.pool[dk]||0)
-      )).join('');
-
-      const memberTags = g.members.map(m =>
-        h('span','class="mb-tag '+(m.alive?'alive':'dead')+'"',(DEPTS[m.dept]?.icon||'')+' '+m.name)
-      ).join('');
-
-      const survivalRate = g.members.length > 0 ? Math.round((g.alive.length/g.members.length)*100) : 0;
-
-      return h('div','class="lb-row '+rankClass+'"',
-        h('div','class="lb-rank"', typeof rankEmoji==='string'&&rankEmoji.startsWith('#') ? h('span','style="font-size:1rem"',rankEmoji) : rankEmoji)+
-        h('div','class="lb-info"',
-          h('div','style="display:flex;align-items:center;gap:8px;margin-bottom:4px"',
-            h('div','class="lb-name"',g.name)+
-            h('span','class="lb-badge '+(isElim?'lose':'win')+'"',isElim?'ELIMINATED':'SURVIVED')
-          )+
-          h('div','class="lb-members"',memberTags||h('span','style="font-size:.6rem;color:var(--dim)"','ไม่มีสมาชิก'))+
-          h('div','class="lb-pool"',poolChips)
-        )+
-        h('div','class="lb-score"',
-          h('div','class="lb-score-main"',g.alive.length+h('span','style="font-size:.8rem"','/'+g.members.length))+
-          h('div','class="lb-score-sub"','ALIVE · '+survivalRate+'%')+
-          h('div','class="lb-score-sub" style="margin-top:2px"','HP: '+g.totalHp+'  Items: '+g.totalPool)
-        )
-      );
-    }).join('')
-  );
-
-  // ── PLAYER TABLE ──
-  const sortedPlayers = [...playerArr].sort((a,b) => {
-    if (a.alive!==b.alive) return a.alive?-1:1;
-    if ((b.hp||0)!==(a.hp||0)) return (b.hp||0)-(a.hp||0);
+  // ── SURVIVORS & CEMETERY ──
+  const survivors = [...playerArr].filter(p=>p.alive).sort((a,b)=>{
+    if((b.hp||0)!==(a.hp||0)) return (b.hp||0)-(a.hp||0);
     return (b.items||0)-(a.items||0);
   });
+  const fallen = [...playerArr].filter(p=>!p.alive);
+  const gs2 = D.gs||{}, names = gs2.groupNames||GN;
 
-  out += h('div','class="sec-title"','👥 ผู้เล่นทั้งหมด');
-  out += h('div','style="overflow-x:auto;border:1px solid var(--brd);border-radius:9px;margin-bottom:24px"',
-    h('table','class="pl-table"',
-      h('thead','',h('tr','',
-        h('th','','อันดับ')+h('th','','ชื่อ')+h('th','','แผนก')+h('th','','กลุ่ม')+h('th','','HP')+h('th','','Items')+h('th','','สถานะ')
-      ))+
-      h('tbody','',
-        sortedPlayers.map((p,idx)=>{
-          const d = DEPTS[p.dept]||{};
-          const hc = p.hp<=2?'var(--red)':p.hp<=4?'#ff9800':'var(--green)';
-          const g = groups.find(x=>x.id==p.groupId);
-          const gs2 = D.gs||{}, names = gs2.groupNames||GN;
-          const gname = p.groupId>=0 ? (names[p.groupId]||('G'+p.groupId)) : '—';
-          let pips='';
-          for(let i=0;i<(p.maxHp||0);i++) pips+=h('span','class="pip-s" style="background:'+(i<(p.hp||0)?hc:'var(--brd2)')+';"','');
-          return h('tr','class="'+(p.alive?'alive-row':'dead-row')+'"',
-            h('td','style="font-family:monospace;font-size:.7rem;color:var(--dim);text-align:center"',p.alive?'#'+(idx+1):'—')+
-            h('td','style="font-weight:600"',p.name+(p.row?' ('+p.row+')':''))+
-            h('td','',h('span','class="dept-tag" style="background:'+d.color+'22;color:'+d.color+';border:1px solid '+d.color+'44"',d.icon+' '+p.dept))+
-            h('td','style="font-family:monospace;font-size:.68rem;color:var(--purple)"',gname)+
-            h('td','',h('div','class="hp-mini"',pips)+h('div','style="font-family:monospace;font-size:.6rem;color:'+hc+'"',(p.hp||0)+'/'+(p.maxHp||0)))+
-            h('td','style="font-family:monospace;font-size:.8rem;color:var(--amber);font-weight:700"',p.items||0)+
-            h('td','style="font-family:monospace;font-size:.62rem;color:'+(p.alive?'var(--green)':'var(--red)')+';"',p.alive?'✓ ALIVE':'✗ DEAD')
-          );
-        }).join('')
+  function playerRowSurv(p, rank) {
+    const d = DEPTS[p.dept]||{};
+    const hc = p.hp<=2?'var(--red)':p.hp<=4?'#ff9800':'var(--green)';
+    const gname = p.groupId>=0 ? (names[p.groupId]||('G'+p.groupId)) : '—';
+    let pips='';
+    for(let i=0;i<(p.maxHp||0);i++) pips+=h('span','class="pip-s" style="background:'+(i<(p.hp||0)?hc:'var(--brd2)')+';"','');
+    return h('tr','class="alive-row"',
+      h('td','style="font-family:monospace;font-size:.7rem;color:var(--dim);text-align:center"','#'+rank)+
+      h('td','style="font-weight:600"',p.name+(p.row?' ('+p.row+')':'')+'')+
+      h('td','',h('span','class="dept-tag" style="background:'+d.color+'22;color:'+d.color+';border:1px solid '+d.color+'44"',d.icon+' '+p.dept))+
+      h('td','style="font-family:monospace;font-size:.68rem;color:var(--purple)"',gname)+
+      h('td','',h('div','class="hp-mini"',pips)+h('div','style="font-family:monospace;font-size:.6rem;color:'+hc+'"',+(p.hp||0)+''+('/ '+(p.maxHp||0))))+
+      h('td','style="font-family:monospace;font-size:.8rem;color:var(--amber);font-weight:700"',p.items||0)
+    );
+  }
+
+  // Survivor table
+  out += h('div','class="sec-title"','✅ ผู้รอดชีวิต ('+survivors.length+' คน)');
+  if(survivors.length) {
+    out += h('div','style="overflow-x:auto;border:1px solid rgba(61,186,106,.25);border-radius:9px;margin-bottom:20px"',
+      h('table','class="pl-table"',
+        h('thead','',h('tr','',
+          h('th','','#')+h('th','','ชื่อ')+h('th','','แผนก')+h('th','','กลุ่ม')+h('th','','HP')+h('th','','Items')
+        ))+
+        h('tbody','',survivors.map((p,i)=>playerRowSurv(p,i+1)).join(''))
       )
-    )
-  );
+    );
+  } else {
+    out += h('div','style="text-align:center;padding:20px;font-family:monospace;font-size:.7rem;color:var(--dim);border:1px solid var(--brd);border-radius:9px;margin-bottom:20px"','ยังไม่มีผู้รอด');
+  }
+
+  // Cemetery zone
+  out += h('div','class="sec-title"','⚰ สุสาน ('+fallen.length+' คน)');
+  if(fallen.length) {
+    out += h('div','style="overflow-x:auto;border:1px dashed rgba(232,64,64,.2);border-radius:9px;margin-bottom:24px;background:rgba(20,5,5,.4)"',
+      h('table','class="pl-table"',
+        h('thead','',h('tr','',
+          h('th','style="opacity:.45"','—')+h('th','style="opacity:.45"','ชื่อ')+h('th','style="opacity:.45"','แผนก')+h('th','style="opacity:.45"','กลุ่ม')+h('th','style="opacity:.45"','HP')+h('th','style="opacity:.45"','Items')
+        ))+
+        h('tbody','',fallen.map(p=>{
+          const d=DEPTS[p.dept]||{};
+          const gname=p.groupId>=0?(names[p.groupId]||('G'+p.groupId)):'—';
+          let pips='';
+          for(let j=0;j<(p.maxHp||0);j++) pips+=h('span','class="pip-s" style="background:var(--brd2);"',"");
+          return h('tr','style="opacity:.35"',
+            h('td','style="font-family:monospace;font-size:.85rem;text-align:center"','💀')+
+            h('td','style="text-decoration:line-through;color:var(--dim)"',p.name+(p.row?' ('+p.row+')':'')+'')+
+            h('td','',h('span','class="dept-tag" style="background:'+d.color+'11;color:'+d.color+'55;border:1px solid '+d.color+'22"',d.icon+' '+p.dept))+
+            h('td','style="font-family:monospace;font-size:.68rem;color:var(--dim)"',gname)+
+            h('td','',h('div','class="hp-mini"',pips)+h('div','style="font-family:monospace;font-size:.6rem;color:var(--red)"','0/'+(p.maxHp||0)))+
+            h('td','style="font-family:monospace;font-size:.8rem;color:var(--dim)"',p.items||0)
+          );
+        }).join(''))
+      )
+    );
+  } else {
+    out += h('div','style="text-align:center;padding:14px;font-family:monospace;font-size:.7rem;color:var(--dim);border:1px dashed rgba(232,64,64,.15);border-radius:9px;margin-bottom:24px"','ยังไม่มีผู้เสียชีวิต 🎉');
+  }
+
 
   // ── EVENT TIMELINE ──
   out += h('div','class="sec-title"','📅 Timeline Event');

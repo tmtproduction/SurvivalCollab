@@ -457,11 +457,17 @@ function renderPlayers(){
 
 // ── GROUPS ──────────────────────────────────────────────────
 function autoAssign(){
-  S.players.forEach(p=>p.groupId=-1);
-  const sh=[...S.players].sort(()=>Math.random()-.5);
+  // รีเซ็ตเฉพาะ alive — คนตายไม่ย้าย
+  S.players.filter(p=>p.alive).forEach(p=>p.groupId=-1);
+  const sh=[...S.players.filter(p=>p.alive)].sort(()=>Math.random()-.5);
   let gi=0;
   sh.forEach(p=>{
-    for(let a=0;a<S.cfg.gc;a++){const c=sh.filter(x=>x.groupId===gi).length;if(c<S.cfg.max){p.groupId=gi;gi=(gi+1)%S.cfg.gc;return;}gi=(gi+1)%S.cfg.gc;}
+    for(let a=0;a<S.cfg.gc;a++){
+      // #5 นับเฉพาะ alive ใน group
+      const c=sh.filter(x=>x.groupId===gi&&x.alive).length;
+      if(c<S.cfg.max){p.groupId=gi;gi=(gi+1)%S.cfg.gc;return;}
+      gi=(gi+1)%S.cfg.gc;
+    }
     p.groupId=gi%S.cfg.gc;gi=(gi+1)%S.cfg.gc;
   });
   toast('✅ Auto-assign เสร็จ');renderGroups();
@@ -474,33 +480,45 @@ function renderGroups(){
     <div class="card cr" style="margin-bottom:10px;padding:10px 12px">
       <div style="font-family:var(--mono);font-size:.58rem;color:var(--red);margin-bottom:6px">⚠ ยังไม่ได้กลุ่ม ${ua.length} คน</div>
       <div style="display:flex;flex-wrap:wrap;gap:4px">
-        ${ua.map(p=>`<span draggable="true" ondragstart="S.dragPid='${p.id}'" style="font-size:.68rem;padding:2px 8px;border-radius:4px;background:var(--sur2);border:1px solid var(--brd2);cursor:grab">${DEPTS[p.dept]?.icon||''} ${p.name}</span>`).join('')}
+        ${ua.map(p=>`<span draggable="${p.alive}" ondragstart="S.dragPid='${p.id}'" style="font-size:.68rem;padding:2px 8px;border-radius:4px;background:var(--sur2);border:1px solid var(--brd2);cursor:${p.alive?'grab':'not-allowed'};opacity:${p.alive?1:.35}">${DEPTS[p.dept]?.icon||''} ${p.name}${!p.alive?' 💀':''}</span>`).join('')}
       </div>
     </div>`:'';
 
   const ev=S.events[S.game.evIdx||0];
   document.getElementById('groups-grid').innerHTML=allG().map(i=>{
-    const name=GN[i]||('G'+(i+1)),members=gMembers(i),pool=gPool(i),cnt=gAlive(i);
+    const name=GN[i]||('G'+(i+1)),members=gMembers(i);
+    const aliveMembers=members.filter(m=>m.alive);
+    const deadMembers=members.filter(m=>!m.alive);
+    const pool=gPool(i),cnt=aliveMembers.length; // #5 ใช้ alive count
     const req=evReq(ev,cnt),hasReq=Object.keys(req).length>0&&ev?.type!=='discard'&&ev?.type!=='regroup';
-    const chips=DK.map(dk=>{const h=pool[dk]||0,n=req[dk]||0,c=hasReq&&n?(h>=n?' ok':' fail'):'';return`<span class="pc${c}">${DEPTS[dk]?.icon||dk}<span class="pcv">${h}</span>${n?`<span style="font-size:.52rem;opacity:.6">/${n}</span>`:''}</span>`;}).join('');
-    const rows=members.map(m=>{const d=DEPTS[m.dept]||{};return`<div class="gm${!m.alive?' dead':''}" draggable="true" ondragstart="S.dragPid='${m.id}'"><span style="display:flex;align-items:center;gap:4px"><span class="dbadge" style="background:${d.color}22;color:${d.color}">${m.dept}</span>${m.name}</span><span style="font-family:var(--mono);font-size:.65rem;color:${d.color}">${m.items}</span></div>`;}).join('');
-    const full=members.length>=S.cfg.max;
+    const chips=DK.map(dk=>{const hv=pool[dk]||0,n=req[dk]||0,c=hasReq&&n?(hv>=n?' ok':' fail'):'';return`<span class="pc${c}">${DEPTS[dk]?.icon||dk}<span class="pcv">${hv}</span>${n?`<span style="font-size:.52rem;opacity:.6">/${n}</span>`:''}</span>`;}).join('');
+    const aliveRows=aliveMembers.map(m=>{const d=DEPTS[m.dept]||{};return`<div class="gm" draggable="true" ondragstart="S.dragPid='${m.id}'"><span style="display:flex;align-items:center;gap:4px"><span class="dbadge" style="background:${d.color}22;color:${d.color}">${m.dept}</span>${m.name}</span><span style="font-family:var(--mono);font-size:.65rem;color:${d.color}">${m.items}</span></div>`;}).join('');
+    // cemetery zone
+    const cemeteryHtml=deadMembers.length?`
+      <div style="border-top:1px dashed rgba(224,62,62,.2);margin-top:5px;padding-top:5px">
+        <div style="font-family:var(--mono);font-size:.5rem;color:rgba(224,62,62,.45);letter-spacing:.08em;margin-bottom:3px">⚰ สุสาน</div>
+        ${deadMembers.map(m=>{const d=DEPTS[m.dept]||{};return`<div class="gm dead" style="cursor:default;opacity:.3"><span style="display:flex;align-items:center;gap:4px"><span class="dbadge" style="background:${d.color}11;color:${d.color}55">${m.dept}</span><span style="text-decoration:line-through">${m.name}</span></span></div>`;}).join('')}
+      </div>`:'';
+    const full=aliveMembers.length>=S.cfg.max; // #5 นับ alive เท่านั้น
     return`<div class="gcard" id="gc-${i}" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="doDrop(event,${i})">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
         <span class="gname">${name}</span>
-        <span style="font-family:var(--mono);font-size:.58rem;color:${full?'var(--red)':'var(--dim)'}">${members.length}/${S.cfg.max}${full?' FULL':''}</span>
-      </div>${rows||'<div style="font-size:.65rem;color:var(--dim);padding:2px 0">ว่าง</div>'}
+        <span style="font-family:var(--mono);font-size:.58rem;color:${full?'var(--red)':'var(--dim)'}">${aliveMembers.length}/${S.cfg.max}${full?' FULL':''}${deadMembers.length?' +'+deadMembers.length+'💀':''}</span>
+      </div>${aliveRows||'<div style="font-size:.65rem;color:var(--dim);padding:2px 0">ว่าง</div>'}
+      ${cemeteryHtml}
       <div class="pchips">${chips}</div>
     </div>`;
   }).join('');
   const el=document.getElementById('assign-stat');
-  if(el)el.textContent=S.players.filter(p=>p.groupId>=0).length+'/'+S.players.length+' คนอยู่ในกลุ่ม';
+  if(el)el.textContent=S.players.filter(p=>p.groupId>=0&&p.alive).length+'/'+S.players.filter(p=>p.alive).length+' คนมีชีวิตอยู่ในกลุ่ม';
 }
 function doDrop(e,gid){
   e.preventDefault();document.getElementById('gc-'+gid)?.classList.remove('dragover');
   if(!S.dragPid)return;
   const p=S.players.find(x=>x.id===S.dragPid);if(!p)return;
-  if(gMembers(gid).length>=S.cfg.max&&p.groupId!==gid){toast('กลุ่มเต็ม!',true);return;}
+  if(!p.alive){toast('💀 คนตายย้ายกลุ่มไม่ได้',true);return;} // #6
+  const aliveInGroup=gMembers(gid).filter(m=>m.alive).length; // #5
+  if(aliveInGroup>=S.cfg.max&&p.groupId!==gid){toast('กลุ่มเต็ม! ('+aliveInGroup+'/'+S.cfg.max+' alive)',true);return;}
   p.groupId=gid;S.dragPid=null;renderGroups();
 }
 
@@ -565,6 +583,56 @@ function renderRunContent(){
       </div>${reqSum?`<div style="display:flex;flex-wrap:wrap;gap:4px">${reqSum}</div>`:''}
       ${ev.type==='headcount_reward'&&ev.conditions?`<div style="margin-top:8px">${ev.conditions.map(c=>`<div style="font-family:var(--mono);font-size:.6rem;color:var(--dim);margin-bottom:2px">• ${c.desc}</div>`).join('')}</div>`:''}
     </div>`;
+
+    // per_group — แสดงสถานะ dept ต่อกลุ่มแบบละเอียด
+    if(ev.type==='per_group'&&g.started){
+      const dmgPer=ev.dmgPerMissType||2,maxMiss=ev.maxMissTypes||3,checkDepts=ev.checkDepts||DK;
+      const perGroupRows=allG().map(gid=>{
+        const pool=gPool(gid),alv=S.players.filter(p=>p.alive&&p.groupId===gid);
+        if(!alv.length)return'';
+        const missing=checkDepts.filter(dk=>!(pool[dk]>0));
+        const dmg=dmgPer*Math.min(missing.length,maxMiss);
+        const pass=missing.length===0;
+        const gn=GN[gid]||('G'+(gid+1));
+        const deptChips=checkDepts.map(dk=>{
+          const have=pool[dk]||0,ok=have>0;
+          return`<span style="font-family:var(--mono);font-size:.58rem;padding:1px 5px;border-radius:3px;background:${ok?'rgba(46,184,114,.1)':'rgba(224,62,62,.1)'};border:1px solid ${ok?'rgba(46,184,114,.3)':'rgba(224,62,62,.3)'};color:${ok?'var(--green)':'var(--red)'}">${DEPTS[dk]?.icon||dk}${have} ${ok?'✓':'✗'}</span>`;
+        }).join('');
+        return`<div style="background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:7px 10px;margin-bottom:4px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <span style="font-family:var(--mono);font-size:.65rem;color:var(--amber);font-weight:600">${gn}</span>
+            <span class="${pass?'rp':'rf'}">${pass?'✓ ผ่าน':'ขาด '+missing.length+' type → -'+dmg+' HP'}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px">${deptChips}</div>
+        </div>`;
+      }).filter(Boolean).join('');
+      if(perGroupRows) html+=`<div style="margin-top:8px">${perGroupRows}</div>`;
+    }
+
+    // headcount_reward — แสดงเงื่อนไขต่อกลุ่มแบบละเอียด
+    if(ev.type==='headcount_reward'&&ev.conditions&&g.started){
+      const condDetail=allG().map(gid=>{
+        const alv=S.players.filter(p=>p.alive&&p.groupId===gid);
+        if(!alv.length)return'';
+        const hc={};DK.forEach(dk=>{hc[dk]=alv.filter(p=>p.dept===dk).length;});
+        const gn=GN[gid]||('G'+(gid+1));
+        const condRows=ev.conditions.map((cond,ci)=>{
+          const pass=Object.entries(cond.reqHeadcount).every(([dk,n])=>(hc[dk]||0)>=n);
+          const rewardTxt=cond.reward?.type==='hp'?`+${cond.reward.amt} HP ทุกคน`:`+${cond.reward.amt} items (${(cond.reward.depts||[]).map(dk=>DEPTS[dk]?.icon||dk).join('')})`;
+          return`<div style="display:flex;align-items:center;gap:6px;padding:2px 0">
+            <span style="font-size:.8rem">${pass?'✅':'❌'}</span>
+            <span style="font-family:var(--mono);font-size:.58rem;color:${pass?'var(--green)':'var(--dim)'};flex:1">${cond.desc.split('→')[0].trim()}</span>
+            ${pass?`<span style="font-family:var(--mono);font-size:.58rem;color:var(--green)">${rewardTxt}</span>`:''}
+          </div>`;
+        }).join('');
+        const anyPass=ev.conditions.some(c=>Object.entries(c.reqHeadcount).every(([dk,n])=>(hc[dk]||0)>=n));
+        return`<div style="background:var(--sur2);border:1px solid ${anyPass?'rgba(46,184,114,.25)':'var(--brd)'};border-radius:6px;padding:8px 10px;margin-bottom:4px">
+          <span style="font-family:var(--mono);font-size:.65rem;color:var(--amber);font-weight:600">${gn}</span>
+          <div style="margin-top:5px">${condRows}</div>
+        </div>`;
+      }).filter(Boolean).join('');
+      if(condDetail) html+=`<div style="margin-top:8px">${condDetail}</div>`;
+    }
   }
 
   // action
@@ -881,7 +949,14 @@ function renderRegroupScreen(el,ev,evIdx){
 function autoAssignRegroup(){
   const alive=S.players.filter(p=>p.alive);alive.forEach(p=>p.groupId=-1);
   const sh=[...alive].sort(()=>Math.random()-.5);let gi=0;
-  sh.forEach(p=>{for(let a=0;a<S.cfg.gc;a++){const c=sh.filter(x=>x.groupId===gi).length;if(c<S.cfg.max){p.groupId=gi;gi=(gi+1)%S.cfg.gc;return;}gi=(gi+1)%S.cfg.gc;}p.groupId=gi%S.cfg.gc;gi=(gi+1)%S.cfg.gc;});
+  sh.forEach(p=>{
+    for(let a=0;a<S.cfg.gc;a++){
+      const c=sh.filter(x=>x.groupId===gi&&x.alive).length; // #5
+      if(c<S.cfg.max){p.groupId=gi;gi=(gi+1)%S.cfg.gc;return;}
+      gi=(gi+1)%S.cfg.gc;
+    }
+    p.groupId=gi%S.cfg.gc;gi=(gi+1)%S.cfg.gc;
+  });
   renderRegroupScreen(document.getElementById('run-content'),S.events[S.game.evIdx],S.game.evIdx);toast('✅ Auto-assign');
 }
 function confirmRegroup(){
@@ -1030,30 +1105,52 @@ function applyDmg(ev,poolMap,logs){
 // ── RESULT ────────────────────────────────────────────────────
 function renderResultScreen(el){
   const alive=S.players.filter(p=>p.alive),dead=S.players.filter(p=>!p.alive);
-  const groups=allG().map(i=>{const m=gMembers(i),al=m.filter(p=>p.alive),pool=gPool(i),tp=DK.reduce((s,d)=>s+(pool[d]||0),0),th=al.reduce((s,p)=>s+p.hp,0);return{id:i,name:GN[i]||('G'+(i+1)),members:m,alive:al,pool,tp,th};}).filter(g=>g.members.length>0).sort((a,b)=>b.alive.length!==a.alive.length?b.alive.length-a.alive.length:b.th!==a.th?b.th-a.th:b.tp-a.tp);
-  const re=r=>r===0?'🥇':r===1?'🥈':r===2?'🥉':('#'+(r+1));
-  const gcards=groups.map((g,r)=>`
-    <div style="background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);padding:12px 14px;display:flex;align-items:center;gap:12px">
-      <div style="font-family:var(--deco);font-size:1.3rem;min-width:34px;text-align:center;line-height:1;color:${r===0?'#f5c842':r===1?'#a0b0c0':r===2?'#cd7f32':'var(--dim)'}">${re(r)}</div>
-      <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
-          <span style="font-family:var(--deco);font-size:.9rem;letter-spacing:.12em;color:var(--amber)">${g.name}</span>
-          <span class="${g.alive.length?'rp':'rf'}">${g.alive.length?'SURVIVED':'ELIMINATED'}</span>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:3px">${g.members.map(m=>`<span style="font-size:.63rem;padding:1px 5px;border-radius:3px;background:var(--sur2);font-family:var(--mono);${!m.alive?'opacity:.25;text-decoration:line-through':''}">${DEPTS[m.dept]?.icon||''} ${m.name}</span>`).join('')}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-family:var(--deco);font-size:1.1rem;color:${g.alive.length?'var(--green)':'var(--red)'}">${g.alive.length}<span style="font-size:.72rem;color:var(--dim)">/${g.members.length}</span></div>
-        <div style="font-family:var(--mono);font-size:.54rem;color:var(--dim)">HP:${g.th} Items:${g.tp}</div>
-      </div>
-    </div>`).join('');
+
+  // survivors sorted by HP then items
+  const survivors=[...alive].sort((a,b)=>b.hp!==a.hp?b.hp-a.hp:b.items-a.items);
+  const fallen=[...dead];
+
+  const survivorRows=survivors.map((p,idx)=>{
+    const d=DEPTS[p.dept]||{},hc=p.hp<=2?'var(--red)':p.hp<=4?'#ff9800':'var(--green)';
+    const gname=GN[p.groupId]||('G'+(p.groupId+1));
+    let pips='';for(let i=0;i<p.maxHp;i++)pips+=`<span style="width:7px;height:7px;border-radius:50%;display:inline-block;background:${i<p.hp?hc:'var(--brd2)'}"></span>`;
+    return`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--brd)">
+      <span style="font-family:var(--mono);font-size:.6rem;color:var(--dim);min-width:22px">#${idx+1}</span>
+      <span style="font-size:.78rem;font-weight:600;flex:1">${p.name}</span>
+      <span style="font-family:var(--mono);font-size:.58rem;padding:1px 5px;border-radius:3px;background:${d.color}22;color:${d.color};border:1px solid ${d.color}44">${d.icon} ${p.dept}</span>
+      <span style="font-family:var(--mono);font-size:.6rem;color:var(--purple)">${gname}</span>
+      <span style="display:flex;gap:2px;align-items:center">${pips}</span>
+      <span style="font-family:var(--mono);font-size:.75rem;color:var(--amber);font-weight:700;min-width:28px;text-align:right">${p.items}</span>
+    </div>`;
+  }).join('');
+
+  const fallenRows=fallen.map(p=>{
+    const d=DEPTS[p.dept]||{};
+    const gname=p.groupId>=0?(GN[p.groupId]||('G'+(p.groupId+1))):'—';
+    return`<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid rgba(30,10,10,.5);opacity:.38">
+      <span style="font-size:.85rem;min-width:22px">💀</span>
+      <span style="font-size:.75rem;text-decoration:line-through;color:var(--dim);flex:1">${p.name}</span>
+      <span style="font-family:var(--mono);font-size:.56rem;padding:1px 5px;border-radius:3px;background:${d.color}11;color:${d.color}55;border:1px solid ${d.color}22">${d.icon} ${p.dept}</span>
+      <span style="font-family:var(--mono);font-size:.6rem;color:var(--dim)">${gname}</span>
+    </div>`;
+  }).join('');
+
   el.innerHTML=`<div class="card cg" style="text-align:center;padding:20px;margin-bottom:10px">
     <div style="font-size:2.5rem;margin-bottom:6px">🏁</div>
     <div style="font-family:var(--deco);font-size:1.5rem;letter-spacing:.15em;color:var(--green);margin-bottom:4px">จบเกม!</div>
     <div style="font-size:.84rem;color:var(--dim)">รอด ${alive.length} / ${S.players.length} คน</div>
   </div>
-  <div class="st">🏅 จัดอันดับกลุ่ม</div>
-  <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">${gcards}</div>
+
+  <div class="st">✅ ผู้รอดชีวิต (${survivors.length} คน)</div>
+  <div style="border:1px solid rgba(61,186,106,.25);border-radius:9px;margin-bottom:12px;overflow:hidden">
+    ${survivorRows||'<div style="padding:14px;text-align:center;font-family:var(--mono);font-size:.7rem;color:var(--dim)">ไม่มีผู้รอด</div>'}
+  </div>
+
+  ${fallen.length?`<div class="st">⚰ สุสาน (${fallen.length} คน)</div>
+  <div style="border:1px dashed rgba(224,62,62,.2);border-radius:9px;margin-bottom:12px;overflow:hidden;background:rgba(20,5,5,.4)">
+    ${fallenRows}
+  </div>`:''}
+
   <div class="st">🤖 AI วิเคราะห์ผลการแข่งขัน</div>
   <div id="ai-box" class="card" style="margin-bottom:10px;min-height:60px">
     <button class="btn btn-p" onclick="runAiAnalysis()" id="ai-btn">✨ วิเคราะห์ด้วย AI</button>
