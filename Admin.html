@@ -172,7 +172,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     </div>
     <div class="tscroll">
       <table class="atable">
-        <thead><tr><th>แผนก</th><th>ชื่อ</th><th>Row</th><th>Items</th><th>HP</th><th>กลุ่ม</th><th>สถานะ</th></tr></thead>
+        <thead><tr><th>แผนก</th><th>ชื่อ</th><th>Row</th><th>Items</th><th>HP</th><th>กลุ่ม</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
         <tbody id="players-body"></tbody>
       </table>
     </div>
@@ -587,7 +587,12 @@ function renderGamePanel() {
         h('button','id="btn-run-ev" class="btn btn-p" onclick="doRunEvent()"','⚡ เปิด Event '+(evIdx+1)+(ev?' '+ev.emoji+' '+ev.name:''))
       )+
       h('div','style="background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:7px 10px"',
-        h('div','style="font-family:monospace;font-size:.52rem;color:var(--dim);margin-bottom:5px"','⏱ TIMER (ตั้งพร้อมกับเปิด Event)')+
+        h('div','style="font-family:monospace;font-size:.52rem;color:var(--dim);margin-bottom:6px;letter-spacing:1px"','⏱ ตั้ง TIMER ก่อนเปิด Event (กด preset → ระบบ start อัตโนมัติ)')+
+        h('div','style="display:flex;gap:5px;align-items:center;margin-bottom:6px;flex-wrap:wrap"',
+          h('input','id="cd-label" placeholder="ชื่อ Timer เช่น ส่ง Items" value="ส่ง Items" '+
+            'style="background:var(--sur);border:1px solid var(--brd2);color:var(--txt);padding:4px 8px;border-radius:4px;font-family:monospace;font-size:.65rem;flex:1;min-width:120px;max-width:180px" oninput=""','')+
+          h('span','style="font-family:monospace;font-size:.55rem;color:var(--dim)"','หรือกดเปิด Event ก่อนแล้วค่อยตั้ง Timer')
+        )+
         h('div','style="display:flex;flex-wrap:wrap;gap:4px"',timerPresets)+
         cdBar
       )
@@ -688,7 +693,7 @@ function renderPlayersPanel() {
   const focusedVal = focused?.value;
 
   if (!playerArr.length) {
-    tbody.innerHTML = h('tr','',h('td','colspan="7" style="text-align:center;padding:16px;font-family:monospace;font-size:.7rem;color:var(--dim)"','ยังไม่มีผู้เล่น'));
+    tbody.innerHTML = h('tr','',h('td','colspan="8" style="text-align:center;padding:16px;font-family:monospace;font-size:.7rem;color:var(--dim)"','ยังไม่มีผู้เล่น'));
     return;
   }
 
@@ -703,7 +708,11 @@ function renderPlayersPanel() {
       h('td','',h('input','class="ain" type="number" min="0" max="999" value="'+(p.items||0)+'" data-pid="'+p.id+'" data-field="items" onblur="adminSetItems(\''+p.id+'\',+this.value)"',''))+
       h('td','',h('input','class="ain" type="number" min="0" max="'+(p.maxHp||8)+'" value="'+(p.hp||0)+'" style="color:'+hc+'" data-pid="'+p.id+'" data-field="hp" onblur="adminSetHP(\''+p.id+'\',+this.value)"',''))+
       h('td','style="font-family:monospace;font-size:.6rem;color:var(--purple)"',g?g.name:'—')+
-      h('td','style="font-family:monospace;font-size:.58rem;color:'+(p.alive?'var(--green)':'var(--red)')+';"',p.alive?'✓ ALIVE':'✗ DEAD')
+      h('td','style="font-family:monospace;font-size:.58rem;color:'+(p.alive?'var(--green)':'var(--red)')+';"',p.alive?'✓ ALIVE':'✗ DEAD')+
+      h('td','',
+        h('button','class="btn btn-r" style="font-size:.55rem;padding:2px 7px" onclick="doDeletePlayer(\''+p.id+'\')"','🗑')+
+        (!p.alive ? '' : h('button','class="btn btn-s" style="font-size:.55rem;padding:2px 7px;margin-left:3px" onclick="doKillPlayer(\''+p.id+'\')"','💀'))
+      )
     );
   }).join('');
 
@@ -1342,6 +1351,25 @@ async function doQuickTimer(sec) {
   toast('⏱ Timer '+Math.floor(sec/60)+'m'+(sec%60?sec%60+'s':'')+' เริ่มแล้ว');
 }
 
+// ── Player Management ──
+async function doDeletePlayer(pid) {
+  const p = S.players[pid];
+  if (!p) return;
+  if (!confirm('ลบ '+p.name+' ('+p.dept+') ออกจากเกมถาวร?')) return;
+  await remove(ref(db,'players/'+pid));
+  await push(ref(db,'game/logs'), {ts:Date.now(),type:'b',msg:'🗑 Admin ลบ '+p.name+' ('+p.dept+')'});
+  toast('🗑 ลบ '+p.name+' แล้ว');
+}
+
+async function doKillPlayer(pid) {
+  const p = S.players[pid];
+  if (!p) return;
+  if (!confirm('ตัด '+p.name+' ออก (HP=0, alive=false)?')) return;
+  await update(ref(db,'players/'+pid), {hp:0, alive:false});
+  await push(ref(db,'game/logs'), {ts:Date.now(),type:'b',msg:'💀 Admin ตัด '+p.name+' ('+p.dept+')'});
+  toast('💀 ตัด '+p.name+' แล้ว');
+}
+
 async function doStartDebrief() {
   if (!confirm('เปิด Debrief? ผู้เล่นจะเห็นหน้า Reflection')) return;
   await update(ref(db,'game/state'), { phase:'debrief' });
@@ -1371,6 +1399,7 @@ window.doRestart=doRestart; window.adminSetHP=adminSetHP; window.adminSetItems=a
 window.saveEvReq=saveEvReq; window.saveEvCfg=saveEvCfg; window.saveGlobalCfg=saveGlobalCfg;
 window.saveEvMult=saveEvMult; window.saveCondHeadcount=saveCondHeadcount; window.saveCondReward=saveCondReward;
 window.renderEvCfgTable=renderEvCfgTable; window.scheduleRender=scheduleRender; window.clearLog=clearLog;
+window.doDeletePlayer=doDeletePlayer; window.doKillPlayer=doKillPlayer;
 window.doStartDebrief=doStartDebrief; window.doStartCountdown=doStartCountdown; window.doStopCountdown=doStopCountdown;
 window.doQuickTimer=doQuickTimer;
 </script>

@@ -290,7 +290,7 @@ function render() {
         h('div','style="display:flex;align-items:center;gap:8px"',
           h('span','style="font-size:1.3rem"', curEv?.emoji||'🎮')+
           h('div','',
-            h('div','style="font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:3px;color:var(--amber)"',
+            h('div','style="font-family:inherit;font-size:.95rem;letter-spacing:3px;color:var(--amber);font-weight:700"',
               'EVENT '+(evIdx+1)+'/'+EV_TOTAL+' — '+(curEv?.name||'รอ'))+
             h('div','style="font-size:.7rem;color:var(--dim);margin-top:1px"', curEv?.desc||'')
           )

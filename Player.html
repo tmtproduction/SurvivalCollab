@@ -186,8 +186,8 @@ body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 .q-text:focus{border-color:var(--amber)}
 .submit-debrief{width:100%;padding:14px;background:var(--amber);color:#000;border:none;border-radius:var(--r);font-family:var(--mono);font-size:.78rem;font-weight:700;cursor:pointer;margin-top:4px;touch-action:manipulation}
 .submit-debrief:disabled{opacity:.4;cursor:not-allowed}
-#ambient-bg{position:fixed;inset:0;z-index:-2;transition:background 1.4s ease}
-#ambient-canvas{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.85}
+#ambient-bg{position:fixed;inset:0;z-index:-2;transition:background 1.2s ease;will-change:background}
+#ambient-canvas{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.9}
 #ambient-overlay{position:fixed;inset:0;z-index:-1;pointer-events:none;transition:background 1.2s ease,opacity .8s}
 @media(prefers-reduced-motion:reduce){
   #ambient-bg,#ambient-overlay{transition:none}
@@ -258,6 +258,12 @@ const saveSession=id=>{try{localStorage.setItem('sv3_pid',id)}catch(e){}};
 const loadSession=()=>{try{return localStorage.getItem('sv3_pid')}catch(e){return null}};
 const clearSession=()=>{try{localStorage.removeItem('sv3_pid')}catch(e){}};
 
+// ── Debrief submitted state — เก็บ per-pid ใน localStorage ──
+// ป้องกัน Firebase re-render reset ปุ่มของคนที่ส่งแล้ว
+const saveDebriefDone=(pid)=>{try{localStorage.setItem('sv3_deb_'+pid,'1')}catch(e){}};
+const loadDebriefDone=(pid)=>{try{return localStorage.getItem('sv3_deb_'+pid)==='1'}catch(e){return false}};
+const clearDebriefDone=(pid)=>{try{localStorage.removeItem('sv3_deb_'+pid)}catch(e){}};
+
 function calcItems(name){
   let t=0;
   for(let i=0;i<name.length;i++){const cp=name.codePointAt(i);if(cp>=0x0E01&&cp<=0x0E2E)t+=2;else if(cp>=0x0E30&&cp<=0x0E4E)t+=1;}
@@ -293,6 +299,26 @@ function getReq(ev,members){
 }
 
 // phase logic
+// ── Countdown HTML helper (ใช้ได้ทุก phase)
+function buildCdHtml(){
+  const cd=S.gs?.countdown;
+  if(!cd?.active||!cd.endsAt) return '';
+  const rem=Math.max(0,Math.ceil((cd.endsAt-Date.now())/1000));
+  const total=cd.totalSec||60;
+  const pct=Math.max(0,Math.min(100,rem/total*100));
+  const urgent=rem<=10;
+  const col=rem<=10?'var(--red)':rem<=20?'#ff9800':'var(--amber)';
+  const mm=String(Math.floor(rem/60)).padStart(2,'0');
+  const ss=String(rem%60).padStart(2,'0');
+  return`<div class="countdown-bar">
+    <div class="countdown-track"><div class="countdown-fill" style="width:${pct}%;background:${col}"></div></div>
+  </div>
+  <div class="countdown-display" style="color:${col}">
+    <span style="font-family:var(--mono);font-size:.58rem;color:var(--dim)">${cd.label||'เวลา'}</span>
+    <span class="cd-num${urgent?' cd-urgent':''}" style="color:${col}">${mm}:${ss}</span>
+  </div>`;
+}
+
 function getPhase(){
   const gs=S.gs||{};
   if(!S.pid)return'login';
@@ -434,7 +460,20 @@ async function doLogin(){
 
 function doLogout(){
   off(ref(db,'game'));off(ref(db,'players'));
-  clearSession();S.pid=null;S.player=null;S.connected=false;render();startListeners();
+  clearSession();
+  S.pid=null;S.player=null;S.connected=false;
+  S.useAmt=0;S.discardAmt=0;S.submitted=false;
+  S.debrief={answers:{},submitted:false};
+  if(S.pid) clearDebriefDone(S.pid); // clear debrief state เมื่อ logout
+  _lastAmbKey=null; // reset ambient
+  _lastEventKey=null;
+  // clear focus เพื่อให้ render ไม่ถูก guard
+  if(document.activeElement) document.activeElement.blur();
+  // reset ambient เป็น lobby
+  document.body.classList.remove('amb-dead','amb-dead-off','amb-flicker','amb-frost','amb-breathe','amb-static');
+  setAmbient('lobby');
+  render();
+  startListeners();
 }
 
 async function doJoinGroup(gid){
@@ -1130,7 +1169,9 @@ function renderDebrief(app){
   document.body.classList.remove('amb-dead');
   document.body.classList.remove('amb-dead-off');
 
-  if(S.debrief.submitted){
+  // ตรวจจาก localStorage (per-pid) แทน S.debrief.submitted
+  // ป้องกัน Firebase re-render reset state ของคนที่ส่งแล้ว
+  if(S.debrief.submitted || loadDebriefDone(S.pid)){
     app.innerHTML=`<div class="debrief-outer" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;text-align:center">
       <div style="font-size:3rem;margin-bottom:10px">🙏</div>
       <div class="debrief-hd">ขอบคุณ!</div>
@@ -1163,7 +1204,8 @@ function renderDebrief(app){
       <span>${m.txt}</span>
     </div>`).join(''):`<div style="font-family:var(--mono);font-size:.65rem;color:var(--dim);padding:6px">ไม่มี moment พิเศษในเกมนี้</div>`;
 
-  app.innerHTML=`<div class="debrief-outer">
+  const _debCd=buildCdHtml();
+  app.innerHTML=`${_debCd}<div class="debrief-outer">
     <div class="debrief-hd">🪞 Reflection</div>
     <div class="debrief-sub">ใช้เวลา 2 นาทีทบทวนสิ่งที่เกิดขึ้น</div>
 
@@ -1233,15 +1275,25 @@ function selectOpt(qid,idx,val){
 }
 
 async function submitDebrief(){
+  // Guard: ป้องกัน double submit (ทั้งจาก click ซ้ำ และ Firebase re-render)
+  if(S.debrief.submitted || loadDebriefDone(S.pid)) return;
+  S.debrief.submitted=true; // set ทันทีก่อน await เพื่อป้องกัน race condition
   const btn=document.getElementById('btn-submit-debrief');
   if(btn){btn.disabled=true;btn.textContent='⏳ กำลังส่ง...';}
   const p=S.player||{};
-  await push(ref(db,'game/debrief'),{
-    ts:Date.now(), pid:S.pid, name:p.name, dept:p.dept,
-    alive:p.alive, groupId:p.groupId,
-    answers:S.debrief.answers
-  });
-  S.debrief.submitted=true;
+  try{
+    await push(ref(db,'game/debrief'),{
+      ts:Date.now(), pid:S.pid, name:p.name, dept:p.dept,
+      alive:p.alive, groupId:p.groupId,
+      answers:S.debrief.answers
+    });
+    saveDebriefDone(S.pid); // บันทึกลง localStorage ป้องกัน re-render reset
+  }catch(e){
+    // ถ้า push ล้มเหลว ให้ reset state เพื่อให้กดใหม่ได้
+    S.debrief.submitted=false;
+    if(btn){btn.disabled=false;btn.textContent='ส่ง Reflection →';}
+    return;
+  }
   render();
 }
 
@@ -1373,10 +1425,11 @@ function getAmbientKey(){
 
 // Particle system
 const _ambCanvas=document.getElementById('ambient-canvas');
-const _ambCtx=_ambCanvas.getContext('2d');
+const _ambCtx=_ambCanvas ? _ambCanvas.getContext('2d') : null;
 let _ambParts=[],_ambKey=null,_ambFrame=null;
 
 function _resizeAmbCanvas(){
+  if(!_ambCanvas) return;
   _ambCanvas.width=window.innerWidth;
   _ambCanvas.height=window.innerHeight;
 }
@@ -1422,6 +1475,7 @@ function _tickParts(scene){
 }
 
 function _drawParts(){
+  if(!_ambCtx||!_ambCanvas) return;
   _ambCtx.clearRect(0,0,_ambCanvas.width,_ambCanvas.height);
   _ambParts.forEach(pt=>{
     const alpha=Math.max(0,pt.life/pt.maxL)*pt.a;
@@ -1459,9 +1513,12 @@ function setAmbient(key){
   _ambKey=key;
   const scene=AMBIENT_SCENES[key]||AMBIENT_SCENES.lobby;
 
-  // Layer 1 — BG color
+  // Layer 1 — BG color (force reflow เพื่อให้ transition kick in)
   const bgEl=document.getElementById('ambient-bg');
-  if(bgEl) bgEl.style.background=scene.bg;
+  if(bgEl){
+    bgEl.style.background=''; // reset ก่อน
+    requestAnimationFrame(()=>{ if(bgEl) bgEl.style.background=scene.bg; });
+  }
 
   // Layer 2 — Overlay
   const ovEl=document.getElementById('ambient-overlay');
