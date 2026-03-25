@@ -378,12 +378,11 @@ function buildGroupStatus() {
   const evPool = gs.eventPool || {}, pending = gs.pendingConfirm;
   S.groupStatus = Array.from({length:gc}, (_,i) => {
     const members = playerArr.filter(p => p.groupId == i);
-    // poolContrib = items ที่ contribute จริงในรอบนี้ (สำหรับแสดงผล)
+    const aliveMembers = members.filter(p => p.alive); // #5 แยก alive
     const poolContrib = pending && evPool[i] ? Object.assign({},evPool[i]) : {};
-    // poolRemain = items คงเหลือ (เดิม)
     const pool = {};
-    members.filter(p => p.alive).forEach(p => { pool[p.dept] = (pool[p.dept]||0) + (p.items||0); });
-    return { id:i, name:names[i]||('G'+(i+1)), count:members.length, max:maxGS, min:minGS, full:members.length>=maxGS, members, pool, poolContrib, pending };
+    aliveMembers.forEach(p => { pool[p.dept] = (pool[p.dept]||0) + (p.items||0); });
+    return { id:i, name:names[i]||('G'+(i+1)), count:members.length, aliveCount:aliveMembers.length, max:maxGS, min:minGS, full:aliveMembers.length>=maxGS, members, pool, poolContrib, pending };
   });
 }
 
@@ -480,7 +479,7 @@ function renderGamePanel() {
       return h('div','style="background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:8px 10px;margin-bottom:5px"',
         h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"',
           h('span','style="font-family:\'Bebas Neue\',sans-serif;letter-spacing:3px;color:var(--amber)"',g.name)+
-          h('span','style="font-family:monospace;font-size:.58rem;color:'+(g.full?'var(--red)':'var(--dim)')+'"',g.count+'/'+g.max+(g.full?' FULL':''))
+          h('span','style="font-family:monospace;font-size:.58rem;color:'+(g.full?'var(--red)':'var(--dim)')+'"',g.aliveCount+'/'+g.max+(g.full?' FULL':''))
         ) + h('div','style="display:flex;flex-wrap:wrap;gap:3px"',tags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
       );
     }).join('');
@@ -571,12 +570,13 @@ function renderRegroupingPanel() {
   const unassigned = alive.filter(p => p.groupId < 0);
 
   const gsHtml = S.groupStatus.map(g => {
-    const tags = g.members.map(m => h('span','style="font-size:.66rem;padding:2px 5px;border-radius:3px;background:var(--sur2);font-family:monospace"',(DEPTS[m.dept]?.icon||'')+' '+m.name)).join('');
+    // แสดงเฉพาะ member ที่มีชีวิต ใน regroup
+    const aliveTags = g.members.filter(m => m.alive).map(m => h('span','style="font-size:.66rem;padding:2px 5px;border-radius:3px;background:var(--sur2);font-family:monospace"',(DEPTS[m.dept]?.icon||'')+' '+m.name)).join('');
     return h('div','style="background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:7px 9px;margin-bottom:4px"',
       h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"',
         h('span','style="font-family:\'Bebas Neue\',sans-serif;letter-spacing:3px;color:var(--purple)"',g.name)+
-        h('span','style="font-family:monospace;font-size:.58rem;color:'+(g.full?'var(--red)':'var(--dim)')+'"',g.count+'/'+g.max+(g.full?' FULL':''))
-      ) + h('div','style="display:flex;flex-wrap:wrap;gap:3px"',tags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
+        h('span','style="font-family:monospace;font-size:.58rem;color:'+(g.full?'var(--red)':'var(--dim)')+'"',g.aliveCount+'/'+g.max+(g.full?' FULL':''))
+      ) + h('div','style="display:flex;flex-wrap:wrap;gap:3px"',aliveTags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
     );
   }).join('');
 
@@ -695,7 +695,9 @@ function renderGroupsPanel() {
     return h('div','class="gcard"',
       h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"',
         h('div','class="gname"',g.name)+
-        h('div','style="font-family:monospace;font-size:.58rem;color:var(--dim);background:var(--sur2);padding:2px 6px;border-radius:10px"',alive.length+'/'+g.members.length+' alive')
+        h('div','style="font-family:monospace;font-size:.58rem;color:var(--dim);background:var(--sur2);padding:2px 6px;border-radius:10px"',
+          g.aliveCount+'/'+g.max+' alive'+(g.members.length>g.aliveCount?' (+'+( g.members.length-g.aliveCount)+' dead)':'')
+        )
       )+poolLabel+h('div','class="pool-row"',poolHtml)+h('div','class="mlist-a"',mHtml)
     );
   }).join('');
@@ -1085,7 +1087,8 @@ async function forceAssign(playerId, groupId) {
   if (groupId < 0) return;
   const gs = S.gs||{};
   const g = S.groupStatus.find(x => x.id == groupId);
-  if (g && g.full) { toast('❌ กลุ่มเต็ม', true); return; }
+  // #5 นับเฉพาะคนมีชีวิต
+  if (g && g.full) { toast('❌ กลุ่มเต็ม ('+g.aliveCount+'/'+g.max+' alive)', true); return; }
   await update(ref(db,'players/'+playerId), {groupId:+groupId});
   const gname = (gs.groupNames||GN)[groupId]||('G'+groupId);
   const p = S.players[playerId];

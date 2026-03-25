@@ -59,16 +59,16 @@ body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 .ca-orange{border-color:rgba(224,107,48,.28);background:rgba(224,107,48,.1)}
 
 /* stepper */
-.stepper-wrap{background:var(--sur2);border:1px solid var(--brd2);border-radius:var(--rl);padding:16px 14px}
+.stepper-wrap{background:var(--sur2);border:1px solid var(--brd2);border-radius:var(--rl);padding:16px 14px;touch-action:manipulation}
 .step-lbl{font-family:var(--mono);font-size:.58rem;color:var(--dim);text-align:center;margin-bottom:12px;letter-spacing:.1em}
 .step-row{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:4px}
-.step-btn{width:52px;height:52px;border-radius:50%;border:1px solid var(--brd2);background:var(--sur);color:var(--txt);font-size:1.7rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.1s;user-select:none;-webkit-user-select:none}
+.step-btn{width:60px;height:60px;border-radius:50%;border:1px solid var(--brd2);background:var(--sur);color:var(--txt);font-size:1.9rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.1s;user-select:none;-webkit-user-select:none;touch-action:manipulation;-webkit-touch-callout:none}
 .step-btn:active{background:var(--amber);border-color:var(--amber);color:#000;transform:scale(.91)}
 .step-num{font-family:var(--deco);font-size:3.2rem;color:var(--amber);min-width:72px;text-align:center;line-height:1}
 .step-max{font-family:var(--mono);font-size:.58rem;color:var(--dim);text-align:center;margin-top:4px}
 
 /* big buttons */
-.btn-big{width:100%;padding:15px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--mono);font-size:.8rem;font-weight:600;letter-spacing:.06em;transition:.12s}
+.btn-big{width:100%;padding:15px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--mono);font-size:.8rem;font-weight:600;letter-spacing:.06em;transition:.12s;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .btn-big:active:not(:disabled){transform:scale(.97)}
 .btn-big:disabled{opacity:.32;cursor:not-allowed}
 .btn-amber{background:var(--amber);color:#000}
@@ -192,7 +192,7 @@ const EVENTS=[
 const EV_TOTAL=EVENTS.length;
 
 // STATE
-const S={pid:null,player:null,gs:null,players:{},logs:[],groups:[],connected:false,useAmt:0,discardAmt:0,logOpen:false,err:'',loading:false};
+const S={pid:null,player:null,gs:null,players:{},logs:[],groups:[],connected:false,useAmt:0,discardAmt:0,logOpen:false,err:'',loading:false,submitting:false,submitted:false};
 
 // SESSION
 const saveSession=id=>{try{localStorage.setItem('sv3_pid',id)}catch(e){}};
@@ -216,7 +216,7 @@ function buildGroups(){
     }else{
       members.filter(p=>p.alive).forEach(p=>{pool[p.dept]=(pool[p.dept]||0)+(p.items||0);});
     }
-    return{id:i,name:names[i]||('G'+(i+1)),members,pool,full:members.length>=(gs.maxGroupSize||7),max:gs.maxGroupSize||7};
+    return{id:i,name:names[i]||('G'+(i+1)),members,pool,full:members.filter(p=>p.alive).length>=(gs.maxGroupSize||7),max:gs.maxGroupSize||7};
   });
 }
 
@@ -260,7 +260,7 @@ function startListeners(){
     const d=snap.val()||{};
     S.gs=d.state||null;
     S.logs=d.logs?Object.values(d.logs).sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-40):[];
-    if(!S.gs?.pendingConfirm){S.useAmt=0;S.discardAmt=0;}
+    if(!S.gs?.pendingConfirm){S.useAmt=0;S.discardAmt=0;S.submitted=false;} // #3 reset submitted เมื่อ event จบ
     buildGroups();render();
   });
   onValue(ref(db,'players'),snap=>{
@@ -298,21 +298,24 @@ function doLogout(){
 }
 
 async function doJoinGroup(gid){
-  if(!S.pid)return;
+  if(!S.pid) return;
+  if(!S.player?.alive) return; // #6 คนตายเลือกกลุ่มไม่ได้
   const g=S.groups.find(x=>x.id==gid);
-  if(g?.full&&g.id!==S.player?.groupId)return;
+  const aliveInGroup = g?.members?.filter(p=>p.alive).length||0;
+  if(aliveInGroup>=(g?.max||7)&&g?.id!==S.player?.groupId) return; // #5 นับเฉพาะคนมีชีวิต
   await update(ref(db,'players/'+S.pid),{groupId:gid});
   const gname=(S.gs?.groupNames||GN)[gid]||('G'+gid);
   await push(ref(db,'game/logs'),{ts:Date.now(),type:'i',msg:S.player.name+' เข้าร่วมกลุ่ม '+gname});
 }
 
 async function doUseItems(){
-  if(S.useAmt<=0||!S.player)return;
+  if(S.useAmt<=0||!S.player) return;
+  if(S.submitting) return; // #4 ป้องกัน double submit
+  S.submitting=true;
   const btn=document.getElementById('btn-use');
   if(btn){btn.disabled=true;btn.textContent='⏳ กำลังส่ง...';}
   const ni=Math.max(0,(S.player.items||0)-S.useAmt);
   const gid=S.player.groupId, dept=S.player.dept;
-  // อัปเดต 2 จุดพร้อมกัน: ลด items ของ player + เพิ่ม eventPool ของกลุ่ม
   const writes={['players/'+S.pid+'/items']:ni};
   if(gid>=0){
     const cur=(S.gs?.eventPool?.[gid]?.[dept])||0;
@@ -322,17 +325,25 @@ async function doUseItems(){
   await push(ref(db,'game/logs'),{ts:Date.now(),type:'g',
     msg:S.player.name+' ใช้ '+S.useAmt+' '+(DEPTS[dept]?.icon||'')+' → กลุ่มได้รับ '+((S.gs?.eventPool?.[gid]?.[dept]||0)+S.useAmt)});
   S.useAmt=0;
+  S.submitted=true; // #3 แสดง "ส่งแล้ว" ทันที ไม่รอ Firebase
+  S.submitting=false;
+  render();
 }
 
 async function doDiscardItems(){
-  if(S.discardAmt<=0||!S.player)return;
-  if(!confirm('ทิ้ง '+S.discardAmt+' ชิ้นถาวร?'))return;
+  if(S.discardAmt<=0||!S.player) return;
+  if(S.submitting) return; // ป้องกัน double submit
+  if(!confirm('ทิ้ง '+S.discardAmt+' ชิ้นถาวร?')) return;
+  S.submitting=true;
   const btn=document.getElementById('btn-disc');
   if(btn){btn.disabled=true;btn.textContent='⏳ กำลังส่ง...';}
   const ni=Math.max(0,(S.player.items||0)-S.discardAmt);
   await update(ref(db,'players/'+S.pid),{items:ni});
   await push(ref(db,'game/logs'),{ts:Date.now(),type:'w',msg:S.player.name+' ทิ้ง '+S.discardAmt+' ชิ้น'});
   S.discardAmt=0;
+  S.submitted=true;
+  S.submitting=false;
+  render();
 }
 
 function stepUse(d){
@@ -369,7 +380,13 @@ function updatePreview(){
 function render(){
   const app=document.getElementById('app');if(!app)return;
   const phase=getPhase();
-  if(phase==='login'){renderLogin(app);return;}
+  if(phase==='login'){
+    // #1 ถ้า user กำลังพิมพ์อยู่ใน form ให้ skip re-render
+    const active=document.activeElement;
+    const inLoginForm=active&&['inp-name','inp-dept','inp-row'].includes(active.id);
+    if(inLoginForm) return;
+    renderLogin(app);return;
+  }
   if(phase==='result'){renderResult(app);return;}
   renderShell(app,phase);
 }
@@ -447,7 +464,13 @@ function renderShell(app,phase){
         <div class="sb-lbl" style="margin-top:3px">${p.hp||0}/${p.maxHp||0} HP</div>
       </div>
       <div class="sb-div"></div>
-      <div class="sb-item"><div class="sb-val">${p.items||0}</div><div class="sb-lbl">ITEMS</div></div>
+      <div class="sb-item">
+        <div class="sb-val" style="display:flex;align-items:center;gap:3px;font-size:1rem">
+          <span style="font-size:.95rem">${DEPTS[p.dept]?.icon||''}</span>
+          <span style="font-family:var(--deco);font-size:1.25rem">${p.items||0}</span>
+        </div>
+        <div class="sb-lbl">${DEPTS[p.dept]?.item||'ITEMS'}</div>
+      </div>
       <div class="sb-div"></div>
       <div class="sb-item"><div class="sb-val">${alive}</div><div class="sb-lbl">ALIVE</div></div>
       <div class="sb-div"></div>
@@ -608,15 +631,42 @@ function renderWait(ev,evIdx,mg){
 }
 
 function renderAction(ev,evIdx,mg,p,d){
-  if(!(p.items>0)){
+  // #2 เช็คว่า dept ของผู้เล่นเกี่ยวข้องกับ event นี้ไหม
+  const req=getReq(ev,mg?.members);
+  const hasReq=Object.keys(req).length>0;
+  const isRelevant=!hasReq||(p.dept in req);
+
+  if(!isRelevant){
+    return`
+    ${evCard(ev,evIdx,mg)}
+    <div class="done-box" style="background:var(--sur2);border-color:var(--brd2)">
+      <div style="font-size:1.6rem;margin-bottom:6px">${d.icon}</div>
+      <div class="done-title" style="color:var(--dim)">ไม่ต้องส่งรอบนี้</div>
+      <div class="done-sub">${d.item} ไม่ใช่ items ที่ต้องการ<br>คอยดูผลได้เลย</div>
+    </div>
+    ${groupInfo(mg,ev)}`;
+  }
+
+  // #3 แสดง submitted state ทันทีหลังกด submit
+  if(S.submitted||!(p.items>0)){
     return`<div class="done-box"><div style="font-size:1.8rem;margin-bottom:6px">✅</div>
       <div class="done-title">ส่ง Items แล้ว</div>
       <div class="done-sub">รอผู้อื่นในกลุ่ม<br>แล้ว Admin จะ Confirm</div>
     </div>${evCard(ev,evIdx,mg)}${groupInfo(mg,ev)}`;
   }
+
+  // #8 แสดงชื่อ item ชัดเจน
+  const needAmt=req[p.dept]||0;
+  const needHint=needAmt?`<div style="font-family:var(--mono);font-size:.62rem;color:var(--amber);margin-top:3px">ต้องส่งรวมกลุ่ม: ${needAmt} ชิ้น</div>`:'';
+
   return`
   ${evCard(ev,evIdx,mg)}
   <div class="stepper-wrap pulse-amber">
+    <div style="text-align:center;margin-bottom:10px">
+      <div style="font-size:1.5rem;line-height:1;margin-bottom:3px">${d.icon}</div>
+      <div style="font-family:var(--mono);font-size:.75rem;color:var(--txt);font-weight:600">${d.item}</div>
+      ${needHint}
+    </div>
     <div class="step-lbl">ใช้กี่ชิ้น? &nbsp;(มี ${p.items} ชิ้น)</div>
     <div class="step-row">
       <button class="step-btn" onclick="stepUse(-1)">−</button>
