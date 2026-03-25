@@ -742,7 +742,30 @@ function renderGamePanel() {
       h('div','class="confirm-box-title"','⚡ Event เปิดอยู่ — รอผู้เล่นส่ง Items')+
       h('div','style="margin-bottom:8px"',cdDisplay2)+
       h('div','style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px"',timerPresets2)+
-      h('button','id="btn-conf-ev" class="btn btn-p" style="width:100%" onclick="doConfirmEvent()"','✅ Confirm → Apply Damage & Next Event')
+      (()=>{
+        // discard: แสดงสถานะแต่ละกลุ่ม + block ถ้ายังเกิน
+        if (ev?.type === 'discard') {
+          const cap2 = ev.poolCap || poolCap;
+          const groupStatusRows = S.groupStatus.map(g => {
+            const total2 = Object.values(g.pool||{}).reduce((s,v)=>s+v,0);
+            const ok = total2 <= cap2;
+            const over = total2 - cap2;
+            return h('div','style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;border-radius:5px;margin-bottom:3px;background:'+(ok?'rgba(61,186,106,.07)':'rgba(232,64,64,.09)')+'"',
+              h('span','style="font-family:monospace;font-size:.62rem;color:var(--amber)"',g.name)+
+              h('span','style="font-family:monospace;font-size:.68rem;font-weight:700;color:'+(ok?'var(--green)':'var(--red)')+'"',
+                total2+'/'+cap2+(ok?' ✓':' เกิน '+over))
+            );
+          }).filter((_,i)=>S.groupStatus[i]?.members?.some(m=>m.alive)).join('');
+          const allOk = S.groupStatus.every(g => {
+            if (!g.members?.some(m=>m.alive)) return true;
+            return Object.values(g.pool||{}).reduce((s,v)=>s+v,0) <= cap2;
+          });
+          return groupStatusRows +
+            h('button','id="btn-conf-ev" class="btn '+(allOk?'btn-p':'btn-s')+'" style="width:100%;margin-top:6px" onclick="doConfirmEvent()" '+(allOk?'':'disabled title="ยังมีกลุ่มถือของเกิน '+cap2+' ชิ้น"'),
+              allOk ? '✅ ทุกกลุ่มพร้อม → Next Event' : '⛔ รอผู้เล่นทิ้งให้ครบก่อน');
+        }
+        return h('button','id="btn-conf-ev" class="btn btn-p" style="width:100%" onclick="doConfirmEvent()"','✅ Confirm → Apply Damage & Next Event');
+      })()
     );
   }
 
@@ -1381,28 +1404,7 @@ async function doRunEvent() {
     return;
   }
 
-  if (ev.type === 'discard') {
-    const cap = ev.poolCap||poolCap;
-    const updates = {};
-    const groupIds = [...new Set(playerArr.filter(p=>p.alive).map(p=>p.groupId))].filter(id=>id>=0);
-    for (const gid of groupIds) {
-      const members = playerArr.filter(p => p.alive && p.groupId==gid);
-      const total = members.reduce((s,m)=>s+(m.items||0),0);
-      if (total > cap) {
-        let excess = total - cap;
-        const sorted = [...members].sort((a,b)=>(b.items||0)-(a.items||0));
-        for (const m of sorted) {
-          if (excess <= 0) break;
-          const cut = Math.min(excess, m.items||0);
-          updates['players/'+m.id+'/items'] = (m.items||0) - cut;
-          excess -= cut;
-          updates['game/logs/'+Date.now()+'_'+m.id] = {ts:Date.now(),type:'w',msg:m.name+' [auto-discard] ทิ้ง '+cut+' ชิ้น'};
-        }
-      }
-    }
-    if (Object.keys(updates).length) await update(ref(db), updates);
-  }
-
+  // *** discard event: ไม่ตัดอัตโนมัติ — ผู้เล่นต้องทิ้งเอง ***
   // รีเซ็ต eventPool ทุกครั้งที่เปิด event ใหม่
   await update(ref(db,'game/state'), {pendingConfirm:true, pendingEventId:ev.id, eventPool:{}});
   await push(ref(db,'game/logs'), {ts:Date.now(),type:'w',msg:'Event '+ev.id+': '+ev.emoji+' '+ev.name+' — รอผู้เล่นใช้ Items'});
@@ -1416,6 +1418,30 @@ async function doConfirmEvent() {
   const ev = getEffectiveEvent(evIdx);
   const playerArr = Object.values(S.players);
   const poolCap = (gs.globalConfig?.poolCap)||55;
+
+  // ── Guard: discard event — ต้องให้ผู้เล่นทิ้งเองจนไม่มีกลุ่มไหนเกิน cap ──
+  if (ev?.type === 'discard') {
+    const cap = ev.poolCap || poolCap;
+    const overGroups = [];
+    const gc = gs.groupCount||8;
+    const names = gs.groupNames||GN;
+    for (let gid=0; gid<gc; gid++) {
+      const members = playerArr.filter(p => p.alive && p.groupId==gid);
+      if (!members.length) continue;
+      const total = members.reduce((s,m)=>s+(m.items||0),0);
+      if (total > cap) {
+        overGroups.push({ name: names[gid]||('G'+(gid+1)), total, over: total-cap });
+      }
+    }
+    if (overGroups.length > 0) {
+      const detail = overGroups.map(g=>`${g.name}: ${g.total} ชิ้น (เกิน ${g.over})`).join('
+');
+      toast('❌ ยังมีกลุ่มถือของเกิน '+cap+' ชิ้น!
+'+detail, true);
+      setBtn('btn-conf-ev', null, false);
+      return;
+    }
+  }
 
   // ใช้ eventPool = items ที่ player ส่งมาจริงๆ ไม่ใช่ items คงเหลือ
   const evPool = gs.eventPool || {};

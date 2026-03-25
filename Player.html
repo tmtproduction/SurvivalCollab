@@ -111,7 +111,7 @@ body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 
 /* log */
 .log-toggle{background:none;border:none;width:100%;padding:6px 0;font-family:var(--mono);font-size:.58rem;color:var(--dim);display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer;letter-spacing:.1em}
-.logbox{background:var(--sur2);border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px;max-height:160px;overflow-y:auto;font-family:var(--mono);font-size:.62rem;line-height:2;display:none}
+.logbox{background:var(--sur2);border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px;max-height:220px;overflow-y:auto;font-family:var(--mono);font-size:.62rem;line-height:1.9;display:none}
 .logbox.open{display:block}
 .le{border-bottom:1px solid var(--brd);padding:1px 0}.le:last-child{border:none}
 .lg{color:var(--green)}.lb{color:var(--red)}.lw{color:var(--amber)}.li{color:var(--dim)}.lp{color:var(--purple)}
@@ -390,7 +390,7 @@ function startListeners(){
   onValue(ref(db,'game'),snap=>{
     const d=snap.val()||{};
     S.gs=d.state||null;
-    S.logs=d.logs?Object.values(d.logs).sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-40):[];
+    S.logs=d.logs?Object.values(d.logs).sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-80):[];
     if(!S.gs?.pendingConfirm){S.useAmt=0;S.discardAmt=0;S.submitted=false;}
 
     // ── Sound: detect event เปิด (pendingConfirm เปลี่ยนเป็น true)
@@ -649,7 +649,10 @@ function renderShell(app,phase){
     else if(i===evIdx)c+=(t==='regroup'?' cur-rg':t==='discard'?' cur-dc':' cur');
     return`<div class="${c}"></div>`;
   }).join('');
-  const logHtml=S.logs.length?[...S.logs].reverse().slice(0,30).map(l=>`<div class="le l${l.type||'i'}">&gt; ${l.msg}</div>`).join(''):`<div class="le li">// รอเหตุการณ์แรก...</div>`;
+  const logHtml=S.logs.length?[...S.logs].reverse().slice(0,50).map(l=>{
+    const icon=l.type==='g'?'📦':l.type==='b'?'💀':l.type==='w'?'⚠️':l.type==='p'?'🔔':'›';
+    return`<div class="le l${l.type||'i'}">${icon} ${l.msg}</div>`;
+  }).join(''):`<div class="le li">// รอเหตุการณ์แรก...</div>`;
 
   // countdown timer
   const cd=S.gs?.countdown;
@@ -1365,7 +1368,10 @@ function groupInfo(mg,ev){
         <span class="dbadge" style="background:${md.color}22;color:${md.color};border:1px solid ${md.color}44">${m.dept}</span>
         ${m.name}${me?'<span style="font-size:.7rem;color:var(--amber);margin-left:4px">← ฉัน</span>':''}
       </span>
-      <span style="font-family:var(--mono);font-size:.75rem;font-weight:600;color:var(--txt);background:var(--sur);border:1px solid var(--brd2);border-radius:4px;padding:1px 7px;min-width:28px;text-align:center">${S.players[m.id]?.items??m.items??0}</span>
+      <span style="display:flex;align-items:center;gap:3px">
+        <span style="font-size:.7rem;opacity:.7">${DEPTS[m.dept]?.icon||''}</span>
+        <span style="font-family:var(--mono);font-size:.8rem;font-weight:700;color:${me?'var(--amber)':'var(--txt)'}">${(S.players[m.id]||m).items??0}</span>
+      </span>
     </div>`;
   }).join('');
 
