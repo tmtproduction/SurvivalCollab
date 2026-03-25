@@ -310,22 +310,24 @@ async function doJoinGroup(gid){
 
 async function doUseItems(){
   if(S.useAmt<=0||!S.player) return;
-  if(S.submitting) return; // #4 ป้องกัน double submit
+  if(S.submitting) return;
   S.submitting=true;
   const btn=document.getElementById('btn-use');
   if(btn){btn.disabled=true;btn.textContent='⏳ กำลังส่ง...';}
   const ni=Math.max(0,(S.player.items||0)-S.useAmt);
   const gid=S.player.groupId, dept=S.player.dept;
+  // #2 capture ค่าก่อน await เพื่อป้องกัน race condition กับ onValue
+  const cur=(S.gs?.eventPool?.[gid]?.[dept])||0;
+  const newTotal=cur+S.useAmt;
   const writes={['players/'+S.pid+'/items']:ni};
   if(gid>=0){
-    const cur=(S.gs?.eventPool?.[gid]?.[dept])||0;
-    writes['game/state/eventPool/'+gid+'/'+dept]=cur+S.useAmt;
+    writes['game/state/eventPool/'+gid+'/'+dept]=newTotal;
   }
   await update(ref(db),writes);
   await push(ref(db,'game/logs'),{ts:Date.now(),type:'g',
-    msg:S.player.name+' ใช้ '+S.useAmt+' '+(DEPTS[dept]?.icon||'')+' → กลุ่มได้รับ '+((S.gs?.eventPool?.[gid]?.[dept]||0)+S.useAmt)});
+    msg:S.player.name+' ใช้ '+S.useAmt+' '+(DEPTS[dept]?.icon||'')+' → กลุ่มรวม '+newTotal+' ชิ้น'});
   S.useAmt=0;
-  S.submitted=true; // #3 แสดง "ส่งแล้ว" ทันที ไม่รอ Firebase
+  S.submitted=true;
   S.submitting=false;
   render();
 }
@@ -619,6 +621,10 @@ function renderRegroup(mg){
 }
 
 function renderWait(ev,evIdx,mg){
+  // headcount_reward — แสดงรายละเอียดเงื่อนไขและ reward ที่จะได้
+  if(ev?.type==='headcount_reward'){
+    return renderHeadcountInfo(ev,evIdx,mg);
+  }
   return`
   <div class="card">
     <div style="text-align:center;padding:14px 0 8px">
@@ -630,13 +636,142 @@ function renderWait(ev,evIdx,mg){
   ${evCard(ev,evIdx,mg)}${groupInfo(mg,ev)}`;
 }
 
+function renderHeadcountInfo(ev,evIdx,mg){
+  const p=S.player||{};
+  // ดึง conditions จาก eventConfig (Firebase) หรือใช้ default จาก EVENTS
+  const cfgConds=S.gs?.eventConfig?.[ev.id]?.conditions;
+  const conditions=cfgConds||ev.conditions||[];
+
+  // นับจำนวนคน dept ในกลุ่มของ player (เฉพาะ alive)
+  const aliveInGroup=mg?mg.members.filter(m=>S.players[m.id]?.alive||m.alive):[];
+  const headcount={};
+  DK.forEach(dk=>{ headcount[dk]=aliveInGroup.filter(m=>m.dept===dk).length; });
+
+  // สร้าง card ต่อ condition
+  const condCards=conditions.map((cond,ci)=>{
+    const req=cond.reqHeadcount||{};
+    const pass=Object.entries(req).every(([dk,n])=>(headcount[dk]||0)>=n);
+    const reward=cond.reward||{};
+
+    // reward description
+    let rewardHtml='';
+    if(reward.type==='hp'){
+      rewardHtml=`<div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding:8px 10px;background:rgba(46,184,114,.08);border:1px solid var(--green-brd);border-radius:8px">
+        <span style="font-size:1.1rem">💚</span>
+        <span style="font-family:var(--mono);font-size:.7rem;color:var(--green)">ทุกคนในกลุ่มได้ <b>+${reward.amt} HP</b></span>
+      </div>`;
+    } else if(reward.type==='items'){
+      const deptIcons=(reward.depts||[]).map(dk=>`<span style="color:${DEPTS[dk]?.color}">${DEPTS[dk]?.icon} ${dk}</span>`).join(' ');
+      const myDept=p.dept;
+      const isBeneficiary=(reward.depts||[]).includes(myDept);
+      rewardHtml=`<div style="margin-top:8px;padding:8px 10px;background:rgba(46,184,114,.08);border:1px solid var(--green-brd);border-radius:8px">
+        <div style="font-family:var(--mono);font-size:.65rem;color:var(--green);margin-bottom:4px">📦 ได้รับ +${reward.amt} items</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;font-family:var(--mono);font-size:.65rem">${deptIcons}</div>
+        ${isBeneficiary?`<div style="margin-top:5px;font-family:var(--mono);font-size:.62rem;color:var(--amber)">★ คุณอยู่ใน dept ที่ได้รับ!</div>`:''}
+      </div>`;
+    }
+
+    // headcount requirement rows
+    const reqRows=Object.entries(req).map(([dk,need])=>{
+      const have=headcount[dk]||0;
+      const ok=have>=need;
+      const isMe=dk===p.dept;
+      return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:${ok?'rgba(46,184,114,.06)':'rgba(224,62,62,.06)'};margin-bottom:3px">
+        <span style="font-size:.95rem">${DEPTS[dk]?.icon||dk}</span>
+        <span style="font-family:var(--mono);font-size:.68rem;color:${DEPTS[dk]?.color};flex:1">${dk}${isMe?' ← คุณ':''}</span>
+        <span style="font-family:var(--deco);font-size:1.1rem;color:${ok?'var(--green)':'var(--red)'}">${have}</span>
+        <span style="font-family:var(--mono);font-size:.6rem;color:var(--dim)">/ ${need} คน</span>
+        <span style="font-size:.9rem">${ok?'✓':'✗'}</span>
+      </div>`;
+    }).join('');
+
+    const borderCol=pass?'var(--green-brd)':'var(--brd2)';
+    const bgCol=pass?'rgba(46,184,114,.05)':'var(--sur2)';
+    const statusBadge=pass
+      ?`<span style="font-family:var(--mono);font-size:.6rem;padding:2px 8px;border-radius:10px;background:rgba(46,184,114,.15);color:var(--green);border:1px solid var(--green-brd)">✓ ผ่าน</span>`
+      :`<span style="font-family:var(--mono);font-size:.6rem;padding:2px 8px;border-radius:10px;background:var(--red-dim);color:var(--red);border:1px solid var(--red-brd)">✗ ไม่ผ่าน</span>`;
+
+    return`<div style="border:1px solid ${borderCol};background:${bgCol};border-radius:var(--rl);padding:12px 14px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-family:var(--mono);font-size:.58rem;color:var(--dim)">เงื่อนไข ${ci+1}</span>
+        ${statusBadge}
+      </div>
+      <div style="font-family:var(--mono);font-size:.6rem;color:var(--dim);margin-bottom:8px">ต้องมีใน${mg?'กลุ่ม '+mg.name:'กลุ่ม'}</div>
+      ${reqRows}
+      ${rewardHtml}
+    </div>`;
+  }).join('');
+
+  // สรุปผล — ผ่านกี่เงื่อนไข
+  const passCount=conditions.filter(cond=>{
+    const req=cond.reqHeadcount||{};
+    return Object.entries(req).every(([dk,n])=>(headcount[dk]||0)>=n);
+  }).length;
+
+  const summaryCol=passCount===conditions.length?'var(--green)':passCount>0?'var(--amber)':'var(--red)';
+  const summaryText=passCount===0?'ไม่ผ่านเงื่อนไขใดเลย':
+    passCount===conditions.length?'ผ่านทุกเงื่อนไข! 🎉':
+    `ผ่าน ${passCount}/${conditions.length} เงื่อนไข`;
+
+  // headcount summary bar
+  const headcountBar=DK.map(dk=>{
+    const cnt=headcount[dk]||0;
+    if(!cnt) return'';
+    const isMe=dk===p.dept;
+    return`<div style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:.6rem">
+      <span>${DEPTS[dk]?.icon}</span>
+      <span style="color:${isMe?'var(--amber)':'var(--dim)'}">${cnt}</span>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  return`
+  <div class="card ca-amber" style="padding:14px 16px">
+    <div style="font-family:var(--mono);font-size:.56rem;color:var(--dim);margin-bottom:4px">EVENT ${evIdx+1} / ${EV_TOTAL}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <span style="font-size:1.7rem;line-height:1">${ev.emoji}</span>
+      <div>
+        <div style="font-family:var(--deco);font-size:1.3rem;letter-spacing:.06em;color:var(--amber)">${ev.name}</div>
+        <div style="font-size:.78rem;color:var(--dim);margin-top:1px">ระบบตรวจอัตโนมัติ ไม่ต้องใช้ Items</div>
+      </div>
+    </div>
+    <div style="background:var(--sur2);border-radius:8px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+      <span style="font-family:var(--mono);font-size:.56rem;color:var(--dim)">คนในกลุ่มตอนนี้</span>
+      ${headcountBar}
+    </div>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:.6rem;color:var(--dim);margin:4px 2px 8px">เงื่อนไขสะสม — ผ่านได้หลายข้อพร้อมกัน</div>
+  ${condCards}
+
+  <div style="background:var(--sur2);border:1px solid ${summaryCol}44;border-radius:var(--r);padding:12px 14px;text-align:center;margin-bottom:4px">
+    <div style="font-family:var(--deco);font-size:1rem;letter-spacing:.08em;color:${summaryCol};margin-bottom:2px">${summaryText}</div>
+    <div style="font-family:var(--mono);font-size:.62rem;color:var(--dim)">ระบบจะให้รางวัลทันทีโดย Admin</div>
+  </div>
+  ${groupInfo(mg,ev)}`;
+}
+
 function renderAction(ev,evIdx,mg,p,d){
-  // #2 เช็คว่า dept ของผู้เล่นเกี่ยวข้องกับ event นี้ไหม
   const req=getReq(ev,mg?.members);
   const hasReq=Object.keys(req).length>0;
   const isRelevant=!hasReq||(p.dept in req);
 
   if(!isRelevant){
+    // คำนวณ progress ของกลุ่มจาก eventPool
+    const evPool=S.gs?.eventPool||{};
+    const gid=p.groupId;
+    const groupPool=evPool[gid]||{};
+    const groupProgressHtml=hasReq?Object.entries(req).map(([dk,need])=>{
+      const have=groupPool[dk]||0;
+      const pct=need>0?Math.min(100,Math.round(have/need*100)):100;
+      const col=have>=need?'var(--green)':'var(--amber)';
+      return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-family:var(--mono);font-size:.6rem;color:${DEPTS[dk]?.color};min-width:28px">${DEPTS[dk]?.icon} ${dk}</span>
+        <div style="flex:1;height:6px;background:var(--brd2);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width .3s"></div>
+        </div>
+        <span style="font-family:var(--mono);font-size:.7rem;font-weight:600;color:${col};min-width:40px;text-align:right">${have}/${need}</span>
+      </div>`;
+    }).join(''):'';
     return`
     ${evCard(ev,evIdx,mg)}
     <div class="done-box" style="background:var(--sur2);border-color:var(--brd2)">
@@ -644,30 +779,63 @@ function renderAction(ev,evIdx,mg,p,d){
       <div class="done-title" style="color:var(--dim)">ไม่ต้องส่งรอบนี้</div>
       <div class="done-sub">${d.item} ไม่ใช่ items ที่ต้องการ<br>คอยดูผลได้เลย</div>
     </div>
+    ${groupProgressHtml?`<div class="card" style="padding:12px 14px">
+      <div style="font-family:var(--mono);font-size:.58rem;color:var(--dim);margin-bottom:8px">📊 ความคืบหน้ากลุ่ม</div>
+      ${groupProgressHtml}
+    </div>`:''}
     ${groupInfo(mg,ev)}`;
   }
 
-  // #3 แสดง submitted state ทันทีหลังกด submit
+  // คำนวณ group progress จาก eventPool (live)
+  const evPool=S.gs?.eventPool||{};
+  const gid=p.groupId;
+  const groupPool=evPool[gid]||{};
+  const needAmt=req[p.dept]||0;
+  const haveAmt=groupPool[p.dept]||0; // items ที่กลุ่มส่งแล้ว (dept นี้)
+  const pct=needAmt>0?Math.min(100,Math.round(haveAmt/needAmt*100)):0;
+  const progressCol=haveAmt>=needAmt?'var(--green)':'var(--amber)';
+  const progressDone=needAmt>0&&haveAmt>=needAmt;
+
+  // group progress bar
+  const groupProgressCard=needAmt>0?`
+  <div style="background:var(--sur2);border:1px solid ${progressDone?'var(--green-brd)':'var(--brd2)'};border-radius:var(--rl);padding:14px 16px;margin-bottom:2px">
+    <div style="font-family:var(--mono);font-size:.56rem;color:var(--dim);letter-spacing:.1em;margin-bottom:10px">กลุ่มส่ง ${d.icon} ${d.item} แล้ว</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:10px">
+      <div style="font-family:var(--deco);font-size:3rem;color:${progressCol};line-height:1">${haveAmt}</div>
+      <div style="font-family:var(--mono);font-size:1rem;color:var(--dim)">/</div>
+      <div style="font-family:var(--deco);font-size:3rem;color:var(--dim);line-height:1">${needAmt}</div>
+    </div>
+    <div style="height:8px;background:var(--brd2);border-radius:4px;overflow:hidden;margin-bottom:6px">
+      <div style="height:100%;width:${pct}%;background:${progressCol};border-radius:4px;transition:width .4s"></div>
+    </div>
+    <div style="font-family:var(--mono);font-size:.6rem;color:${progressCol};text-align:center">
+      ${progressDone?'✓ ครบแล้ว! รอ Admin Confirm':'ยังขาดอีก '+(needAmt-haveAmt)+' ชิ้น'}
+    </div>
+  </div>`:
+  `<div style="background:var(--sur2);border:1px solid var(--brd2);border-radius:var(--rl);padding:10px 14px;margin-bottom:2px">
+    <div style="font-family:var(--mono);font-size:.58rem;color:var(--dim);text-align:center">กลุ่มส่ง ${d.icon} ${d.item} แล้ว: <span style="color:var(--amber);font-weight:600">${haveAmt}</span> ชิ้น</div>
+  </div>`;
+
+  // submitted state
   if(S.submitted||!(p.items>0)){
     return`<div class="done-box"><div style="font-size:1.8rem;margin-bottom:6px">✅</div>
       <div class="done-title">ส่ง Items แล้ว</div>
       <div class="done-sub">รอผู้อื่นในกลุ่ม<br>แล้ว Admin จะ Confirm</div>
-    </div>${evCard(ev,evIdx,mg)}${groupInfo(mg,ev)}`;
+    </div>
+    ${groupProgressCard}
+    ${evCard(ev,evIdx,mg)}${groupInfo(mg,ev)}`;
   }
-
-  // #8 แสดงชื่อ item ชัดเจน
-  const needAmt=req[p.dept]||0;
-  const needHint=needAmt?`<div style="font-family:var(--mono);font-size:.62rem;color:var(--amber);margin-top:3px">ต้องส่งรวมกลุ่ม: ${needAmt} ชิ้น</div>`:'';
 
   return`
   ${evCard(ev,evIdx,mg)}
+  ${groupProgressCard}
   <div class="stepper-wrap pulse-amber">
     <div style="text-align:center;margin-bottom:10px">
       <div style="font-size:1.5rem;line-height:1;margin-bottom:3px">${d.icon}</div>
       <div style="font-family:var(--mono);font-size:.75rem;color:var(--txt);font-weight:600">${d.item}</div>
-      ${needHint}
+      ${needAmt?`<div style="font-family:var(--mono);font-size:.6rem;color:var(--dim);margin-top:2px">คุณมี ${p.items} ชิ้น · กลุ่มต้องการรวม ${needAmt} ชิ้น</div>`:''}
     </div>
-    <div class="step-lbl">ใช้กี่ชิ้น? &nbsp;(มี ${p.items} ชิ้น)</div>
+    <div class="step-lbl">ส่งกี่ชิ้น?</div>
     <div class="step-row">
       <button class="step-btn" onclick="stepUse(-1)">−</button>
       <div class="step-num" id="use-num">${S.useAmt}</div>
@@ -676,7 +844,7 @@ function renderAction(ev,evIdx,mg,p,d){
     <div class="step-max">${d.icon} ${d.item}</div>
   </div>
   <button id="btn-use" class="btn-big btn-amber" onclick="doUseItems()" ${S.useAmt<=0?'disabled':''}>
-    ${S.useAmt>0?'ยืนยันใช้ '+S.useAmt+' ชิ้น':'เลือกจำนวนก่อน'}
+    ${S.useAmt>0?'ยืนยันส่ง '+S.useAmt+' ชิ้น':'เลือกจำนวนก่อน'}
   </button>
   ${groupInfo(mg,ev)}`;
 }
