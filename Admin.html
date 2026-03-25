@@ -413,6 +413,16 @@ function scheduleRender() {
 // ============================================================
 onValue(ref(db, 'game/state'), snap => {
   S.gs = snap.val();
+  // sync _customEventNames จาก Firebase eventConfig
+  if (S.gs?.eventConfig) {
+    _customEventNames.forEach((ev,i)=>{
+      const def = DEFAULT_EVENTS[i];
+      if (!def) return;
+      const cfg = S.gs.eventConfig[def.id]||{};
+      if (cfg.customName) _customEventNames[i].name = cfg.customName;
+      if (cfg.customEmoji) _customEventNames[i].emoji = cfg.customEmoji;
+    });
+  }
   flashSync();
   updateTopbar();
   updateEvProg();
@@ -494,7 +504,7 @@ function updateEvProg() {
     const t = types[i+1]||''; let cls = 'ep';
     if (i < cur) cls += ' ep-done';
     else if (i === cur) cls += (t==='regroup'?' ep-rg-cur':t==='discard'?' ep-disc-cur':' ep-cur');
-    html += `<div class="${cls}" title="Event ${i+1}: ${DEFAULT_EVENTS[i]?.name||''}"></div>`;
+    const evN = getEffectiveEvent(i); html += `<div class="${cls}" title="Event ${i+1}: ${evN?.name||DEFAULT_EVENTS[i]?.name||''}"></div>`;
   }
   document.getElementById('evprog').innerHTML = html;
 }
@@ -1309,12 +1319,23 @@ function closeStartPreview() {
 async function doConfirmStart() {
   setBtn('btn-confirm-start','⏳...',true);
   // apply custom event names → eventConfig
+  // apply custom event names ทุกตัวที่แตกต่างจาก default
   const updates = {};
   _customEventNames.forEach((ev,i)=>{
     const def = DEFAULT_EVENTS[i];
     if (!def) return;
-    if (ev.name !== def.name) updates['game/state/eventConfig/'+def.id+'/customName'] = ev.name;
-    if (ev.emoji !== def.emoji) updates['game/state/eventConfig/'+def.id+'/customEmoji'] = ev.emoji;
+    // เขียนเสมอ (ไม่ตรวจ !== def) เพื่อให้แน่ใจว่า Firebase sync
+    if (ev.name && ev.name !== def.name) {
+      updates['game/state/eventConfig/'+def.id+'/customName'] = ev.name;
+    } else if (ev.name === def.name && S.gs?.eventConfig?.[def.id]?.customName) {
+      // ถ้า reset กลับ default → ลบ customName ออก
+      updates['game/state/eventConfig/'+def.id+'/customName'] = null;
+    }
+    if (ev.emoji && ev.emoji !== def.emoji) {
+      updates['game/state/eventConfig/'+def.id+'/customEmoji'] = ev.emoji;
+    } else if (ev.emoji === def.emoji && S.gs?.eventConfig?.[def.id]?.customEmoji) {
+      updates['game/state/eventConfig/'+def.id+'/customEmoji'] = null;
+    }
   });
   if (Object.keys(updates).length) await update(ref(db), updates);
   closeStartPreview();
@@ -1334,10 +1355,24 @@ async function doInitGame() {
   const hp = +document.getElementById('s-hp').value||8;
   // ใช้ชื่อกลุ่มที่ตั้งไว้ใน _customGroupNames
   const groupNames = _customGroupNames.slice(0,gc).map((n,i)=>n||GN[i]||('G'+(i+1)));
+  // เก็บ customName/customEmoji ที่ตั้งไว้ใน _customEventNames
+  const savedEventConfig = {};
+  _customEventNames.forEach((ev,i)=>{
+    const def = DEFAULT_EVENTS[i];
+    if (!def) return;
+    if (ev.name !== def.name) {
+      if (!savedEventConfig[def.id]) savedEventConfig[def.id]={};
+      savedEventConfig[def.id].customName = ev.name;
+    }
+    if (ev.emoji !== def.emoji) {
+      if (!savedEventConfig[def.id]) savedEventConfig[def.id]={};
+      savedEventConfig[def.id].customEmoji = ev.emoji;
+    }
+  });
   await set(ref(db,'game'), {
     state: { gameStarted:false, phase:'lobby', currentEvent:0, pendingConfirm:false,
              groupCount:gc, minGroupSize:mn, maxGroupSize:mx, defaultHp:hp,
-             groupNames:groupNames, eventConfig:{}, globalConfig:{poolCap:35} },
+             groupNames:groupNames, eventConfig:savedEventConfig, globalConfig:{poolCap:35} },
     logs: { [Date.now()]: {ts:Date.now(),type:'i',msg:'ระบบพร้อมแล้ว รอผู้เล่นเข้าร่วม'} }
   });
   await set(ref(db,'players'), null);
