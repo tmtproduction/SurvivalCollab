@@ -154,7 +154,39 @@ body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 @keyframes pulseAmber{0%,100%{box-shadow:0 0 0 0 transparent}55%{box-shadow:0 0 0 7px rgba(240,165,0,.12)}}
 .pulse-amber{animation:pulseAmber 2.4s ease infinite}
 
-/* ── AMBIENT SYSTEM ── */
+/* ── COUNTDOWN TIMER ── */
+.countdown-bar{position:relative;margin:0 -1px;overflow:hidden}
+.countdown-track{height:4px;background:rgba(255,255,255,.06)}
+.countdown-fill{height:100%;border-radius:0 2px 2px 0;transition:width .9s linear,background .5s}
+.countdown-display{display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 16px;font-family:var(--mono);font-size:.72rem}
+.cd-num{font-family:var(--deco);font-size:1.6rem;line-height:1;min-width:28px;text-align:center;transition:color .3s}
+.cd-urgent{animation:cdPulse .6s ease infinite}
+@keyframes cdPulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── DEBRIEF ── */
+.debrief-outer{min-height:100dvh;padding:20px 18px 100px;background:var(--bg)}
+.debrief-hd{font-family:var(--deco);font-size:1.6rem;letter-spacing:.15em;color:var(--amber);margin-bottom:4px}
+.debrief-sub{font-family:var(--mono);font-size:.6rem;color:var(--dim);letter-spacing:.1em;margin-bottom:18px}
+.db-card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);padding:14px 16px;margin-bottom:10px}
+.db-card-title{font-family:var(--mono);font-size:.6rem;color:var(--dim);letter-spacing:.1em;margin-bottom:10px}
+.moment-row{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;background:var(--sur2);margin-bottom:5px;font-size:.75rem;line-height:1.55}
+.moment-icon{font-size:1rem;flex-shrink:0;margin-top:1px}
+.moment-highlight{background:rgba(240,165,0,.07);border-color:rgba(240,165,0,.2)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px}
+.stat-box{background:var(--sur2);border-radius:8px;padding:10px;text-align:center}
+.stat-big{font-family:var(--deco);font-size:1.5rem;line-height:1;color:var(--amber)}
+.stat-lbl2{font-family:var(--mono);font-size:.52rem;color:var(--dim);letter-spacing:.08em;margin-top:3px}
+.q-item{margin-bottom:12px}
+.q-lbl{font-family:var(--mono);font-size:.6rem;color:var(--amber);letter-spacing:.08em;margin-bottom:6px}
+.q-opts{display:flex;gap:5px;flex-wrap:wrap}
+.q-opt{padding:7px 12px;border-radius:8px;border:1px solid var(--brd2);background:var(--sur2);font-family:var(--mono);font-size:.65rem;color:var(--txt);cursor:pointer;transition:.12s;touch-action:manipulation}
+.q-opt:active{background:var(--amber);color:#000;border-color:var(--amber)}
+.q-opt.sel{background:rgba(240,165,0,.15);border-color:var(--amber);color:var(--amber)}
+.q-text{width:100%;background:var(--sur2);border:1px solid var(--brd2);color:var(--txt);padding:10px 12px;border-radius:8px;font-family:var(--thai);font-size:.85rem;resize:none;outline:none;line-height:1.6}
+.q-text:focus{border-color:var(--amber)}
+.submit-debrief{width:100%;padding:14px;background:var(--amber);color:#000;border:none;border-radius:var(--r);font-family:var(--mono);font-size:.78rem;font-weight:700;cursor:pointer;margin-top:4px;touch-action:manipulation}
+.submit-debrief:disabled{opacity:.4;cursor:not-allowed}
+</style>
 #ambient-bg{position:fixed;inset:0;z-index:-2;transition:background 1.4s ease}
 #ambient-canvas{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.85}
 #ambient-overlay{position:fixed;inset:0;z-index:-1;pointer-events:none;transition:background 1.2s ease,opacity .8s}
@@ -218,7 +250,9 @@ const EVENTS=[
 const EV_TOTAL=EVENTS.length;
 
 // STATE
-const S={pid:null,player:null,gs:null,players:{},logs:[],groups:[],connected:false,useAmt:0,discardAmt:0,logOpen:false,err:'',loading:false,submitting:false,submitted:false};
+const S={pid:null,player:null,gs:null,players:{},logs:[],groups:[],connected:false,useAmt:0,discardAmt:0,logOpen:false,err:'',loading:false,submitting:false,submitted:false,
+  debrief:{answers:{},submitted:false} // debrief state
+};
 
 // SESSION
 const saveSession=id=>{try{localStorage.setItem('sv3_pid',id)}catch(e){}};
@@ -264,6 +298,7 @@ function getPhase(){
   const gs=S.gs||{};
   if(!S.pid)return'login';
   const phase=gs.phase||'lobby';
+  if(phase==='debrief')return'debrief';
   if(phase==='result')return'result';
   if(phase==='regrouping')return'regroup';
   if(phase==='lobby')return'lobby';
@@ -271,15 +306,16 @@ function getPhase(){
     const ev=EVENTS[(gs.currentEvent||0)];
     if(ev?.type==='regroup')return'wait';
     if(ev?.type==='discard')return'discard';
-    if(ev?.type==='headcount_reward')return'wait'; // auto-handled by Admin
-    if(ev?.type==='collective_pool')return'action'; // player ส่ง items เข้ากองกลาง
-    if(ev?.type==='per_group')return'wait'; // Admin confirm เอง
+    if(ev?.type==='headcount_reward')return'wait';
+    if(ev?.type==='collective_pool')return'action';
+    if(ev?.type==='per_group')return'wait';
     return'action';
   }
   return'wait';
 }
 
 // FIREBASE
+let _cdInterval=null;
 function startListeners(){
   off(ref(db,'game'));off(ref(db,'players'));
   onValue(ref(db,'game'),snap=>{
@@ -287,8 +323,29 @@ function startListeners(){
     S.gs=d.state||null;
     S.logs=d.logs?Object.values(d.logs).sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-40):[];
     if(!S.gs?.pendingConfirm){S.useAmt=0;S.discardAmt=0;S.submitted=false;}
+    // countdown ticker
+    clearInterval(_cdInterval);
+    if(S.gs?.countdown?.active&&S.gs.countdown.endsAt){
+      _cdInterval=setInterval(()=>{
+        const rem=S.gs.countdown.endsAt-Date.now();
+        if(rem<=0){clearInterval(_cdInterval);}
+        // re-render countdown bar only (ไม่ re-render ทั้งหน้า)
+        const fill=document.querySelector('.countdown-fill');
+        const num=document.querySelector('.cd-num');
+        if(fill&&num){
+          const total=S.gs.countdown.totalSec||60;
+          const s=Math.max(0,Math.ceil(rem/1000));
+          const pct=Math.max(0,Math.min(100,s/total*100));
+          const col=s<=10?'var(--red)':s<=20?'#ff9800':'var(--amber)';
+          fill.style.width=pct+'%';fill.style.background=col;
+          num.style.color=col;num.className='cd-num'+(s<=10?' cd-urgent':'');
+          const mm=String(Math.floor(s/60)).padStart(2,'0'),ss=String(s%60).padStart(2,'0');
+          num.textContent=mm+':'+ss;
+        }
+      },500);
+    }
     buildGroups();render();
-    syncAmbient(); // ← ambient hook
+    syncAmbient();
   });
   onValue(ref(db,'players'),snap=>{
     S.players=snap.val()||{};
@@ -411,12 +468,12 @@ function render(){
   const app=document.getElementById('app');if(!app)return;
   const phase=getPhase();
   if(phase==='login'){
-    // #1 ถ้า user กำลังพิมพ์อยู่ใน form ให้ skip re-render
     const active=document.activeElement;
     const inLoginForm=active&&['inp-name','inp-dept','inp-row'].includes(active.id);
     if(inLoginForm) return;
     renderLogin(app);return;
   }
+  if(phase==='debrief'){renderDebrief(app);return;}
   if(phase==='result'){renderResult(app);return;}
   renderShell(app,phase);
 }
@@ -474,6 +531,25 @@ function renderShell(app,phase){
   }).join('');
   const logHtml=S.logs.length?[...S.logs].reverse().slice(0,30).map(l=>`<div class="le l${l.type||'i'}">&gt; ${l.msg}</div>`).join(''):`<div class="le li">// รอเหตุการณ์แรก...</div>`;
 
+  // countdown timer
+  const cd=S.gs?.countdown;
+  const cdHtml=cd?.active&&cd.endsAt?(()=>{
+    const rem=Math.max(0,Math.ceil((cd.endsAt-Date.now())/1000));
+    const total=cd.totalSec||60;
+    const pct=Math.max(0,Math.min(100,rem/total*100));
+    const urgent=rem<=10;
+    const col=rem<=10?'var(--red)':rem<=20?'#ff9800':'var(--amber)';
+    const mm=String(Math.floor(rem/60)).padStart(2,'0');
+    const ss=String(rem%60).padStart(2,'0');
+    return`<div class="countdown-bar">
+      <div class="countdown-track"><div class="countdown-fill" style="width:${pct}%;background:${col}"></div></div>
+    </div>
+    <div class="countdown-display" style="color:${col}">
+      <span style="font-family:var(--mono);font-size:.58rem;color:var(--dim)">${cd.label||'เวลา'}</span>
+      <span class="cd-num${urgent?' cd-urgent':''}" style="color:${col}">${mm}:${ss}</span>
+    </div>`;
+  })():'';
+
   app.innerHTML=`<div id="shell">
     <div id="topbar">
       <div class="tb-title">SURVIVAL</div>
@@ -482,6 +558,7 @@ function renderShell(app,phase){
         <div class="conn-dot${S.connected?'':' off'}"></div>
       </div>
     </div>
+    ${cdHtml}
     <div id="evbar">${dots}</div>
     <div id="content" class="fade-up">
       ${renderContent(phase)}
@@ -992,6 +1069,123 @@ function renderPerGroupInfo(ev,evIdx,mg,p,d){
   ${groupInfo(mg,ev)}`;
 }
 
+// ── DEBRIEF ────────────────────────────────────────────────
+function renderDebrief(app){
+  if(S.debrief.submitted){
+    app.innerHTML=`<div class="debrief-outer" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;text-align:center">
+      <div style="font-size:3rem;margin-bottom:10px">🙏</div>
+      <div class="debrief-hd">ขอบคุณ!</div>
+      <div style="font-family:var(--mono);font-size:.75rem;color:var(--dim);margin-top:6px">บันทึก Reflection ของคุณแล้ว</div>
+      <a href="Scoreboard.html" style="display:inline-block;margin-top:20px;padding:12px 24px;background:var(--amber);color:#000;border-radius:var(--r);font-family:var(--mono);font-weight:700;font-size:.72rem;text-decoration:none">🏆 ดูผลการแข่งขัน</a>
+    </div>`;
+    return;
+  }
+
+  const p=S.player||{},d=DEPTS[p.dept]||{};
+  const pa=Object.values(S.players);
+  const alive=pa.filter(x=>x.alive).length;
+  const survivePct=pa.length?Math.round(alive/pa.length*100):0;
+  const myGroup=S.groups.find(g=>g.id==p.groupId);
+  const groupAlive=myGroup?.members.filter(m=>S.players[m.id]?.alive).length||0;
+
+  // Auto-generated moments from logs
+  const moments=[];
+  S.logs.forEach(l=>{
+    if(l.msg.includes('💀')&&l.msg.includes(p.name)) moments.push({icon:'💀',txt:'คุณถูกตัดออกจากเกม',hl:true});
+    if(l.msg.includes('ผ่าน ✓')&&l.msg.includes(myGroup?.name||'')) moments.push({icon:'✅',txt:'กลุ่ม '+myGroup?.name+' ผ่านเงื่อนไข',hl:false});
+    if(l.msg.includes('ไม่ผ่าน')&&l.msg.includes(myGroup?.name||'')) moments.push({icon:'❌',txt:'กลุ่ม '+myGroup?.name+' ไม่ผ่าน',hl:true});
+    if(l.msg.includes(p.name)&&l.msg.includes('ใช้')) moments.push({icon:'📦',txt:l.msg,hl:false});
+  });
+  const topMoments=[...new Map(moments.map(m=>[m.txt,m])).values()].slice(0,4);
+
+  const momentHtml=topMoments.length?topMoments.map(m=>`
+    <div class="moment-row ${m.hl?'moment-highlight':''}">
+      <span class="moment-icon">${m.icon}</span>
+      <span>${m.txt}</span>
+    </div>`).join(''):`<div style="font-family:var(--mono);font-size:.65rem;color:var(--dim);padding:6px">ไม่มี moment พิเศษในเกมนี้</div>`;
+
+  app.innerHTML=`<div class="debrief-outer">
+    <div class="debrief-hd">🪞 Reflection</div>
+    <div class="debrief-sub">ใช้เวลา 2 นาทีทบทวนสิ่งที่เกิดขึ้น</div>
+
+    <!-- Stats -->
+    <div class="db-card">
+      <div class="db-card-title">ผลลัพธ์ของคุณ</div>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-big" style="color:${p.alive?'var(--green)':'var(--red)'}">${p.alive?'รอด':'ไม่รอด'}</div>
+          <div class="stat-lbl2">สถานะ</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-big">${groupAlive}<span style="font-size:.9rem;color:var(--dim)">/${myGroup?.members.length||0}</span></div>
+          <div class="stat-lbl2">กลุ่ม ${myGroup?.name||'—'} รอด</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-big">${survivePct}%</div>
+          <div class="stat-lbl2">อัตรารอดรวม</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-big" style="color:${d.color}">${d.icon} ${p.items||0}</div>
+          <div class="stat-lbl2">items เหลือ</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Moments -->
+    <div class="db-card">
+      <div class="db-card-title">🎬 Moments สำคัญของคุณ</div>
+      ${momentHtml}
+    </div>
+
+    <!-- Q1 -->
+    <div class="db-card">
+      <div class="db-card-title">คำถาม Reflection</div>
+      <div class="q-item">
+        <div class="q-lbl">1. ทีมคุณสื่อสารกันได้ดีแค่ไหน?</div>
+        <div class="q-opts" id="q1-opts">
+          ${['แย่มาก','พอได้','ดี','ดีมาก'].map((t,i)=>`<button class="q-opt" onclick="selectOpt('q1',${i},'${t}')">${t}</button>`).join('')}
+        </div>
+      </div>
+      <div class="q-item">
+        <div class="q-lbl">2. จุดที่ทีมพลาดที่สุดคืออะไร?</div>
+        <div class="q-opts" id="q2-opts">
+          ${['ส่ง items ช้า','ไม่รู้ว่าใครมีอะไร','ตัดสินใจช้า','ไม่ได้วางแผนล่วงหน้า'].map((t,i)=>`<button class="q-opt" onclick="selectOpt('q2',${i},'${t}')">${t}</button>`).join('')}
+        </div>
+      </div>
+      <div class="q-item">
+        <div class="q-lbl">3. สิ่งนี้เหมือนกับสถานการณ์ในที่ทำงานของคุณยังไง?</div>
+        <textarea class="q-text" rows="3" id="q3-text" placeholder="พิมพ์ความคิดเห็น..." oninput="S.debrief.answers.q3=this.value"></textarea>
+      </div>
+    </div>
+
+    <button class="submit-debrief" id="btn-submit-debrief" onclick="submitDebrief()" disabled>
+      ส่ง Reflection →
+    </button>
+    <div style="height:20px"></div>
+  </div>`;
+}
+
+function selectOpt(qid,idx,val){
+  S.debrief.answers[qid]=val;
+  document.querySelectorAll(`#${qid}-opts .q-opt`).forEach((b,i)=>b.classList.toggle('sel',i===idx));
+  // enable submit ถ้า q1 และ q2 ตอบแล้ว
+  const btn=document.getElementById('btn-submit-debrief');
+  if(btn) btn.disabled=!(S.debrief.answers.q1&&S.debrief.answers.q2);
+}
+
+async function submitDebrief(){
+  const btn=document.getElementById('btn-submit-debrief');
+  if(btn){btn.disabled=true;btn.textContent='⏳ กำลังส่ง...';}
+  const p=S.player||{};
+  await push(ref(db,'game/debrief'),{
+    ts:Date.now(), pid:S.pid, name:p.name, dept:p.dept,
+    alive:p.alive, groupId:p.groupId,
+    answers:S.debrief.answers
+  });
+  S.debrief.submitted=true;
+  render();
+}
+
 // shared components
 function evCard(ev,evIdx,mg){
   if(!ev)return'';
@@ -1241,10 +1435,11 @@ function setAmbient(key){
 setAmbient('lobby');
 
 // expose
-window.switchTab=switchTab;window.renderGamePanel=renderGamePanel;
+window.doLogin=doLogin;window.doLogout=doLogout;window.doJoinGroup=doJoinGroup;
 window.doUseItems=doUseItems;window.doDiscardItems=doDiscardItems;
 window.stepUse=stepUse;window.stepDiscard=stepDiscard;
 window.toggleLog=toggleLog;window.updatePreview=updatePreview;
+window.selectOpt=selectOpt;window.submitDebrief=submitDebrief;
 
 // init
 startListeners();

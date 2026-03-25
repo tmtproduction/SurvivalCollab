@@ -367,6 +367,13 @@ onValue(ref(db, '.info/connected'), snap => {
   if (txt) txt.textContent = connected ? 'live' : 'offline';
 });
 
+// นับ debrief submissions แบบ real-time → อัปเดต banner
+onValue(ref(db, 'game/debrief'), snap => {
+  const count = snap.val() ? Object.keys(snap.val()).length : 0;
+  if (S.gs) update(ref(db,'game/state'),{debriefCount:count}).catch(()=>{});
+  updatePhaseBanner();
+});
+
 // ============================================================
 //  BUILD GROUP STATUS
 // ============================================================
@@ -425,6 +432,10 @@ function updatePhaseBanner() {
   if (phase === 'lobby') {
     banner.className = 'phase-banner lobby';
     banner.innerHTML = '⏳ รอเริ่มเกม — ผู้เล่นกำลังเข้าร่วม';
+  } else if (phase === 'debrief') {
+    banner.className = 'phase-banner result';
+    const debriefSnap = gs.debriefCount||0;
+    banner.innerHTML = `🪞 Debrief — ผู้เล่นกำลังตอบ Reflection (${debriefSnap} คนส่งแล้ว)`;
   } else if (phase === 'result') {
     banner.className = 'phase-banner result';
     banner.innerHTML = '🏁 เกมจบแล้ว — ดูผลลัพธ์ที่ Scoreboard';
@@ -490,11 +501,26 @@ function renderGamePanel() {
   if (phase === 'result') {
     const pa = Object.values(S.players);
     const alive = pa.filter(p => p.alive);
-    el.innerHTML = h('div','style="text-align:center;padding:40px"',
+    const debriefCount = Object.keys(S.gs?.debriefCount||{}).length||0;
+    el.innerHTML = h('div','style="text-align:center;padding:30px 20px"',
       h('div','style="font-size:3rem"','🏁')+
       h('div','style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;letter-spacing:6px;color:var(--amber);margin-top:10px"','จบเกม!')+
       h('div','style="font-family:monospace;font-size:.75rem;color:var(--dim);margin-top:10px"','รอด '+alive.length+'/'+pa.length+' คน')+
-      h('a','href="Scoreboard.html" target="_blank" style="display:inline-block;margin-top:14px;padding:10px 20px;background:var(--amber);color:#000;border-radius:8px;font-family:monospace;font-weight:700;font-size:.75rem;text-decoration:none"','🏆 ดู Scoreboard')
+      h('div','style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap"',
+        h('a','href="Scoreboard.html" target="_blank" class="btn btn-g"','🏆 Scoreboard')+
+        h('button','class="btn btn-pu" onclick="doStartDebrief()"','🪞 เปิด Debrief')
+      )+
+      h('div','style="margin-top:16px;background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:12px 16px"',
+        h('div','style="font-family:monospace;font-size:.6rem;color:var(--dim);margin-bottom:10px"','⏱ Countdown Timer สำหรับ Debrief')+
+        h('div','style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"',
+          h('select','id="cd-sec" style="background:var(--sur);border:1px solid var(--brd2);color:var(--txt);padding:5px 8px;border-radius:5px;font-family:monospace;font-size:.7rem"',
+            [30,60,90,120,180,300].map(s=>h('option','value="'+s+'"'+(s===60?' selected':''),Math.floor(s/60)+'m'+(s%60?s%60+'s':''))).join('')
+          )+
+          h('input','id="cd-label" placeholder="ชื่อ timer" value="เวลา Debrief" style="background:var(--sur);border:1px solid var(--brd2);color:var(--txt);padding:5px 8px;border-radius:5px;font-family:monospace;font-size:.7rem;width:130px"','')+
+          h('button','class="btn btn-p" onclick="doStartCountdown()" style="font-size:.62rem;padding:5px 11px"','▶ เริ่ม Timer')+
+          h('button','class="btn btn-s" onclick="doStopCountdown()" style="font-size:.62rem;padding:5px 11px"','■ หยุด')
+        )
+      )
     );
     return;
   }
@@ -1264,6 +1290,30 @@ function applyDamage(ev, playerArr, poolMap, gs, poolCap, updates, logs, groupRe
 }
 
 // expose to onclick
+// ============================================================
+//  DEBRIEF & COUNTDOWN
+// ============================================================
+async function doStartDebrief() {
+  if (!confirm('เปิด Debrief? ผู้เล่นจะเห็นหน้า Reflection')) return;
+  await update(ref(db,'game/state'), { phase:'debrief' });
+  await push(ref(db,'game/logs'), {ts:Date.now(),type:'p',msg:'🪞 Admin เปิด Debrief — ผู้เล่นกำลังตอบ Reflection'});
+  toast('🪞 Debrief เปิดแล้ว');
+}
+
+async function doStartCountdown() {
+  const sec = +document.getElementById('cd-sec')?.value || 60;
+  const label = document.getElementById('cd-label')?.value || 'เวลา';
+  const endsAt = Date.now() + sec*1000;
+  await update(ref(db,'game/state/countdown'), {active:true, endsAt, totalSec:sec, label});
+  await push(ref(db,'game/logs'), {ts:Date.now(),type:'w',msg:'⏱ เริ่ม Timer: '+label+' '+Math.floor(sec/60)+'m'+(sec%60?sec%60+'s':'')});
+  toast('⏱ Timer เริ่มแล้ว — '+sec+' วินาที');
+}
+
+async function doStopCountdown() {
+  await update(ref(db,'game/state/countdown'), {active:false});
+  toast('■ หยุด Timer แล้ว');
+}
+
 window.switchTab=switchTab; window.renderGamePanel=renderGamePanel;
 window.doInitGame=doInitGame; window.doStartGame=doStartGame;
 window.doRunEvent=doRunEvent; window.doConfirmEvent=doConfirmEvent;
@@ -1272,6 +1322,7 @@ window.doRestart=doRestart; window.adminSetHP=adminSetHP; window.adminSetItems=a
 window.saveEvReq=saveEvReq; window.saveEvCfg=saveEvCfg; window.saveGlobalCfg=saveGlobalCfg;
 window.saveEvMult=saveEvMult; window.saveCondHeadcount=saveCondHeadcount; window.saveCondReward=saveCondReward;
 window.renderEvCfgTable=renderEvCfgTable; window.scheduleRender=scheduleRender; window.clearLog=clearLog;
+window.doStartDebrief=doStartDebrief; window.doStartCountdown=doStartCountdown; window.doStopCountdown=doStopCountdown;
 </script>
 </body>
 </html>
