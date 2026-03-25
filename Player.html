@@ -565,7 +565,22 @@ function render(){
     const active=document.activeElement;
     const inLoginForm=active&&['inp-name','inp-dept','inp-row'].includes(active.id);
     if(inLoginForm) return;
-    renderLogin(app);return;
+    // restore ค่า input ที่พิมพ์ไว้ (ป้องกันหายเมื่อ Firebase update)
+    const prevName=document.getElementById('inp-name')?.value||'';
+    const prevDept=document.getElementById('inp-dept')?.value||'PD1';
+    const prevRow=document.getElementById('inp-row')?.value||'';
+    const hadInput=prevName.length>0;
+    renderLogin(app);
+    if(hadInput){
+      const n=document.getElementById('inp-name');
+      const d=document.getElementById('inp-dept');
+      const r=document.getElementById('inp-row');
+      if(n) n.value=prevName;
+      if(d) d.value=prevDept;
+      if(r) r.value=prevRow;
+      updatePreview();
+    }
+    return;
   }
   if(phase==='debrief'){renderDebrief(app);return;}
   if(phase==='result'){renderResult(app);return;}
@@ -1304,7 +1319,7 @@ function evCard(ev,evIdx,mg){
   const hasReq=Object.keys(req).length>0&&ev.type!=='discard';
   const pills=hasReq?Object.entries(req).map(([dk,need])=>{
     const have=pool[dk]||0,ok=have>=need;
-    return`<span class="rpill ${ok?'rok':'rfail'}">${DEPTS[dk]?.icon||dk} ${have}/${need} ${ok?'✓':'✗'}</span>`;
+    return`<span class="rpill ${ok?'rok':'rfail'}">${DEPTS[dk]?.icon||dk} ${have}/${need} ${ok?'✓ครบ':'✗ขาด'}</span>`;
   }).join(''):'';
   return`<div class="card ca-amber">
     <div style="font-family:var(--mono);font-size:.58rem;color:var(--dim);margin-bottom:5px">EVENT ${evIdx+1} / ${EV_TOTAL}</div>
@@ -1322,7 +1337,10 @@ function groupInfo(mg,ev){
   const pool=mg.pool||{},req=getReq(ev,mg.members),hasReq=Object.keys(req).length>0;
   const chips=DK.map(dk=>{
     const have=pool[dk]||0,need=req[dk]||0,cls=!hasReq||!need?'':have>=need?' p-ok':' p-fail';
-    return`<div class="pchip${cls}">${DEPTS[dk]?.icon||dk}<span class="pval">${have}</span>${need?`<span style="font-size:.55rem;opacity:.6">/${need}</span>`:''}</div>`;
+    const statusTxt = !need ? '' : (have>=need
+      ? `<span style="font-size:.55rem;color:var(--green);font-weight:700">✓ครบ</span>`
+      : `<span style="font-size:.55rem;color:var(--red);font-weight:700">✗ขาด</span>`);
+    return`<div class="pchip${cls}">${DEPTS[dk]?.icon||dk}<span class="pval">${have}</span>${statusTxt}</div>`;
   }).join('');
 
   // แยก alive กับ dead
@@ -1336,7 +1354,7 @@ function groupInfo(mg,ev){
         <span class="dbadge" style="background:${md.color}22;color:${md.color};border:1px solid ${md.color}44">${m.dept}</span>
         ${m.name}${me?'<span style="font-size:.7rem;color:var(--amber);margin-left:4px">← ฉัน</span>':''}
       </span>
-      <span style="font-family:var(--mono);font-size:.7rem;color:${md.color||'var(--dim)'}">${S.players[m.id]?.items??m.items??0}</span>
+      <span style="font-family:var(--mono);font-size:.75rem;font-weight:600;color:var(--txt);background:var(--sur);border:1px solid var(--brd2);border-radius:4px;padding:1px 7px;min-width:28px;text-align:center">${S.players[m.id]?.items??m.items??0}</span>
     </div>`;
   }).join('');
 

@@ -90,6 +90,38 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .ev-cfg-table input:focus{outline:1px solid var(--amber)}
 .unassigned-box{background:rgba(232,64,64,.05);border:1px solid rgba(232,64,64,.2);border-radius:7px;padding:10px;margin-top:8px}
 
+/* ── SETUP MODAL ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-box{background:var(--sur);border:1px solid var(--brd2);border-radius:12px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;padding:20px}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:4px;color:var(--amber);margin-bottom:4px}
+.modal-sub{font-family:monospace;font-size:.6rem;color:var(--dim);margin-bottom:16px}
+.modal-section{margin-bottom:16px}
+.modal-section-title{font-family:monospace;font-size:.58rem;color:var(--dim);letter-spacing:2px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--brd)}
+.ev-preview-row{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:6px;background:var(--sur2);border:1px solid var(--brd);margin-bottom:5px}
+.ev-preview-num{font-family:monospace;font-size:.55rem;color:var(--dim);min-width:20px;padding-top:2px}
+.ev-preview-emoji{font-size:1.1rem;flex-shrink:0}
+.ev-preview-body{flex:1}
+.ev-preview-name{font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:3px;color:var(--amber)}
+.ev-preview-cond{font-family:monospace;font-size:.6rem;color:var(--dim);margin-top:2px;line-height:1.6}
+.ev-preview-cond span{display:inline-block;padding:1px 6px;border-radius:3px;margin-right:4px;margin-top:2px}
+.cond-ok{background:rgba(61,186,106,.1);color:var(--green);border:1px solid rgba(61,186,106,.3)}
+.cond-dmg{background:rgba(232,64,64,.1);color:var(--red);border:1px solid rgba(232,64,64,.25)}
+.cond-info{background:rgba(245,166,35,.08);color:var(--amber);border:1px solid rgba(245,166,35,.2)}
+/* Group name grid */
+.gname-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.gname-item{display:flex;flex-direction:column;gap:3px}
+.gname-lbl{font-family:monospace;font-size:.54rem;color:var(--dim)}
+.gname-inp{background:var(--sur2);border:1px solid var(--brd2);color:var(--txt);padding:5px 8px;border-radius:4px;font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:2px;width:100%}
+.gname-inp:focus{outline:1px solid var(--amber);border-color:var(--amber)}
+/* Event name edit */
+.evname-grid{display:flex;flex-direction:column;gap:5px}
+.evname-row{display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--sur2);border-radius:6px;border:1px solid var(--brd)}
+.evname-num{font-family:monospace;font-size:.55rem;color:var(--dim);min-width:22px}
+.evname-emoji-inp{width:38px;background:var(--sur);border:1px solid var(--brd2);border-radius:4px;padding:3px 5px;font-size:1rem;text-align:center}
+.evname-name-inp{flex:1;background:var(--sur);border:1px solid var(--brd2);color:var(--txt);padding:4px 8px;border-radius:4px;font-family:'Sarabun',sans-serif;font-size:.82rem}
+.evname-emoji-inp:focus,.evname-name-inp:focus{outline:1px solid var(--amber)}
+.evname-type{font-family:monospace;font-size:.52rem;padding:2px 5px;border-radius:3px;background:var(--sur);color:var(--dim)}
+
 /* ── PHASE BANNER (Admin) ── */
 .phase-banner{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;margin-bottom:10px;font-family:'Space Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:1px}
 .phase-banner.lobby{background:rgba(80,96,112,.12);border:1px solid var(--brd2);color:var(--dim)}
@@ -213,25 +245,68 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <!-- SETTINGS PANEL -->
   <div class="panel" id="panel-settings">
     <div class="st">Setup</div>
+
+    <!-- STEP 1: ตั้งค่าพื้นฐาน -->
     <div class="cfg-section">
-      <h3>Init Game</h3>
+      <h3>① ตั้งค่าพื้นฐาน</h3>
       <div class="cfg-grid" style="margin-bottom:10px">
         <div class="cfg-row"><div class="cfg-lbl">จำนวนกลุ่ม</div>
-          <select id="s-gcount"><option value="6">6</option><option value="7">7</option><option value="8" selected>8</option><option value="10">10</option><option value="14">14</option><option value="20">20</option></select>
+          <select id="s-gcount" onchange="renderGroupNameInputs()">
+            <option value="6">6</option><option value="7">7</option>
+            <option value="8" selected>8</option><option value="10">10</option>
+            <option value="14">14</option><option value="20">20</option>
+          </select>
         </div>
         <div class="cfg-row"><div class="cfg-lbl">Min คน/กลุ่ม</div><input id="s-min" type="number" min="2" max="10" value="5"></div>
         <div class="cfg-row"><div class="cfg-lbl">Max คน/กลุ่ม</div><input id="s-max" type="number" min="3" max="20" value="7"></div>
         <div class="cfg-row"><div class="cfg-lbl">HP เริ่มต้น</div><input id="s-hp" type="number" min="1" max="30" value="8"></div>
       </div>
-      <button class="btn btn-p" id="btn-init" onclick="doInitGame()">⚡ Init Game</button>
     </div>
+
+    <!-- STEP 2: ตั้งชื่อกลุ่ม -->
     <div class="cfg-section">
-      <h3>Start Game</h3>
-      <button class="btn btn-p" id="btn-start" onclick="doStartGame()">▶ Start Game</button>
+      <h3>② ตั้งชื่อกลุ่ม</h3>
+      <div class="gname-grid" id="gname-grid"></div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-s" style="font-size:.62rem;padding:4px 10px" onclick="resetGroupNames()">↺ Default</button>
+      </div>
     </div>
+
+    <!-- STEP 3: ตั้งชื่อเหตุการณ์ -->
+    <div class="cfg-section">
+      <h3>③ ตั้งชื่อเหตุการณ์</h3>
+      <div class="evname-grid" id="evname-grid"></div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-s" style="font-size:.62rem;padding:4px 10px" onclick="resetEventNames()">↺ Default</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: Init + Start -->
+    <div class="cfg-section">
+      <h3>④ เริ่มเกม</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-p" id="btn-init" onclick="doInitGame()">⚡ Init Game</button>
+        <button class="btn btn-g" id="btn-preview-start" onclick="showStartPreview()">▶ Preview & Start →</button>
+      </div>
+      <div style="font-family:monospace;font-size:.58rem;color:var(--dim);margin-top:6px">Init ก่อน 1 ครั้ง → Preview ตรวจเงื่อนไข → Start</div>
+    </div>
+
     <div class="cfg-section" style="border-color:rgba(232,64,64,.3)">
       <h3 style="color:var(--red)">Danger Zone</h3>
       <button class="btn btn-r" id="btn-restart2" onclick="doRestart()">🔄 Restart ล้างทั้งหมด</button>
+    </div>
+  </div>
+
+  <!-- START PREVIEW MODAL -->
+  <div id="start-preview-modal" style="display:none" class="modal-backdrop" onclick="if(event.target===this)closeStartPreview()">
+    <div class="modal-box">
+      <div class="modal-title">🎮 ยืนยันก่อน Start</div>
+      <div class="modal-sub">ตรวจสอบเงื่อนไขทุก Event ก่อนเริ่มเกม — กดแก้ไขได้ก่อนยืนยัน</div>
+      <div id="start-preview-content"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+        <button class="btn btn-s" onclick="closeStartPreview()">← แก้ไข</button>
+        <button class="btn btn-p" id="btn-confirm-start" onclick="doConfirmStart()">✅ ยืนยัน Start Game</button>
+      </div>
     </div>
   </div>
 </div>
@@ -465,6 +540,10 @@ function updateMiniLog() {
 // ============================================================
 function switchTab(name) {
   S.activeTab = name;
+  if (name === 'settings') {
+    // render setup inputs เมื่อเปิด tab
+    setTimeout(()=>{ renderGroupNameInputs(); renderEventNameInputs(); }, 50);
+  }
   ['game','players','groups','log','config','settings'].forEach(t => {
     document.getElementById('tab-'+t)?.setAttribute('class', 'tab'+(t===name?' tab-active':''));
     const p = document.getElementById('panel-'+t); if (p) p.className = 'panel'+(t===name?' panel-on':'');
@@ -1022,6 +1101,9 @@ function getEffectiveEvent(idx) {
   if (!src) return null;
   const ev = JSON.parse(JSON.stringify(src)); // deep copy
   const cfg = (S.gs?.eventConfig||{})[ev.id]||{};
+  // apply custom name/emoji ถ้า Admin ตั้งไว้
+  if (cfg.customName) ev.name = cfg.customName;
+  if (cfg.customEmoji) ev.emoji = cfg.customEmoji;
   if (cfg.req !== undefined) ev.req = cfg.req;
   if (cfg.dmg !== undefined) ev.dmg = cfg.dmg;
   if (cfg.preDmg !== undefined) ev.preDmg = cfg.preDmg;
@@ -1036,6 +1118,164 @@ function getEffectiveEvent(idx) {
   return ev;
 }
 
+// ============================================================
+//  SETUP PANEL — Group Names + Event Names + Preview
+// ============================================================
+
+// state ชั่วคราวสำหรับ custom names (ก่อน init)
+let _customGroupNames = [...GN];
+let _customEventNames = DEFAULT_EVENTS.map(e=>({id:e.id,name:e.name,emoji:e.emoji}));
+
+function renderGroupNameInputs() {
+  const gc = +document.getElementById('s-gcount')?.value || 8;
+  const grid = document.getElementById('gname-grid');
+  if (!grid) return;
+  grid.innerHTML = Array.from({length:gc},(_,i)=>{
+    const cur = _customGroupNames[i] || GN[i] || ('G'+(i+1));
+    return `<div class="gname-item">
+      <div class="gname-lbl">กลุ่ม ${i+1}</div>
+      <input class="gname-inp" id="gname-${i}" value="${cur}"
+        oninput="_customGroupNames[${i}]=this.value.toUpperCase()||GN[${i}]||'G${i+1}'"
+        onblur="this.value=this.value.toUpperCase()||GN[${i}]">
+    </div>`;
+  }).join('');
+}
+
+function resetGroupNames() {
+  _customGroupNames = [...GN];
+  renderGroupNameInputs();
+}
+
+function renderEventNameInputs() {
+  const grid = document.getElementById('evname-grid');
+  if (!grid) return;
+  const TYPE_LABEL = {
+    global_per:'ทุกกลุ่ม+items', regroup:'จัดกลุ่มใหม่',
+    headcount_reward:'นับคน+รางวัล', people_var:'× จำนวนคน',
+    discard:'ทิ้ง items', collective_pool:'กองกลาง', per_group:'ตรวจแยกกลุ่ม'
+  };
+  grid.innerHTML = _customEventNames.map((ev,i)=>{
+    const typeLabel = TYPE_LABEL[DEFAULT_EVENTS[i]?.type]||DEFAULT_EVENTS[i]?.type||'';
+    return `<div class="evname-row">
+      <span class="evname-num">${i+1}</span>
+      <input class="evname-emoji-inp" id="evemoji-${i}" value="${ev.emoji}"
+        oninput="_customEventNames[${i}].emoji=this.value||DEFAULT_EVENTS[${i}].emoji">
+      <input class="evname-name-inp" id="evname-${i}" value="${ev.name}" placeholder="ชื่อ Event ${i+1}"
+        oninput="_customEventNames[${i}].name=this.value||DEFAULT_EVENTS[${i}].name">
+      <span class="evname-type">${typeLabel}</span>
+    </div>`;
+  }).join('');
+}
+
+function resetEventNames() {
+  _customEventNames = DEFAULT_EVENTS.map(e=>({id:e.id,name:e.name,emoji:e.emoji}));
+  renderEventNameInputs();
+}
+
+function showStartPreview() {
+  const gs = S.gs||{};
+  if (!gs.gameStarted && !Object.keys(S.players).length) {
+    toast('⚠️ Init Game ก่อนแล้วค่อย Start', true); return;
+  }
+  // build preview content
+  const gc = gs.groupCount||8;
+  const names = gs.groupNames||GN;
+  const pa = Object.values(S.players);
+  const alive = pa.filter(p=>p.alive).length||pa.length;
+  const poolCap = gs.globalConfig?.poolCap||55;
+
+  // Group summary
+  const groupRows = Array.from({length:gc},(_,i)=>{
+    const gname = names[i]||GN[i]||('G'+(i+1));
+    const members = pa.filter(p=>p.groupId==i);
+    const cnt = members.length;
+    const depts = members.map(m=>`<span style="font-size:.65rem;padding:1px 5px;border-radius:3px;background:${(DEPTS[m.dept]?.color||'#888')}22;color:${(DEPTS[m.dept]?.color||'#888')};border:1px solid ${(DEPTS[m.dept]?.color||'#888')}44">${m.dept}</span>`).join('');
+    return `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--sur2);border-radius:5px;margin-bottom:3px">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:.85rem;letter-spacing:2px;color:var(--amber);min-width:90px">${gname}</span>
+      <span style="font-family:monospace;font-size:.6rem;color:var(--dim);min-width:30px">${cnt} คน</span>
+      <div style="display:flex;flex-wrap:wrap;gap:2px">${depts||'<span style="font-size:.6rem;color:var(--dim)">ว่าง</span>'}</div>
+    </div>`;
+  }).join('');
+
+  // Event condition summary
+  const evRows = DEFAULT_EVENTS.map((evDef,idx)=>{
+    const ev = getEffectiveEvent(idx);
+    if (!ev) return '';
+    const customName = _customEventNames[idx];
+    const displayName = customName?.name || ev.name;
+    const displayEmoji = customName?.emoji || ev.emoji;
+
+    let condHtml = '';
+    if (ev.type==='global_per'||ev.type==='people_var') {
+      const req = ev.req||{};
+      const reqMult = ev.reqMultiplier||{};
+      const reqStr = Object.entries(req).map(([d,n])=>`${DEPTS[d]?.icon||d} ${d}: ${n} ชิ้น`).join(', ');
+      const multStr = Object.entries(reqMult).map(([d,m])=>`${DEPTS[d]?.icon||d} ${d}: คน×${m}`).join(', ');
+      condHtml = `<span class="cond-dmg">-${ev.dmg||2}HP ถ้าไม่ผ่าน</span>`+
+        (reqStr?`<span class="cond-info">${reqStr}</span>`:'')+
+        (multStr?`<span class="cond-info">${multStr}</span>`:'');
+    } else if (ev.type==='regroup') {
+      condHtml = `<span class="cond-info">🔀 จัดกลุ่มใหม่${ev.preDmg?` · -${ev.preDmg}HP ก่อน`:''}</span>`;
+    } else if (ev.type==='discard') {
+      condHtml = `<span class="cond-info">ถือได้ ≤ ${ev.poolCap||poolCap} ชิ้น/กลุ่ม</span>`;
+    } else if (ev.type==='collective_pool') {
+      const req2 = ev.req||{};
+      const reqStr2 = Object.entries(req2).map(([d,n])=>`${DEPTS[d]?.icon||d}${n}`).join(' ');
+      condHtml = `<span class="cond-info">🧪 กองกลาง: ${reqStr2}</span>`+
+        `<span class="cond-dmg">ขาดแต่ละ tier = -HP</span>`;
+    } else if (ev.type==='headcount_reward') {
+      condHtml = `<span class="cond-ok">✓ ระบบตรวจอัตโนมัติ</span><span class="cond-info">นับคน → รางวัล</span>`;
+    } else if (ev.type==='per_group') {
+      condHtml = `<span class="cond-dmg">ขาด 1 type→-${ev.dmgPerMissType||2}HP</span><span class="cond-info">ต้องมีครบทุก dept</span>`;
+    }
+
+    return `<div class="ev-preview-row">
+      <span class="ev-preview-num">${idx+1}</span>
+      <span class="ev-preview-emoji">${displayEmoji}</span>
+      <div class="ev-preview-body">
+        <div class="ev-preview-name">${displayName}</div>
+        <div class="ev-preview-cond">${condHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const modal = document.getElementById('start-preview-content');
+  modal.innerHTML =
+    `<div class="modal-section">
+      <div class="modal-section-title">ผู้เล่น ${pa.length} คน · ${gc} กลุ่ม</div>
+      ${groupRows}
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">เงื่อนไข ${DEFAULT_EVENTS.length} Events</div>
+      ${evRows}
+    </div>`;
+
+  document.getElementById('start-preview-modal').style.display='flex';
+}
+
+function closeStartPreview() {
+  document.getElementById('start-preview-modal').style.display='none';
+}
+
+async function doConfirmStart() {
+  setBtn('btn-confirm-start','⏳...',true);
+  // apply custom event names → eventConfig
+  const updates = {};
+  _customEventNames.forEach((ev,i)=>{
+    const def = DEFAULT_EVENTS[i];
+    if (!def) return;
+    if (ev.name !== def.name) updates['game/state/eventConfig/'+def.id+'/customName'] = ev.name;
+    if (ev.emoji !== def.emoji) updates['game/state/eventConfig/'+def.id+'/customEmoji'] = ev.emoji;
+  });
+  if (Object.keys(updates).length) await update(ref(db), updates);
+  closeStartPreview();
+  // เรียก doStartGame
+  await doStartGame();
+}
+
+// render inputs เมื่อ switch tab settings
+const _origSwitchTab = window.switchTab;
+
 async function doInitGame() {
   if (!confirm('Init Game จะล้างผู้เล่นทั้งหมด ยืนยัน?')) return;
   setBtn('btn-init', '⏳...', true);
@@ -1043,13 +1283,17 @@ async function doInitGame() {
   const mn = +document.getElementById('s-min').value||5;
   const mx = +document.getElementById('s-max').value||7;
   const hp = +document.getElementById('s-hp').value||8;
+  // ใช้ชื่อกลุ่มที่ตั้งไว้ใน _customGroupNames
+  const groupNames = _customGroupNames.slice(0,gc).map((n,i)=>n||GN[i]||('G'+(i+1)));
   await set(ref(db,'game'), {
-    state: { gameStarted:false, phase:'lobby', currentEvent:0, pendingConfirm:false, groupCount:gc, minGroupSize:mn, maxGroupSize:mx, defaultHp:hp, groupNames:GN, eventConfig:{}, globalConfig:{poolCap:35} },
+    state: { gameStarted:false, phase:'lobby', currentEvent:0, pendingConfirm:false,
+             groupCount:gc, minGroupSize:mn, maxGroupSize:mx, defaultHp:hp,
+             groupNames:groupNames, eventConfig:{}, globalConfig:{poolCap:35} },
     logs: { [Date.now()]: {ts:Date.now(),type:'i',msg:'ระบบพร้อมแล้ว รอผู้เล่นเข้าร่วม'} }
   });
   await set(ref(db,'players'), null);
   setBtn('btn-init', '⚡ Init Game', false);
-  toast('✅ Init สำเร็จ');
+  toast('✅ Init สำเร็จ — กลุ่ม: '+groupNames.slice(0,3).join(', ')+'...');
 }
 
 async function doStartGame() {
@@ -1451,6 +1695,10 @@ async function doStopCountdown() {
 
 window.switchTab=switchTab; window.renderGamePanel=renderGamePanel;
 window.doInitGame=doInitGame; window.doStartGame=doStartGame;
+window.renderGroupNameInputs=renderGroupNameInputs; window.renderEventNameInputs=renderEventNameInputs;
+window.resetGroupNames=resetGroupNames; window.resetEventNames=resetEventNames;
+window.showStartPreview=showStartPreview; window.closeStartPreview=closeStartPreview;
+window.doConfirmStart=doConfirmStart;
 window.doRunEvent=doRunEvent; window.doConfirmEvent=doConfirmEvent;
 window.doConfirmRegroup=doConfirmRegroup; window.forceAssign=forceAssign;
 window.doRestart=doRestart; window.adminSetHP=adminSetHP; window.adminSetItems=adminSetItems;
