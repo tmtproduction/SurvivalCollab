@@ -1,0 +1,298 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.fw{padding:14px 0 20px;max-width:500px;margin:0 auto;font-family:var(--font-sans)}
+.fh{margin-bottom:12px}
+.fh-title{font-size:16px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.fh-sub{font-size:13px;color:var(--color-text-secondary)}
+.cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:12px}
+.cats::-webkit-scrollbar{display:none}
+.cat{flex-shrink:0;font-size:12px;padding:5px 12px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer;white-space:nowrap}
+.cat.on{background:var(--color-background-warning);border-color:var(--color-border-warning);color:var(--color-text-warning);font-weight:500}
+.prow{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.pbar{flex:1;height:3px;background:var(--color-border-tertiary);border-radius:2px;overflow:hidden}
+.pfill{height:100%;background:var(--color-background-warning);border-radius:2px;transition:width .35s}
+.ptxt{font-size:12px;color:var(--color-text-secondary);white-space:nowrap}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:20px;min-height:270px;display:flex;flex-direction:column;cursor:pointer;transition:border-color .2s;user-select:none;margin-bottom:8px}
+.card:hover{border-color:var(--color-border-secondary)}
+.card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px}
+.card-icon{font-size:22px;flex-shrink:0;line-height:1}
+.card-meta{flex:1}
+.card-label{font-size:11px;color:var(--color-text-secondary);letter-spacing:.05em;margin-bottom:2px;font-weight:500}
+.card-name{font-size:17px;font-weight:500;color:var(--color-text-primary);line-height:1.2}
+.card-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;margin-top:4px;font-weight:500}
+.front{flex:1;display:flex;flex-direction:column;justify-content:space-between}
+.front.h{display:none}
+.kw{font-size:26px;font-weight:500;color:var(--color-text-primary);line-height:1.3;margin-bottom:6px}
+.kw-sub{font-size:13px;color:var(--color-text-secondary)}
+.tap-hint{font-size:12px;color:var(--color-text-tertiary)}
+.back{display:none;flex:1;flex-direction:column;gap:8px}
+.back.s{display:flex}
+.bitem{display:flex;gap:10px;padding:10px 12px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);align-items:flex-start}
+.bdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.btext{font-size:14px;color:var(--color-text-primary);line-height:1.6;font-weight:400}
+.btext b{font-weight:500}
+.btag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;margin-top:4px;font-weight:500}
+.t-ok{background:var(--color-background-success);color:var(--color-text-success)}
+.t-no{background:var(--color-background-danger);color:var(--color-text-danger)}
+.t-w{background:var(--color-background-warning);color:var(--color-text-warning)}
+.t-i{background:var(--color-background-info);color:var(--color-text-info)}
+.t-g{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.fhint{font-size:12px;color:var(--color-text-tertiary);text-align:center;margin-bottom:8px}
+.ctrl{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cbtn{font-size:13px;padding:8px 16px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);cursor:pointer}
+.cbtn:disabled{opacity:.3;cursor:not-allowed}
+.cbtn.p{background:var(--color-background-warning);color:var(--color-text-warning);border-color:var(--color-border-warning)}
+.cmid{font-size:13px;color:var(--color-text-secondary);text-align:center}
+</style>
+
+<div class="fw">
+  <div class="fh">
+    <div class="fh-title">Flash Cards — SURVIVAL</div>
+    <div class="fh-sub" id="fsub">แตะการ์ดเพื่อดูเฉลย · 20 ใบ</div>
+  </div>
+  <div class="cats" id="cats">
+    <button class="cat on" onclick="setCat('all',this)">ทั้งหมด</button>
+    <button class="cat" onclick="setCat('start',this)">ก่อนเริ่ม</button>
+    <button class="cat" onclick="setCat('ui',this)">วิธีใช้งาน</button>
+    <button class="cat" onclick="setCat('ev',this)">11 เหตุการณ์</button>
+    <button class="cat" onclick="setCat('rule',this)">กติกา</button>
+  </div>
+  <div class="prow">
+    <div class="pbar"><div class="pfill" id="pf"></div></div>
+    <div class="ptxt" id="pt">1 / 20</div>
+  </div>
+  <div id="carea"></div>
+  <div class="fhint" id="fhint">แตะการ์ดเพื่อดูรายละเอียด</div>
+  <div class="ctrl">
+    <button class="cbtn" id="bp" onclick="go(-1)">← ก่อน</button>
+    <div class="cmid" id="cm"></div>
+    <button class="cbtn p" id="bn" onclick="go(1)">ถัดไป →</button>
+  </div>
+</div>
+
+<script>
+const D=[
+  {c:'start',e:'📱',lbl:'ขั้นตอนที่ 1',name:'ลงชื่อเข้าเกม',
+   tag:{txt:'ทำครั้งเดียว',cls:'t-g'},
+   kw:'ชื่อไทย + แผนก → ปุ่มเหลือง',kwsub:'ทำก่อนเริ่มเกม 1 ครั้ง',
+   items:[
+    {d:'#639922',t:'พิมพ์ <b>ชื่อจริงภาษาไทย</b> เท่านั้น',tag:'t-no',tt:'ห้ามภาษาอังกฤษ'},
+    {d:'#639922',t:'เลือก <b>แผนก</b> ของตัวเอง'},
+    {d:'#639922',t:'กด <b>ปุ่มสีเหลือง</b> "เข้าร่วมเกม"'},
+    {d:'#BA7517',t:'ยิ่งชื่อยาว ยิ่งได้ <b>ของเยอะ</b>',tag:'t-i',tt:'เคล็ดลับ'},
+   ]},
+  {c:'start',e:'👥',lbl:'ขั้นตอนที่ 2',name:'เลือกทีม',
+   tag:{txt:'ทำครั้งเดียว',cls:'t-g'},
+   kw:'กดชื่อทีม → รอ Admin',kwsub:'ก่อน Admin กด Start',
+   items:[
+    {d:'#639922',t:'กดชื่อทีม → กล่องเปลี่ยน <b>สีเหลือง</b> = เลือกแล้ว'},
+    {d:'#639922',t:'รอนิ่งๆ ไม่ต้องทำอะไรเพิ่ม'},
+    {d:'#E24B4A',t:'ทีมขึ้น <b>"เต็มแล้ว"</b> → กดไม่ได้ ต้องเลือกทีมอื่น',tag:'t-no',tt:'ทีมเต็ม'},
+    {d:'#BA7517',t:'เปลี่ยนทีมได้ตลอดก่อน Admin Start',tag:'t-i',tt:'เปลี่ยนได้'},
+   ]},
+  {c:'rule',e:'📦',lbl:'กติกา',name:'ของประจำแผนก',
+   tag:{txt:'จำไว้',cls:'t-i'},
+   kw:'PD1=🧭  PD3=🍖  EN=💊  MN=🔧',kwsub:'แต่ละแผนกมีของต่างกัน',
+   items:[
+    {d:'#378ADD',t:'🧭 <b>PD1</b> = เข็มทิศ · 📋 <b>PD2</b> = ข้อมูล'},
+    {d:'#378ADD',t:'🍖 <b>PD3</b> = อาหาร · 💰 <b>QA</b> = เงิน'},
+    {d:'#378ADD',t:'💊 <b>EN</b> = ยา · 🔧 <b>MN</b> = เครื่องมือ'},
+    {d:'#BA7517',t:'ยิ่งชื่อยาว ยิ่งได้ของเยอะ'},
+   ]},
+  {c:'ui',e:'➕',lbl:'วิธีใช้งาน',name:'วิธีส่งของ',
+   tag:{txt:'ทุก Event'},cls:'t-g',
+   kw:'กด + → ตัวเลขขึ้น → ปุ่มเหลือง',kwsub:'ทำทุกสถานการณ์',
+   items:[
+    {d:'#639922',t:'กด <b>+</b> เพิ่มจำนวน / กด <b>−</b> ลดจำนวน'},
+    {d:'#639922',t:'กด <b>ปุ่มสีเหลือง</b> "ยืนยันส่ง"'},
+    {d:'#E24B4A',t:'ส่งได้แค่ <b>ของตัวเอง</b> เท่านั้น',tag:'t-no',tt:'ห้ามส่งของคนอื่น'},
+    {d:'#BA7517',t:'หลังส่ง → รอ Admin Confirm ไม่ต้องทำอะไร'},
+   ]},
+  {c:'ui',e:'🟠',lbl:'วิธีใช้งาน',name:'วิธีทิ้งของ',
+   tag:{txt:'เฉพาะ Event 7'},cls:'t-w',
+   kw:'คุยทีมก่อน → กด + → ปุ่มสีส้ม',kwsub:'สถานการณ์ฉุกเฉิน',
+   items:[
+    {d:'#D85A30',t:'คุยกับทีมก่อนว่า <b>ใครทิ้งกี่ชิ้น</b>',tag:'t-w',tt:'ต้องคุยก่อน!'},
+    {d:'#D85A30',t:'กด <b>+</b> ตั้งจำนวน → กด <b>ปุ่มสีส้ม</b>'},
+    {d:'#E24B4A',t:'ระบบถามยืนยัน → กด <b>"ตกลง"</b>'},
+    {d:'#E24B4A',t:'ของที่ทิ้ง <b>หายถาวร</b>',tag:'t-no',tt:'กลับมาไม่ได้'},
+   ]},
+  {c:'rule',e:'❤️',lbl:'กติกา',name:'พลังชีวิต (HP)',
+   tag:{txt:'ดูตลอดเกม',cls:'t-g'},
+   kw:'วงกลมล่างซ้าย → อย่าให้เป็น 0',kwsub:'ดูแถบสถานะด้านล่าง',
+   items:[
+    {d:'#639922',t:'วงกลม <b>สีเขียว</b> = HP ที่เหลืออยู่'},
+    {d:'#888780',t:'วงกลม <b>สีเทา</b> = HP ที่เสียไปแล้ว'},
+    {d:'#E24B4A',t:'HP = 0 → <b>ถูกตัดออกจากเกม</b>',tag:'t-no',tt:'ออกเกมทันที'},
+    {d:'#BA7517',t:'เขียว=ปลอดภัย / ส้ม=ระวัง / แดง=อันตราย'},
+   ]},
+  {c:'ev',e:'🗺',lbl:'Event 01',name:'หลงทาง',
+   tag:{txt:'ทุกทีม',cls:'t-g'},
+   kw:'เข็มทิศ 5 ชิ้น / ทีม',kwsub:'PD1 เป็นคนส่ง',
+   items:[
+    {d:'#639922',t:'ส่ง <b>🧭 เข็มทิศ รวม 5 ชิ้น</b>',tag:'t-ok',tt:'ครบ = ปลอดภัย'},
+    {d:'#E24B4A',t:'ส่งไม่ครบ → เสีย <b>−2 HP</b> ทั้งทีม',tag:'t-no',tt:'−2 HP'},
+   ]},
+  {c:'ev',e:'🍖',lbl:'Event 02',name:'หิวโหย',
+   tag:{txt:'ทุกทีม',cls:'t-g'},
+   kw:'อาหาร 5 ชิ้น / ทีม',kwsub:'PD3 เป็นคนส่ง',
+   items:[
+    {d:'#639922',t:'ส่ง <b>🍖 อาหาร รวม 5 ชิ้น</b>',tag:'t-ok',tt:'ครบ = ปลอดภัย'},
+    {d:'#E24B4A',t:'ส่งไม่ครบ → เสีย <b>−2 HP</b> ทั้งทีม',tag:'t-no',tt:'−2 HP'},
+   ]},
+  {c:'ev',e:'🩹',lbl:'Event 03',name:'บาดเจ็บ',
+   tag:{txt:'ทุกทีม',cls:'t-g'},
+   kw:'ยา 6 ชิ้น / ทีม',kwsub:'EN เป็นคนส่ง',
+   items:[
+    {d:'#639922',t:'ส่ง <b>💊 ยา รวม 6 ชิ้น</b>',tag:'t-ok',tt:'ครบ = ปลอดภัย'},
+    {d:'#E24B4A',t:'ส่งไม่ครบ → เสีย <b>−2 HP</b> ทั้งทีม',tag:'t-no',tt:'−2 HP'},
+    {d:'#BA7517',t:'ต้องการ 6 ชิ้น — มากกว่า Event ก่อน'},
+   ]},
+  {c:'ev',e:'🌋',lbl:'Event 04',name:'แผ่นดินไหว',
+   tag:{txt:'จัดทีมใหม่',cls:'t-w'},
+   kw:'ไม่ต้องส่งของ → เลือกทีมใหม่!',kwsub:'ทีมเดิมถูกยุบทั้งหมด',
+   items:[
+    {d:'#7F77DD',t:'ทีมเดิมถูกยุบ → ทุกคน <b>เลือกทีมใหม่</b>',tag:'t-w',tt:'จัดกลุ่มใหม่'},
+    {d:'#7F77DD',t:'ดูโทรศัพท์ → กดชื่อทีมที่ต้องการ'},
+    {d:'#639922',t:'ไม่ต้องส่งของ แค่เลือกทีมให้ครบก่อน'},
+   ]},
+  {c:'ev',e:'💧',lbl:'Event 05',name:'พบแหล่งน้ำ',
+   tag:{txt:'รับรางวัล',cls:'t-ok'},
+   kw:'ไม่ต้องส่งของ → ระบบตรวจเอง',kwsub:'โอกาสรับของและ HP เพิ่ม',
+   items:[
+    {d:'#639922',t:'PD1≥2+QA≥1 → <b>ทุกคน +2 HP</b>',tag:'t-ok',tt:'รางวัล HP'},
+    {d:'#639922',t:'PD2≥2+EN≥1 → <b>🧭📋🍖 +2 ชิ้น</b>',tag:'t-ok',tt:'รางวัลของ'},
+    {d:'#639922',t:'PD3≥2+MN≥2 → <b>💰💊🔧 +2 ชิ้น</b>',tag:'t-ok',tt:'รางวัลของ'},
+    {d:'#BA7517',t:'ผ่านได้ <b>หลายเงื่อนไขพร้อมกัน</b>'},
+   ]},
+  {c:'ev',e:'🛖',lbl:'Event 06',name:'สร้างแพ',
+   tag:{txt:'คำนวณก่อน',cls:'t-w'},
+   kw:'เครื่องมือ = คนในทีม × 2',kwsub:'MN เป็นคนส่ง',
+   items:[
+    {d:'#BA7517',t:'ส่ง <b>🔧 เครื่องมือ = จำนวนคน × 2</b>',tag:'t-w',tt:'คำนวณก่อนส่ง'},
+    {d:'#BA7517',t:'5 คน → 10 ชิ้น / 3 คน → 6 ชิ้น'},
+    {d:'#E24B4A',t:'ส่งไม่ครบ → เสีย <b>−2 HP</b>',tag:'t-no',tt:'−2 HP'},
+   ]},
+  {c:'ev',e:'⚖',lbl:'Event 07',name:'สถานการณ์ฉุกเฉิน',
+   tag:{txt:'ทิ้งของ!',cls:'t-no'},
+   kw:'ถือได้ไม่เกิน 55 ชิ้น / ทีม',kwsub:'ถ้าเกินต้องทิ้ง ปุ่มสีส้ม',
+   items:[
+    {d:'#D85A30',t:'ของรวมทีม <b>ต้องไม่เกิน 55 ชิ้น</b>',tag:'t-w',tt:'ถือเกิน = ต้องทิ้ง'},
+    {d:'#D85A30',t:'คุยทีมก่อน → ใช้ <b>ปุ่มสีส้ม</b> ทิ้งของ'},
+    {d:'#E24B4A',t:'Admin กด Next ไม่ได้ถ้ายังเกิน',tag:'t-no',tt:'ระบบล็อค'},
+    {d:'#E24B4A',t:'ของที่ทิ้ง <b>หายถาวร</b>'},
+   ]},
+  {c:'ev',e:'🥶',lbl:'Event 08',name:'หนาวจัด',
+   tag:{txt:'ต้องครบทั้งคู่',cls:'t-w'},
+   kw:'อาหาร 1 + เครื่องมือ 2 ต้องครบทั้งคู่',kwsub:'PD3 + MN ส่งด้วยกัน',
+   items:[
+    {d:'#378ADD',t:'ส่ง <b>🍖 อาหาร 1</b> + <b>🔧 เครื่องมือ 2</b>'},
+    {d:'#E24B4A',t:'ขาดอย่างใดอย่างหนึ่ง = <b>ไม่ผ่าน</b>',tag:'t-no',tt:'ต้องครบทั้งคู่ −2 HP'},
+   ]},
+  {c:'ev',e:'🔥',lbl:'Event 09',name:'ไฟป่า',
+   tag:{txt:'จัดทีมใหม่',cls:'t-w'},
+   kw:'ไม่ต้องส่งของ → เลือกทีมใหม่อีกครั้ง',kwsub:'จัดกลุ่มใหม่ครั้งที่ 2',
+   items:[
+    {d:'#7F77DD',t:'ทีมเดิมถูกยุบอีกครั้ง → <b>เลือกทีมใหม่</b>',tag:'t-w',tt:'ครั้งที่ 2'},
+    {d:'#7F77DD',t:'ดูโทรศัพท์ → กดชื่อทีมที่ต้องการ'},
+    {d:'#639922',t:'คิดให้ดี — เลือกทีมที่จะช่วยให้รอด'},
+   ]},
+  {c:'ev',e:'🦠',lbl:'Event 10',name:'โรคระบาด',
+   tag:{txt:'ทั้งห้องร่วมมือ',cls:'t-i'},
+   kw:'กองกลางทั้งห้อง ยา40 + เงิน20 + เครื่องมือ40',kwsub:'ไม่ใช่แค่แต่ละทีม — ทุกทีมช่วยกัน',
+   items:[
+    {d:'#BA7517',t:'<b>ทุกทีม</b> ส่งรวมกันเข้า <b>กองกลาง</b>',tag:'t-i',tt:'ร่วมมือทั้งห้อง'},
+    {d:'#BA7517',t:'เป้า: <b>💊 40 + 💰 20 + 🔧 40</b> รวมทั้งห้อง'},
+    {d:'#E24B4A',t:'ขาดน้อย −1 / กลาง −2 / มาก −3 HP',tag:'t-no',tt:'−1 ถึง −3 HP'},
+   ]},
+  {c:'ev',e:'🚁',lbl:'Event 11 (สุดท้าย)',name:'หนีรอด',
+   tag:{txt:'ต้องครบ 6 ประเภท',cls:'t-ok'},
+   kw:'🧭📋🍖💰💊🔧 ต้องมีครบทั้ง 6 อย่าง',kwsub:'สถานการณ์สุดท้าย!',
+   items:[
+    {d:'#639922',t:'ทีมต้องมี <b>ของครบทั้ง 6 ประเภท</b>',tag:'t-ok',tt:'ครบ = รอด!'},
+    {d:'#E24B4A',t:'ขาด 1 ประเภท → −2 HP',tag:'t-no',tt:''},
+    {d:'#E24B4A',t:'ขาด 2 ประเภท → −4 HP / ขาด 3+ → −6 HP',tag:'t-no',tt:''},
+    {d:'#BA7517',t:'ทีมต้องมีคนหลายแผนกให้ครบ'},
+   ]},
+  {c:'ui',e:'🪞',lbl:'หลังจบเกม',name:'วิธีตอบทบทวน',
+   tag:{txt:'ส่งได้ครั้งเดียว',cls:'t-w'},
+   kw:'กดเลือก ข้อ1+ข้อ2 → ปุ่มเหลือง',kwsub:'ใช้เวลา 3 นาที',
+   items:[
+    {d:'#639922',t:'หน้าจอเปลี่ยนเอง <b>ไม่ต้องทำอะไร</b>'},
+    {d:'#639922',t:'กดเลือกคำตอบ <b>ข้อ 1</b> และ <b>ข้อ 2</b>'},
+    {d:'#639922',t:'กด <b>ปุ่มสีเหลือง</b> "ส่งคำตอบ"'},
+    {d:'#E24B4A',t:'ส่งได้ <b>ครั้งเดียว</b> แก้ไม่ได้',tag:'t-no',tt:'กลับมาแก้ไม่ได้'},
+   ]},
+  {c:'rule',e:'📊',lbl:'สรุปรวม',name:'5 ข้อจำง่าย',
+   tag:{txt:'จำให้ขึ้นใจ',cls:'t-i'},
+   kw:'ชื่อไทย → ทีม → ส่งของ → ดู HP → ทบทวน',kwsub:'flow ทั้งเกม',
+   items:[
+    {d:'#378ADD',t:'1. ลงชื่อ <b>ภาษาไทย</b> + เลือกแผนก'},
+    {d:'#378ADD',t:'2. กดชื่อ <b>ทีม</b> ที่ต้องการ'},
+    {d:'#378ADD',t:'3. เมื่อสถานการณ์เปิด → <b>ส่งของ</b> ปุ่มเหลือง'},
+    {d:'#378ADD',t:'4. ดู <b>พลังชีวิต</b> อย่าให้เป็น 0'},
+    {d:'#378ADD',t:'5. จบเกม → ตอบ <b>คำถาม 2 ข้อ</b>'},
+   ]},
+];
+
+let cur=0,fl=false,fd=[...D];
+
+function render(){
+  const c=fd[cur];
+  if(!c)return;
+  const pct=Math.round((cur+1)/fd.length*100);
+  document.getElementById('pf').style.width=pct+'%';
+  document.getElementById('pt').textContent=(cur+1)+' / '+fd.length;
+  document.getElementById('bp').disabled=cur===0;
+  document.getElementById('bn').disabled=cur===fd.length-1;
+  document.getElementById('fhint').textContent=fl?'แตะอีกครั้งเพื่อกลับหน้าหลัก':'แตะการ์ดเพื่อดูรายละเอียด';
+  document.getElementById('cm').textContent=c.lbl;
+
+  const items=c.items.map(it=>`
+    <div class="bitem">
+      <div class="bdot" style="background:${it.d}"></div>
+      <div>
+        <div class="btext">${it.t}</div>
+        ${it.tag&&it.tt?`<span class="btag ${it.tag}">${it.tt}</span>`:''}
+      </div>
+    </div>`).join('');
+
+  const tagHtml=c.tag?`<span class="card-tag ${c.tag.cls}">${c.tag.txt}</span>`:'';
+
+  document.getElementById('carea').innerHTML=`
+    <div class="card" onclick="flip()">
+      <div class="card-top">
+        <div class="card-icon">${c.e}</div>
+        <div class="card-meta">
+          <div class="card-label">${c.lbl}</div>
+          <div class="card-name">${c.name}</div>
+          ${tagHtml}
+        </div>
+      </div>
+      <div class="front ${fl?'h':''}">
+        <div>
+          <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:6px">คีย์เวิร์ด</div>
+          <div class="kw">${c.kw}</div>
+          <div class="kw-sub">${c.kwsub||''}</div>
+        </div>
+        <div class="tap-hint">แตะเพื่อดูรายละเอียด ↓</div>
+      </div>
+      <div class="back ${fl?'s':''}">
+        ${items}
+      </div>
+    </div>`;
+}
+
+function flip(){fl=!fl;render();}
+function go(d){cur=Math.max(0,Math.min(fd.length-1,cur+d));fl=false;render();}
+function setCat(cat,el){
+  document.querySelectorAll('.cat').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  fd=cat==='all'?[...D]:D.filter(x=>x.c===cat);
+  cur=0;fl=false;
+  document.getElementById('fsub').textContent='แตะการ์ดเพื่อดูเฉลย · '+fd.length+' ใบ';
+  render();
+}
+render();
+</script>
