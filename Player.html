@@ -264,6 +264,17 @@ const saveDebriefDone=(pid)=>{try{localStorage.setItem('sv3_deb_'+pid,'1')}catch
 const loadDebriefDone=(pid)=>{try{return localStorage.getItem('sv3_deb_'+pid)==='1'}catch(e){return false}};
 const clearDebriefDone=(pid)=>{try{localStorage.removeItem('sv3_deb_'+pid)}catch(e){}};
 
+// apply customName/customEmoji จาก Firebase eventConfig
+function getEffectiveEv(ev){
+  if(!ev) return ev;
+  const cfg=S.gs?.eventConfig?.[ev.id]||{};
+  if(!cfg.customName&&!cfg.customEmoji) return ev;
+  return Object.assign({},ev,{
+    name: cfg.customName||ev.name,
+    emoji: cfg.customEmoji||ev.emoji
+  });
+}
+
 function calcItems(name){
   let t=0;
   for(let i=0;i<name.length;i++){const cp=name.codePointAt(i);if(cp>=0x0E01&&cp<=0x0E2E)t+=2;else if(cp>=0x0E30&&cp<=0x0E4E)t+=1;}
@@ -328,7 +339,7 @@ function getPhase(){
   if(phase==='regrouping')return'regroup';
   if(phase==='lobby')return'lobby';
   if(gs.pendingConfirm){
-    const ev=EVENTS[(gs.currentEvent||0)];
+    const ev=getEffectiveEv(EVENTS[(gs.currentEvent||0)]);
     if(ev?.type==='regroup')return'wait';
     if(ev?.type==='discard')return'discard';
     if(ev?.type==='headcount_reward')return'wait';
@@ -698,7 +709,7 @@ function renderShell(app,phase){
 }
 
 function renderContent(phase){
-  const p=S.player||{},gs=S.gs||{},evIdx=gs.currentEvent||0,ev=EVENTS[evIdx],d=DEPTS[p.dept]||{},mg=myGroup();
+  const p=S.player||{},gs=S.gs||{},evIdx=gs.currentEvent||0,ev=getEffectiveEv(EVENTS[evIdx]),d=DEPTS[p.dept]||{},mg=myGroup();
   // dead but game still going
   if(!p.alive&&phase!=='lobby'&&phase!=='regroup'){
     const d=DEPTS[p.dept]||{};
@@ -1426,7 +1437,7 @@ function getAmbientKey(){
   if(phase==='result') return 'ev10';
   if(phase==='regrouping') return 'regroup';
   const evIdx=gs.currentEvent||0;
-  const ev=EVENTS[evIdx];
+  const ev=getEffectiveEv(EVENTS[evIdx]);
   const t=ev?.type||'';
   const id=ev?.id;
   // regroup events

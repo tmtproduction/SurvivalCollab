@@ -1154,8 +1154,13 @@ function updateGroupName(el) {
 function updateEventName(el) {
   const idx = +el.dataset.idx;
   const field = el.dataset.field;
-  if (field === 'emoji') _customEventNames[idx].emoji = el.value || DEFAULT_EVENTS[idx].emoji;
-  if (field === 'name')  _customEventNames[idx].name  = el.value || DEFAULT_EVENTS[idx].name;
+  if (!_customEventNames[idx]) return;
+  if (field === 'emoji') {
+    _customEventNames[idx].emoji = el.value.trim() || DEFAULT_EVENTS[idx]?.emoji || '❓';
+  }
+  if (field === 'name') {
+    _customEventNames[idx].name = el.value.trim() || DEFAULT_EVENTS[idx]?.name || ('Event '+(idx+1));
+  }
 }
 
 function renderEventNameInputs() {
@@ -1166,17 +1171,25 @@ function renderEventNameInputs() {
     headcount_reward:'นับคน+รางวัล', people_var:'× จำนวนคน',
     discard:'ทิ้ง items', collective_pool:'กองกลาง', per_group:'ตรวจแยกกลุ่ม'
   };
+  // สร้าง div elements แล้ว set value ด้วย JS เพื่อหลีกเลี่ยง emoji/quote ใน HTML attribute
   grid.innerHTML = _customEventNames.map((ev,i)=>{
     const typeLabel = TYPE_LABEL[DEFAULT_EVENTS[i]?.type]||DEFAULT_EVENTS[i]?.type||'';
-    return `<div class="evname-row">
+    return `<div class="evname-row" id="evrow-${i}">
       <span class="evname-num">${i+1}</span>
-      <input class="evname-emoji-inp" id="evemoji-${i}" value="${ev.emoji}" data-idx="${i}" data-field="emoji"
+      <input class="evname-emoji-inp" id="evemoji-${i}" data-idx="${i}" data-field="emoji"
         oninput="updateEventName(this)">
-      <input class="evname-name-inp" id="evname-${i}" value="${ev.name}" placeholder="ชื่อ Event ${i+1}" data-idx="${i}" data-field="name"
+      <input class="evname-name-inp" id="evname-${i}" placeholder="ชื่อ Event ${i+1}" data-idx="${i}" data-field="name"
         oninput="updateEventName(this)">
       <span class="evname-type">${typeLabel}</span>
     </div>`;
   }).join('');
+  // set value แยก เพื่อป้องกัน emoji/special char ใน HTML attribute
+  _customEventNames.forEach((ev,i)=>{
+    const emojiEl = document.getElementById('evemoji-'+i);
+    const nameEl  = document.getElementById('evname-'+i);
+    if(emojiEl) emojiEl.value = ev.emoji;
+    if(nameEl)  nameEl.value  = ev.name;
+  });
 }
 
 function resetEventNames() {
@@ -1186,8 +1199,9 @@ function resetEventNames() {
 
 function showStartPreview() {
   const gs = S.gs||{};
-  if (!gs.gameStarted && !Object.keys(S.players).length) {
-    toast('⚠️ Init Game ก่อนแล้วค่อย Start', true); return;
+  // block เฉพาะยังไม่ได้ Init เลย (ไม่มี groupCount ใน state)
+  if (!gs.groupCount) {
+    toast('⚠️ กด Init Game ก่อน แล้วค่อย Preview', true); return;
   }
   // build preview content
   const gc = gs.groupCount||8;
