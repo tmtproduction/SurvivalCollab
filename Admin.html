@@ -525,11 +525,25 @@ function renderGamePanel() {
     return;
   }
 
+  if (phase === 'debrief') {
+    const debriefData = S.gs?.debrief ? Object.values(S.gs.debrief) : [];
+    const pa = Object.values(S.players);
+    el.innerHTML = h('div','style="text-align:center;padding:24px 20px"',
+      h('div','style="font-size:2.5rem;margin-bottom:8px"','🪞')+
+      h('div','style="font-family:\'Bebas Neue\',sans-serif;font-size:1.3rem;letter-spacing:5px;color:var(--purple)"','DEBRIEF กำลังดำเนินอยู่')+
+      h('div','style="font-family:monospace;font-size:.75rem;color:var(--dim);margin-top:8px"','ตอบแล้ว '+debriefData.length+' / '+pa.length+' คน')+
+      h('div','style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap"',
+        h('a','href="Scoreboard.html?noredirect=1" target="_blank" class="btn btn-g"','🏆 Scoreboard')
+      )
+    );
+    return;
+  }
+
   if (phase === 'regrouping') {
     el.innerHTML = renderRegroupingPanel(); return;
   }
 
-  // playing
+  // playing — guard: currentEvent อาจ = EV_TOTAL หลัง event สุดท้าย
   const evIdx = gs.currentEvent||0, ev = getEffectiveEvent(evIdx);
   const pending = gs.pendingConfirm;
   let out = '';
@@ -970,7 +984,10 @@ async function saveGlobalCfg(field, val) {
 //  GAME ACTIONS
 // ============================================================
 function getEffectiveEvent(idx) {
-  const ev = JSON.parse(JSON.stringify(DEFAULT_EVENTS[idx])); // deep copy
+  if (idx === undefined || idx === null || idx >= DEFAULT_EVENTS.length) return null;
+  const src = DEFAULT_EVENTS[idx];
+  if (!src) return null;
+  const ev = JSON.parse(JSON.stringify(src)); // deep copy
   const cfg = (S.gs?.eventConfig||{})[ev.id]||{};
   if (cfg.req !== undefined) ev.req = cfg.req;
   if (cfg.dmg !== undefined) ev.dmg = cfg.dmg;
