@@ -515,7 +515,7 @@ async function doUseItems(){
   }
   await update(ref(db),writes);
   await push(ref(db,'game/logs'),{ts:Date.now(),type:'g',
-    msg:S.player.name+' ใช้ '+S.useAmt+' '+(DEPTS[dept]?.icon||'')+' → กลุ่มรวม '+newTotal+' ชิ้น'});
+    msg:S.player.name+' ใช้ '+(DEPTS[dept]?.icon||dept)+' → กลุ่มรวม '+newTotal+' ชิ้น'});
   S.useAmt=0;
   S.submitted=true;
   S.submitting=false;
@@ -1351,10 +1351,11 @@ function groupInfo(mg,ev){
   const pool=mg.pool||{},req=getReq(ev,mg.members),hasReq=Object.keys(req).length>0;
   const chips=DK.map(dk=>{
     const have=pool[dk]||0,need=req[dk]||0,cls=!hasReq||!need?'':have>=need?' p-ok':' p-fail';
-    const statusTxt = !need ? '' : (have>=need
-      ? `<span style="font-size:.55rem;color:var(--green);font-weight:700">✓ครบ</span>`
-      : `<span style="font-size:.55rem;color:var(--red);font-weight:700">✗ขาด</span>`);
-    return`<div class="pchip${cls}">${DEPTS[dk]?.icon||dk}<span class="pval">${have}</span>${statusTxt}</div>`;
+    if(need){
+      const ok2=have>=need;
+      return`<div class="pchip${cls}">${DEPTS[dk]?.icon||dk}<span style="font-size:.55rem;font-weight:700;color:${ok2?'var(--green)':'var(--red)'}">${ok2?'✓ครบ':'✗ขาด'}</span></div>`;
+    }
+    return`<div class="pchip${cls}">${DEPTS[dk]?.icon||dk}<span class="pval">${have}</span></div>`;
   }).join('');
 
   // แยก alive กับ dead
@@ -1368,10 +1369,10 @@ function groupInfo(mg,ev){
         <span class="dbadge" style="background:${md.color}22;color:${md.color};border:1px solid ${md.color}44">${m.dept}</span>
         ${m.name}${me?'<span style="font-size:.7rem;color:var(--amber);margin-left:4px">← ฉัน</span>':''}
       </span>
-      <span style="display:flex;align-items:center;gap:3px">
+      ${me?`<span style="display:flex;align-items:center;gap:3px">
         <span style="font-size:.7rem;opacity:.7">${DEPTS[m.dept]?.icon||''}</span>
-        <span style="font-family:var(--mono);font-size:.8rem;font-weight:700;color:${me?'var(--amber)':'var(--txt)'}">${(S.players[m.id]||m).items??0}</span>
-      </span>
+        <span style="font-family:var(--mono);font-size:.8rem;font-weight:700;color:var(--amber)">${(S.players[m.id]||m).items??0}</span>
+      </span>`:''}
     </div>`;
   }).join('');
 
