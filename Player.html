@@ -20,7 +20,7 @@
   --r:10px;--rl:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--bg)}
+html,body{height:100%;background:transparent}
 body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 #shell{max-width:440px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
 
@@ -129,7 +129,7 @@ body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 .cemetery-row{display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:5px;font-size:.7rem;opacity:.45;text-decoration:line-through}
 
 /* login */
-.login-outer{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;gap:18px;background:var(--bg)}
+.login-outer{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;gap:18px;background:transparent}
 .login-logo{font-family:var(--deco);font-size:2.8rem;letter-spacing:.4em;color:var(--amber);text-align:center}
 .login-sub{font-family:var(--mono);font-size:.58rem;color:var(--dim);letter-spacing:.22em;text-align:center;margin-top:-12px}
 .login-card{width:100%;max-width:360px;background:var(--sur);border:1px solid var(--brd2);border-radius:var(--rl);padding:20px;display:flex;flex-direction:column;gap:13px}
@@ -142,7 +142,7 @@ body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 .err-msg{font-family:var(--mono);font-size:.65rem;color:var(--red);text-align:center}
 
 /* result */
-.result-outer{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;gap:14px;text-align:center}
+.result-outer{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;gap:14px;text-align:center;background:transparent}
 .result-icon{font-size:5rem;line-height:1}
 .result-title{font-family:var(--deco);font-size:2.6rem;letter-spacing:.12em}
 .result-stats{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);padding:16px 20px;width:100%;max-width:280px;font-family:var(--mono);font-size:.72rem;color:var(--dim);line-height:2.2}
@@ -164,7 +164,7 @@ body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 @keyframes cdPulse{0%,100%{opacity:1}50%{opacity:.5}}
 
 /* ── DEBRIEF ── */
-.debrief-outer{min-height:100dvh;padding:20px 18px 100px;background:var(--bg)}
+.debrief-outer{min-height:100dvh;padding:20px 18px 100px;background:transparent}
 .debrief-hd{font-family:var(--deco);font-size:1.6rem;letter-spacing:.15em;color:var(--amber);margin-bottom:4px}
 .debrief-sub{font-family:var(--mono);font-size:.6rem;color:var(--dim);letter-spacing:.1em;margin-bottom:18px}
 .db-card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);padding:14px 16px;margin-bottom:10px}
@@ -186,8 +186,8 @@ body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 .q-text:focus{border-color:var(--amber)}
 .submit-debrief{width:100%;padding:14px;background:var(--amber);color:#000;border:none;border-radius:var(--r);font-family:var(--mono);font-size:.78rem;font-weight:700;cursor:pointer;margin-top:4px;touch-action:manipulation}
 .submit-debrief:disabled{opacity:.4;cursor:not-allowed}
-#ambient-bg{position:fixed;inset:0;z-index:-2;transition:background 1.2s ease;will-change:background}
-#ambient-canvas{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.9}
+#ambient-bg{position:fixed;inset:0;z-index:-2;background:#07090d;transition:background 1.2s ease;will-change:background}
+#ambient-canvas{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:1}
 #ambient-overlay{position:fixed;inset:0;z-index:-1;pointer-events:none;transition:background 1.2s ease,opacity .8s}
 @media(prefers-reduced-motion:reduce){
   #ambient-bg,#ambient-overlay{transition:none}
@@ -600,7 +600,7 @@ function renderResult(app){
       <div>ชื่อ: ${p.name}</div><div>แผนก: ${p.dept} ${d.icon||''}</div>
       <div>HP สุดท้าย: ${p.hp||0}/${p.maxHp||0}</div><div>Items เหลือ: ${p.items||0}</div>
     </div>
-    <a class="result-link" href="Scoreboard.html">🏆 ดูผลการแข่งขัน</a>
+    <a class="result-link" href="Scoreboard.html?noredirect=1">🏆 ดูผลการแข่งขัน</a>
   </div>`;
 }
 
@@ -692,7 +692,7 @@ function renderContent(phase){
       <div style="font-size:2.8rem;margin-bottom:8px">💀</div>
       <div class="dead-title">คุณถูกตัดออกแล้ว</div>
       <div class="dead-sub">${d.icon} ${p.name}<br>HP: 0 — ออกจากเกมแล้ว</div>
-      <a href="Scoreboard.html" style="display:inline-block;margin-top:14px;padding:11px 22px;background:var(--red);color:#fff;border-radius:var(--r);font-family:var(--mono);font-weight:600;font-size:.72rem;letter-spacing:.06em;text-decoration:none;touch-action:manipulation">
+      <a href="Scoreboard.html?noredirect=1" style="display:inline-block;margin-top:14px;padding:11px 22px;background:var(--red);color:#fff;border-radius:var(--r);font-family:var(--mono);font-weight:600;font-size:.72rem;letter-spacing:.06em;text-decoration:none;touch-action:manipulation">
         🏆 ดู Scoreboard
       </a>
     </div>
@@ -1176,7 +1176,7 @@ function renderDebrief(app){
       <div style="font-size:3rem;margin-bottom:10px">🙏</div>
       <div class="debrief-hd">ขอบคุณ!</div>
       <div style="font-family:var(--mono);font-size:.75rem;color:var(--dim);margin-top:6px">บันทึก Reflection ของคุณแล้ว</div>
-      <a href="Scoreboard.html" style="display:inline-block;margin-top:20px;padding:12px 24px;background:var(--amber);color:#000;border-radius:var(--r);font-family:var(--mono);font-weight:700;font-size:.72rem;text-decoration:none">🏆 ดูผลการแข่งขัน</a>
+      <a href="Scoreboard.html?noredirect=1" style="display:inline-block;margin-top:20px;padding:12px 24px;background:var(--amber);color:#000;border-radius:var(--r);font-family:var(--mono);font-weight:700;font-size:.72rem;text-decoration:none">🏆 ดูผลการแข่งขัน</a>
     </div>`;
     return;
   }
@@ -1368,8 +1368,8 @@ function groupInfo(mg,ev){
 //  AMBIENT ENGINE
 // ============================================================
 const AMBIENT_SCENES = {
-  lobby:    {bg:'#07090d',ac:'#f0a500',ov:'rgba(240,165,0,.0)',anim:'breathe',
-             p:{count:20,type:'star',col:'rgba(240,165,0,',sz:1.2,spd:.12,dr:.25}},
+  lobby:    {bg:'#07090d',ac:'#f0a500',ov:'rgba(240,165,0,.04)',anim:'breathe',
+             p:{count:30,type:'star',col:'rgba(240,165,0,',sz:1.8,spd:.15,dr:.3}},
   ev1:      {bg:'#0d0900',ac:'#f0a500',ov:'rgba(240,165,0,.04)',anim:'breathe',
              p:{count:18,type:'dot',col:'rgba(240,165,0,',sz:1.4,spd:.18,dr:.35}},
   ev2:      {bg:'#0d0600',ac:'#ffd54f',ov:'rgba(255,213,79,.04)',anim:'breathe',
@@ -1444,7 +1444,7 @@ function _makeParts(scene){
     y:Math.random()*_ambCanvas.height,
     vx:(Math.random()-.5)*p.dr,
     vy:p.type==='snow'? Math.random()*p.spd+.06 : -Math.random()*p.spd-.05,
-    a:Math.random()*.55+.15,
+    a:Math.random()*.6+.25,
     sz:Math.random()*p.sz+.5,
     life:Math.random(),
     maxL:.75+Math.random()*.45,
@@ -1513,12 +1513,9 @@ function setAmbient(key){
   _ambKey=key;
   const scene=AMBIENT_SCENES[key]||AMBIENT_SCENES.lobby;
 
-  // Layer 1 — BG color (force reflow เพื่อให้ transition kick in)
+  // Layer 1 — BG color
   const bgEl=document.getElementById('ambient-bg');
-  if(bgEl){
-    bgEl.style.background=''; // reset ก่อน
-    requestAnimationFrame(()=>{ if(bgEl) bgEl.style.background=scene.bg; });
-  }
+  if(bgEl) bgEl.style.background=scene.bg;
 
   // Layer 2 — Overlay
   const ovEl=document.getElementById('ambient-overlay');

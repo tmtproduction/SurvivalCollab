@@ -507,7 +507,7 @@ function renderGamePanel() {
       h('div','style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;letter-spacing:6px;color:var(--amber);margin-top:10px"','จบเกม!')+
       h('div','style="font-family:monospace;font-size:.75rem;color:var(--dim);margin-top:10px"','รอด '+alive.length+'/'+pa.length+' คน')+
       h('div','style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap"',
-        h('a','href="Scoreboard.html" target="_blank" class="btn btn-g"','🏆 Scoreboard')+
+        h('a','href="Scoreboard.html?noredirect=1" target="_blank" class="btn btn-g"','🏆 Scoreboard')+
         h('button','class="btn btn-pu" onclick="doStartDebrief()"','🪞 เปิด Debrief')
       )+
       h('div','style="margin-top:16px;background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:12px 16px"',

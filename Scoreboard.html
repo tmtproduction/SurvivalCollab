@@ -195,13 +195,17 @@ onValue(ref(db, '.info/connected'), snap => {
 
 onValue(ref(db, 'game/state'), snap => {
   D.gs=snap.val();
-  // Bug fix: ถ้า phase เปลี่ยนเป็น debrief ให้ redirect player กลับ Player.html
+  // redirect player กลับ Player.html เพื่อตอบ Debrief
+  // เงื่อนไข: phase=debrief + มี session + ไม่มี ?noredirect + ยังไม่ได้ submit debrief
   if(D.gs?.phase==='debrief'){
-    const savedPid = (()=>{try{return localStorage.getItem('sv3_pid')}catch(e){return null}})();
-    if(savedPid){
-      // player มี session → redirect กลับ Player.html เพื่อตอบ Debrief
-      window.location.href='Player.html';
-      return;
+    const noRedirect = new URLSearchParams(location.search).get('noredirect');
+    if(!noRedirect){
+      const savedPid = (()=>{try{return localStorage.getItem('sv3_pid')}catch(e){return null}})();
+      const alreadyDone = savedPid ? (()=>{try{return localStorage.getItem('sv3_deb_'+savedPid)==='1'}catch(e){return false}})() : false;
+      if(savedPid && !alreadyDone){
+        window.location.href='Player.html';
+        return;
+      }
     }
   }
   render();
