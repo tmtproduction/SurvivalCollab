@@ -292,7 +292,7 @@ const EV_TOTAL = DEFAULT_EVENTS.length;
 // ============================================================
 //  STATE
 // ============================================================
-let S = { gs:null, players:{}, logs:[], groupStatus:[], activeTab:'game' };
+let S = { gs:null, players:{}, logs:[], groupStatus:[], activeTab:'game', debrief:[] };
 
 // ============================================================
 //  HELPERS
@@ -369,9 +369,12 @@ onValue(ref(db, '.info/connected'), snap => {
 
 // นับ debrief submissions แบบ real-time → อัปเดต banner
 onValue(ref(db, 'game/debrief'), snap => {
-  const count = snap.val() ? Object.keys(snap.val()).length : 0;
+  const raw = snap.val() || {};
+  S.debrief = Object.values(raw); // เก็บ entries จริงใน S.debrief
+  const count = S.debrief.length;
   if (S.gs) update(ref(db,'game/state'),{debriefCount:count}).catch(()=>{});
   updatePhaseBanner();
+  renderActivePanel(); // re-render panel เพื่ออัปเดต progress bar
 });
 
 // ============================================================
@@ -526,7 +529,7 @@ function renderGamePanel() {
   }
 
   if (phase === 'debrief') {
-    const debriefData = S.gs?.debrief ? Object.values(S.gs.debrief) : [];
+    const debriefData = S.debrief || []; // ใช้ S.debrief ที่ sync จาก game/debrief listener
     const pa = Object.values(S.players);
     const total = pa.length;
     const done = debriefData.length;
