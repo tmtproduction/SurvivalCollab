@@ -1816,7 +1816,8 @@ async function doConfirmRegroup() {
     currentEvent: nextEv,
     leaderAssigned: false,
     leaderSelectOpen: false,
-    leaderAcceptOpen: false
+    leaderAcceptOpen: false,
+    leaderGroupCount: null
   });
   // clear isLeader และ groupRequest ทุกคน
   const clears = {};
@@ -1942,6 +1943,7 @@ async function confirmLeaders() {
   updates['game/state/leaderAssigned'] = true;
   updates['game/state/leaderSelectOpen'] = false;
   updates['game/state/leaderAcceptOpen'] = false;
+  updates['game/state/leaderGroupCount'] = Object.keys(_leaderDraft).length;
 
   await update(ref(db), updates);
   await push(ref(db,'game/logs'), {ts:Date.now(),type:'p',msg:'👑 ยืนยันหัวหน้า — '+leaders.join(' | ')});
