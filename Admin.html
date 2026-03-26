@@ -799,15 +799,22 @@ function renderRegroupingPanel() {
   const alive = playerArr.filter(p => p.alive);
   const assigned = alive.filter(p => p.groupId >= 0);
   const unassigned = alive.filter(p => p.groupId < 0);
+  const leaderAssigned = gs.leaderAssigned || false;
+  const leaderAcceptOpen = gs.leaderAcceptOpen || false;
 
-  const gsHtml = S.groupStatus.map(g => {
-    // แสดงเฉพาะ member ที่มีชีวิต ใน regroup
-    const aliveTags = g.members.filter(m => m.alive).map(m => h('span','style="font-size:.66rem;padding:2px 5px;border-radius:3px;background:var(--sur2);font-family:monospace"',(DEPTS[m.dept]?.icon||'')+' '+m.name)).join('');
+  const leaderRows = S.groupStatus.map(g => {
+    const aliveTags = g.members.filter(m => m.alive).map(m => {
+      const isLdr = S.players[m.id]?.isLeader;
+      return h('span','style="font-size:.66rem;padding:2px 5px;border-radius:3px;font-family:monospace;background:'+(isLdr?'rgba(245,166,35,.15)':'var(--sur2)')+';'+(isLdr?'border:1px solid rgba(245,166,35,.4);color:var(--amber)':'')+'\"',
+        (isLdr?'👑 ':'')+(DEPTS[m.dept]?.icon||'')+' '+m.name);
+    }).join('');
+    const leader = g.members.find(m => m.alive && S.players[m.id]?.isLeader);
     return h('div','style="background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:7px 9px;margin-bottom:4px"',
       h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"',
         h('span','style="font-family:\'Bebas Neue\',sans-serif;letter-spacing:3px;color:var(--purple)"',g.name)+
-        h('span','style="font-family:monospace;font-size:.58rem;color:'+(g.full?'var(--red)':'var(--dim)')+'"',g.aliveCount+'/'+g.max+(g.full?' FULL':''))
-      ) + h('div','style="display:flex;flex-wrap:wrap;gap:3px"',aliveTags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
+        h('span','style="font-family:monospace;font-size:.58rem;color:'+(g.full?'var(--red)':'var(--dim)')+'\"',
+          g.aliveCount+'/'+g.max+(g.full?' FULL':'')+(leader?' · 👑 '+leader.name:''))
+      )+h('div','style="display:flex;flex-wrap:wrap;gap:3px"',aliveTags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
     );
   }).join('');
 
@@ -824,6 +831,26 @@ function renderRegroupingPanel() {
     }).join('')
   ) : '';
 
+  const leaderBtn = leaderAssigned
+    ? h('button','class="btn btn-s" onclick="doRandomLeader()" style="font-size:.62rem;padding:5px 11px"','🎲 สุ่มใหม่')
+    : h('button','class="btn btn-pu" onclick="doRandomLeader()" style="font-size:.62rem;padding:5px 11px"','👑 สุ่มหัวหน้ากลุ่ม');
+
+  // ── ปุ่มเปิด/ปิดช่วงรับสมาชิก — แสดงเมื่อสุ่มหัวหน้าแล้ว
+  const acceptBtn = leaderAssigned
+    ? (leaderAcceptOpen
+        ? h('button','class="btn btn-r" onclick="doToggleAccept()" style="font-size:.62rem;padding:5px 11px"','🔴 ปิดรับสมาชิก')
+        : h('button','class="btn btn-g" onclick="doToggleAccept()" style="font-size:.62rem;padding:5px 11px"','🟢 เปิดให้รับสมาชิก'))
+    : '';
+
+  // ── status banner แสดงช่วงปัจจุบัน
+  const statusBanner = leaderAssigned
+    ? h('div','style="margin-top:8px;padding:7px 10px;border-radius:6px;font-family:monospace;font-size:.62rem;font-weight:700;'+
+        (leaderAcceptOpen
+          ? 'background:rgba(61,186,106,.1);border:1px solid rgba(61,186,106,.3);color:var(--green)'
+          : 'background:rgba(206,147,216,.1);border:1px solid rgba(206,147,216,.3);color:var(--purple)')+'\"',
+        leaderAcceptOpen ? '🟢 ช่วงรับสมาชิก — หัวหน้ากด ✓ รับได้แล้ว' : '💬 ช่วงอภิปราย — ให้ผู้เล่นเดินชักชวนกันก่อน')
+    : '';
+
   return h('div','class="ev-card regroup"',
     h('div','style="font-size:.53rem;font-family:monospace;color:var(--dim);margin-bottom:2px"','EVENT '+(evIdx+1)+' / 10')+
     h('div','style="display:flex;align-items:center;gap:8px"',
@@ -833,13 +860,16 @@ function renderRegroupingPanel() {
     h('div','style="font-size:.78rem;margin-top:3px"','รอ Players เลือกกลุ่มใหม่')+
     h('div','style="font-family:monospace;font-size:.65rem;margin-top:5px;display:flex;gap:10px"',
       h('span','style="color:var(--green)"','✓ '+assigned.length+' คน เลือกแล้ว')+
-      h('span','style="color:'+(unassigned.length?'var(--red)':'var(--dim)')+'"','⏳ รออีก '+unassigned.length+' คน')
+      h('span','style="color:'+(unassigned.length?'var(--red)':'var(--dim)')+'\"','⏳ รออีก '+unassigned.length+' คน')
     )
   )+
-  h('div','style="margin-top:8px"',gsHtml)+
+  statusBanner+
+  h('div','style="margin-top:8px"',leaderRows)+
   unassignedHtml+
   h('div','style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap"',
     h('button','id="btn-conf-rg" class="btn btn-p" onclick="doConfirmRegroup()"','✅ Confirm Regroup ('+assigned.length+'/'+alive.length+')')+
+    leaderBtn+
+    acceptBtn+
     h('button','class="btn btn-s" onclick="scheduleRender()"','🔄 Refresh')
   );
 }
@@ -1732,11 +1762,47 @@ async function doConfirmRegroup() {
   await update(ref(db,'game/state'), {
     phase: nextEv >= EV_TOTAL ? 'result' : 'playing',
     pendingConfirm: false,
-    currentEvent: nextEv
+    currentEvent: nextEv,
+    leaderAssigned: false,
+    leaderAcceptOpen: false  // reset ทุกครั้งที่จบ regroup
   });
+  // clear isLeader และ groupRequest ทุกคน
+  const clears = {};
+  Object.keys(S.players).forEach(pid => {
+    clears['players/'+pid+'/isLeader'] = false;
+    clears['players/'+pid+'/groupRequest'] = null;
+  });
+  if (Object.keys(clears).length) await update(ref(db), clears);
   await push(ref(db,'game/logs'), {ts:Date.now(),type:'p',msg:'🔀 Regroup เสร็จสิ้น — Event '+(nextEv+1)+' พร้อมแล้ว'});
   setBtn('btn-conf-rg', null, false);
   toast('✅ Regroup สรุปแล้ว');
+}
+
+async function doToggleAccept() {
+  const current = S.gs?.leaderAcceptOpen || false;
+  await update(ref(db,'game/state'), { leaderAcceptOpen: !current });
+  toast(!current ? '🟢 เปิดให้หัวหน้ารับสมาชิกแล้ว' : '🔴 ปิดการรับสมาชิก');
+}
+
+async function doRandomLeader() {
+  const gs = S.gs||{};
+  const playerArr = Object.values(S.players);
+  const gc = gs.groupCount||8;
+  const updates = {};
+  playerArr.forEach(p => { updates['players/'+p.id+'/isLeader'] = false; });
+  const leaders = [];
+  for (let gid = 0; gid < gc; gid++) {
+    const members = playerArr.filter(p => p.alive && p.groupId == gid);
+    if (!members.length) continue;
+    const pick = members[Math.floor(Math.random() * members.length)];
+    updates['players/'+pick.id+'/isLeader'] = true;
+    leaders.push((gs.groupNames||GN)[gid]+': '+pick.name);
+  }
+  updates['game/state/leaderAssigned'] = true;
+  updates['game/state/leaderAcceptOpen'] = false; // reset ให้อยู่ในช่วงอภิปรายก่อน
+  await update(ref(db), updates);
+  await push(ref(db,'game/logs'), {ts:Date.now(),type:'p',msg:'👑 สุ่มหัวหน้า — '+leaders.join(' | ')});
+  toast('👑 สุ่มหัวหน้าแล้ว — กด 🟢 เปิดให้รับสมาชิก เมื่อพร้อม');
 }
 
 async function forceAssign(playerId, groupId) {
@@ -1999,6 +2065,7 @@ window.showStartPreview=showStartPreview; window.closeStartPreview=closeStartPre
 window.doConfirmStart=doConfirmStart;
 window.doRunEvent=doRunEvent; window.doConfirmEvent=doConfirmEvent;
 window.doConfirmRegroup=doConfirmRegroup; window.forceAssign=forceAssign;
+window.doRandomLeader=doRandomLeader; window.doToggleAccept=doToggleAccept;
 window.doRestart=doRestart; window.adminSetHP=adminSetHP; window.adminSetItems=adminSetItems;
 window.saveEvReq=saveEvReq; window.saveEvCfg=saveEvCfg; window.saveGlobalCfg=saveGlobalCfg;
 window.saveEvReqField=saveEvReqField;

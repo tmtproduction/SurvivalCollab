@@ -507,13 +507,38 @@ function doLogout(){
 
 async function doJoinGroup(gid){
   if(!S.pid) return;
-  if(!S.player?.alive) return; // #6 คนตายเลือกกลุ่มไม่ได้
+  if(!S.player?.alive) return;
   const g=S.groups.find(x=>x.id==gid);
   const aliveInGroup = g?.members?.filter(p=>p.alive).length||0;
-  if(aliveInGroup>=(g?.max||7)&&g?.id!==S.player?.groupId) return; // #5 นับเฉพาะคนมีชีวิต
+  if(aliveInGroup>=(g?.max||7)&&g?.id!==S.player?.groupId) return;
   await update(ref(db,'players/'+S.pid),{groupId:gid});
   const gname=(S.gs?.groupNames||GN)[gid]||('G'+gid);
   await push(ref(db,'game/logs'),{ts:Date.now(),type:'i',msg:S.player.name+' เข้าร่วมกลุ่ม '+gname});
+}
+
+async function doRequestGroup(gid){
+  if(!S.pid||!S.player?.alive) return;
+  // clear rejection state เมื่อขอใหม่
+  await update(ref(db,'players/'+S.pid),{groupRequest:gid, groupRejected:null});
+}
+
+async function doLeaderAccept(targetPid){
+  if(!S.pid||!S.player?.isLeader) return;
+  const mg=myGroup(); if(!mg) return;
+  const aliveInGroup=Object.values(S.players).filter(p=>p.alive&&p.groupId==mg.id).length;
+  if(aliveInGroup>=(mg.max||7)){ toast('❌ กลุ่มเต็มแล้ว',true); return; }
+  const tname=S.players[targetPid]?.name||targetPid;
+  await update(ref(db,'players/'+targetPid),{groupId:mg.id, groupRequest:null, groupRejected:null});
+  await push(ref(db,'game/logs'),{ts:Date.now(),type:'g',msg:'👑 '+S.player.name+' รับ '+tname+' เข้ากลุ่ม '+mg.name});
+}
+
+async function doLeaderReject(targetPid){
+  if(!S.pid||!S.player?.isLeader) return;
+  const rejectedGid = S.players[targetPid]?.groupRequest;
+  const tname=S.players[targetPid]?.name||targetPid;
+  // บันทึกว่าถูกปฏิเสธกลุ่มไหน + clear request
+  await update(ref(db,'players/'+targetPid),{groupRequest:null, groupRejected: rejectedGid??-1});
+  await push(ref(db,'game/logs'),{ts:Date.now(),type:'i',msg:tname+' ถูกปฏิเสธจากกลุ่ม '+(S.gs?.groupNames||GN)[rejectedGid]||''});
 }
 
 async function doUseItems(){
@@ -933,25 +958,138 @@ function renderLobby(mg){
 }
 
 function renderRegroup(mg){
-  const p=S.player||{};
-  const list=S.groups.map(g=>{
-    const mine=g.id===p.groupId;
-    return`<button class="group-item${mine?' mine':g.full&&!mine?' full-g':''}" onclick="${g.full&&!mine?'':('doJoinGroup('+g.id+')')}" ${g.full&&!mine?'disabled':''}>
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span class="g-name">${mine?'★ ':''} ${g.name}</span>
-        <span class="g-meta">${g.members.length}/${g.max}${g.full?' <span style="color:var(--red)">FULL</span>':''}</span>
+  const p=S.player||{}, gs=S.gs||{};
+  const isLeader = p.isLeader || false;
+  const leaderAssigned = gs.leaderAssigned || false;
+  const leaderAcceptOpen = gs.leaderAcceptOpen || false;
+
+  if (isLeader && mg) {
+    const pending = Object.values(S.players).filter(pl => pl.alive && pl.groupRequest == mg.id && pl.id !== S.pid);
+    const pendingHtml = pending.length
+      ? pending.map(pl => {
+          const d = DEPTS[pl.dept]||{};
+          // ปุ่มรับ disabled ถ้ายังไม่เปิดช่วงรับ
+          const acceptBtn = leaderAcceptOpen
+            ? `<button class="btn-big btn-amber" style="width:auto;padding:7px 14px;font-size:.7rem" onclick="doLeaderAccept('${pl.id}')">✓ รับ</button>`
+            : `<button class="btn-big btn-ghost" style="width:auto;padding:7px 10px;font-size:.65rem;opacity:.4;cursor:not-allowed" disabled>รอเปิด</button>`;
+          return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--sur2);border-radius:7px;margin-bottom:5px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:1.1rem">${d.icon||'👤'}</span>
+              <div>
+                <div style="font-size:.82rem;color:var(--txt);font-weight:600">${pl.name}</div>
+                <div style="font-size:.62rem;color:var(--dim);font-family:var(--mono)">${pl.dept} · ${d.item||''}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:5px">
+              ${acceptBtn}
+              <button class="btn-big btn-ghost" style="width:auto;padding:7px 12px;font-size:.7rem" onclick="doLeaderReject('${pl.id}')">✕</button>
+            </div>
+          </div>`;
+        }).join('')
+      : `<div style="text-align:center;padding:14px;color:var(--dim);font-size:.8rem">ยังไม่มีคนขอเข้ากลุ่ม<br><span style="font-size:.7rem">รอสมาชิกมาชักชวน</span></div>`;
+
+    // status banner สำหรับหัวหน้า
+    const leaderStatus = leaderAcceptOpen
+      ? `<div style="background:var(--green-dim);border:1px solid var(--green-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--green);margin-bottom:8px">🟢 เปิดรับสมาชิกแล้ว — กด ✓ รับได้เลย</div>`
+      : `<div style="background:var(--purple-dim);border:1px solid var(--purple-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--purple);margin-bottom:8px">💬 ช่วงอภิปราย — รอ Admin เปิดให้รับ</div>`;
+
+    return`
+    <div class="card ca-amber">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:1.6rem">👑</span>
+        <div>
+          <div style="font-family:var(--deco);font-size:1.1rem;letter-spacing:.08em;color:var(--amber)">คุณคือหัวหน้า ${mg.name}</div>
+          <div style="font-size:.78rem;color:var(--dim);margin-top:2px">${leaderAcceptOpen?'รับหรือปฏิเสธคนที่ขอเข้ากลุ่มได้':'รอ Admin กด เปิดให้รับสมาชิก'}</div>
+        </div>
       </div>
-    </button>`;
+    </div>
+    ${leaderStatus}
+    <div class="sec-hd">รอการอนุมัติ (${pending.length} คน)</div>
+    ${pendingHtml}`;
+  }
+
+  const myRequest = p.groupRequest;
+  const myRejected = p.groupRejected; // gid ที่ถูกปฏิเสธล่าสุด
+  const wasRejected = myRejected != null && myRejected >= 0;
+
+  const list = S.groups.map(g => {
+    const leaderMember = g.members.find(m => S.players[m.id]?.isLeader && S.players[m.id]?.alive);
+    const leaderName = leaderMember ? (S.players[leaderMember.id]?.name||leaderMember.name) : null;
+    const mine = g.id === p.groupId;
+    const requested = myRequest == g.id && !mine;
+    const wasRejectedHere = myRejected == g.id;
+    const aliveCount = g.members.filter(m=>S.players[m.id]?.alive).length;
+    const full = aliveCount >= g.max;
+    // highlight กลุ่มที่ยังรับได้ (มีที่ว่าง + ไม่ใช่กลุ่มที่เพิ่งปฏิเสธ) เมื่อถูกปฏิเสธ
+    const isAvailable = wasRejected && !mine && !full && !wasRejectedHere && leaderAssigned;
+
+    let actionBtn = '';
+    if (mine) {
+      actionBtn = `<span style="font-family:var(--mono);font-size:.6rem;color:var(--green)">✓ อยู่ที่นี่</span>`;
+    } else if (wasRejectedHere) {
+      actionBtn = `<span style="font-family:var(--mono);font-size:.6rem;color:var(--red)">ไม่รับ</span>`;
+    } else if (requested) {
+      actionBtn = `<span style="font-family:var(--mono);font-size:.6rem;color:var(--amber)">⏳ รออนุมัติ...</span>`;
+    } else if (full) {
+      actionBtn = `<span style="font-family:var(--mono);font-size:.6rem;color:var(--red)">FULL</span>`;
+    } else if (leaderAssigned) {
+      actionBtn = `<button class="btn-big ${isAvailable?'btn-amber':'btn-ghost'}" style="width:auto;padding:5px 12px;font-size:.65rem;touch-action:manipulation" onclick="doRequestGroup(${g.id})">ขอเข้า →</button>`;
+    } else {
+      actionBtn = `<button class="btn-big btn-ghost" style="width:auto;padding:5px 12px;font-size:.65rem;touch-action:manipulation" onclick="doJoinGroup(${g.id})">เข้า →</button>`;
+    }
+
+    // border: ถูกปฏิเสธ=แดง, ของเรา=ทอง, ขอแล้ว=เหลืองจาง, available=เขียว, ปกติ=ขาว
+    const borderCol = wasRejectedHere ? 'var(--red-brd)'
+      : mine ? 'var(--amber-brd)'
+      : requested ? 'rgba(245,166,35,.2)'
+      : isAvailable ? 'var(--green-brd)'
+      : 'var(--brd)';
+    const bgCol = wasRejectedHere ? 'var(--red-dim)'
+      : isAvailable ? 'var(--green-dim)'
+      : 'var(--sur)';
+
+    return`<div style="background:${bgCol};border:1px solid ${borderCol};border-radius:var(--r);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:${leaderName?'3px':'0'}">
+          <span style="font-family:var(--deco);font-size:.95rem;letter-spacing:.1em;color:${mine?'var(--amber)':'var(--txt)'}">${mine?'★ ':''}${g.name}</span>
+          <span style="font-family:var(--mono);font-size:.55rem;color:var(--dim)">${aliveCount}/${g.max}</span>
+          ${isAvailable ? `<span style="font-family:var(--mono);font-size:.52rem;color:var(--green)">● รับได้</span>` : ''}
+        </div>
+        ${leaderName ? `<div style="font-size:.68rem;color:var(--dim)">👑 <span style="color:var(--amber)">${leaderName}</span></div>` : ''}
+      </div>
+      ${actionBtn}
+    </div>`;
   }).join('');
+
+  // rejection notice card
+  const rejectedGname = wasRejected ? (S.gs?.groupNames||GN)[myRejected]||('กลุ่ม '+(+myRejected+1)) : '';
+  const rejectionCard = wasRejected ? `
+    <div class="card ca-red" style="margin-bottom:4px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:1.2rem">🚪</span>
+        <div>
+          <div style="font-size:.82rem;color:var(--red);font-weight:600">กลุ่ม ${rejectedGname} ไม่รับคุณในรอบนี้</div>
+          <div style="font-size:.75rem;color:var(--dim);margin-top:2px">กลุ่มที่มีไฟสีเขียวยังรับสมาชิกอยู่ — ลองขอเข้าดู</div>
+        </div>
+      </div>
+    </div>` : '';
+
+  const headerMsg = !leaderAssigned
+    ? `<div style="font-size:.82rem;color:var(--dim)">รอ Admin สุ่มหัวหน้ากลุ่ม...</div>`
+    : leaderAcceptOpen
+      ? `<div style="font-size:.82rem;color:var(--green)">🟢 ขอเข้ากลุ่มได้เลย — หัวหน้ารับได้แล้ว</div>`
+      : `<div style="font-size:.82rem;color:var(--purple)">💬 ช่วงอภิปราย — เดินชักชวนหัวหน้าก่อน</div>`;
+
   return`
   <div class="card ca-purple">
     <div style="text-align:center">
       <div style="font-size:1.6rem;margin-bottom:5px">🔀</div>
-      <div style="font-family:var(--deco);font-size:1.2rem;letter-spacing:.1em;color:var(--purple);margin-bottom:3px">${mg?'อยู่กลุ่ม '+mg.name+' แล้ว':'เลือกกลุ่มใหม่'}</div>
-      <div style="font-size:.82rem;color:var(--dim)">${mg?'รอ Admin ยืนยัน Regroup':'กลุ่มถูกรีเซ็ต — เลือกกลุ่มใหม่'}</div>
+      <div style="font-family:var(--deco);font-size:1.2rem;letter-spacing:.1em;color:var(--purple);margin-bottom:3px">${mg?'อยู่กลุ่ม '+mg.name+' แล้ว':'กลุ่มถูกรีเซ็ต'}</div>
+      ${headerMsg}
     </div>
   </div>
-  <div class="sec-hd">เลือกกลุ่ม</div>
+  ${rejectionCard}
+  <div class="sec-hd">กลุ่มทั้งหมด</div>
   <div style="display:flex;flex-direction:column;gap:7px">${list}</div>`;
 }
 
@@ -1682,6 +1820,7 @@ setAmbient('lobby');
 
 // expose
 window.doLogin=doLogin;window.doLogout=doLogout;window.doJoinGroup=doJoinGroup;
+window.doRequestGroup=doRequestGroup;window.doLeaderAccept=doLeaderAccept;window.doLeaderReject=doLeaderReject;
 window.doUseItems=doUseItems;window.doDiscardItems=doDiscardItems;
 window.stepUse=stepUse;window.stepDiscard=stepDiscard;
 window.toggleLog=toggleLog;window.updatePreview=updatePreview;
