@@ -856,11 +856,12 @@ function renderRegroupingPanel() {
       h('div','style="display:flex;flex-direction:column;gap:5px;align-items:flex-end"',
         (!leaderAssigned ? h('div','style="display:flex;align-items:center;gap:6px"',
           h('span','style="font-family:monospace;font-size:.6rem;color:var(--dim)"','จำนวนกลุ่ม')+
-          h('input','id="rg-group-count" type="number" min="1" max="20" value="'+(activeGroups.length||gs.groupCount||8)+'" class="ain" style="width:44px"','')+
+          h('input','id="rg-group-count" type="number" min="1" max="20" value="'+(activeGroups.length||gs.groupCount||8)+'" class="ain" style="width:44px" oninput="rgUpdateFeedback()"','')+
           h('button','class="btn btn-pu" onclick="showLeaderModal()" style="font-size:.62rem;padding:5px 11px"','👑 สุ่ม')
         ) : h('button','class="btn btn-s" onclick="showLeaderModal()" style="font-size:.6rem;padding:4px 9px;opacity:.6"','🎲 สุ่มใหม่'))
       )
     )+
+    (!leaderAssigned ? h('div','id="rg-feedback" style="margin-top:6px"','') : '')+
     (leaderAssigned ? h('div','style="display:grid;grid-template-columns:1fr 1fr;gap:4px"',leaderGrid(false)) : '')
   );
 
@@ -1834,6 +1835,30 @@ async function doConfirmRegroup() {
 // ── Leader Modal state
 let _leaderDraft = {}; // { gid: pid } — ผลสุ่มชั่วคราว
 
+function rgUpdateFeedback() {
+  const gs = S.gs||{};
+  const inp = document.getElementById('rg-group-count');
+  const el = document.getElementById('rg-feedback');
+  if (!inp || !el) return;
+  const n = Math.max(1, +inp.value||1);
+  const alive = Object.values(S.players).filter(p=>p.alive).length;
+  const min = gs.minGroupSize||5, max = gs.maxGroupSize||7;
+  const avg = alive / n;
+  const avgStr = Number.isInteger(avg) ? avg : avg.toFixed(1);
+  let color, icon, msg;
+  if (avg < min) {
+    color='rgba(232,64,64,.12);border:1px solid rgba(232,64,64,.3);color:var(--red)';
+    icon='🔴'; msg=`ผู้รอดชีวิต ${alive} คน ÷ ${n} กลุ่ม = เฉลี่ย ${avgStr} คน/กลุ่ม — น้อยกว่าเกณฑ์ขั้นต่ำ ${min}`;
+  } else if (avg > max) {
+    color='rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.3);color:var(--amber)';
+    icon='🟡'; msg=`ผู้รอดชีวิต ${alive} คน ÷ ${n} กลุ่ม = เฉลี่ย ${avgStr} คน/กลุ่ม — เกินเกณฑ์สูงสุด ${max}`;
+  } else {
+    color='rgba(61,186,106,.1);border:1px solid rgba(61,186,106,.3);color:var(--green)';
+    icon='🟢'; msg=`ผู้รอดชีวิต ${alive} คน ÷ ${n} กลุ่ม = เฉลี่ย ${avgStr} คน/กลุ่ม — อยู่ในเกณฑ์ ${min}–${max}`;
+  }
+  el.innerHTML = `<div style="padding:6px 10px;border-radius:6px;font-family:monospace;font-size:.6rem;background:${color}">${icon} ${msg}</div>`;
+}
+
 function showLeaderModal() {
   const gs = S.gs||{};
   const activeCnt = S.groupStatus.filter(g => g.aliveCount > 0).length;
@@ -2225,6 +2250,7 @@ window.doConfirmRegroup=doConfirmRegroup; window.forceAssign=forceAssign;
 window.doRandomLeader=doRandomLeader; window.doToggleAccept=doToggleAccept; window.doToggleSelect=doToggleSelect;
 window.showLeaderModal=showLeaderModal; window.previewLeaders=previewLeaders;
 window.confirmLeaders=confirmLeaders; window.closeLeaderPreview=closeLeaderPreview;
+window.rgUpdateFeedback=rgUpdateFeedback;
 window.doRestart=doRestart; window.adminSetHP=adminSetHP; window.adminSetItems=adminSetItems;
 window.saveEvReq=saveEvReq; window.saveEvCfg=saveEvCfg; window.saveGlobalCfg=saveGlobalCfg;
 window.saveEvReqField=saveEvReqField;

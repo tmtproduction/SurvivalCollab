@@ -267,7 +267,7 @@ const EVENTS=[
 const EV_TOTAL=EVENTS.length;
 
 // STATE
-const S={pid:null,player:null,gs:null,players:{},logs:[],groups:[],connected:false,useAmt:0,discardAmt:0,logOpen:false,err:'',loading:false,submitting:false,submitted:false,
+const S={pid:null,player:null,gs:null,players:{},logs:[],groups:[],connected:false,useAmt:0,discardAmt:0,logOpen:false,err:'',loading:false,submitting:false,submitted:false,_rejectTimers:{},
   debrief:{answers:{},submitted:false} // debrief state
 };
 
@@ -455,15 +455,30 @@ function startListeners(){
     syncAmbient();
   });
   onValue(ref(db,'players'),snap=>{
+    const prev = S.player?.groupRejected;
     S.players=snap.val()||{};
     if(S.pid){
       if(S.players[S.pid]){
         S.player=S.players[S.pid];
+        // ตรวจว่า groupRejected เพิ่งเปลี่ยน → start countdown 10 วิ
+        const cur = S.player.groupRejected;
+        if(cur != null && cur >= 0 && cur !== prev){
+          const key = 'rjt_'+S.pid+'_'+cur;
+          S._rejectTimers[key] = Date.now() + 10000;
+          // tick ทุก 1 วิเพื่อ update countdown
+          clearInterval(S._rjInterval);
+          S._rjInterval = setInterval(()=>{
+            const el = document.getElementById('rjcd_'+cur);
+            if(!el){ clearInterval(S._rjInterval); return; }
+            const rem = Math.max(0, Math.ceil((S._rejectTimers[key]-Date.now())/1000));
+            if(rem > 0){ el.textContent = rem; }
+            else{ clearInterval(S._rjInterval); render(); }
+          }, 500);
+        }
       } else {
-        // node ของตัวเองหายไป — Admin ลบออกแล้ว
         clearSession();
         S.pid=null; S.player=null; S.connected=false;
-        render(); // จะ render หน้า login
+        render();
         return;
       }
     }
@@ -551,9 +566,8 @@ async function doLeaderReject(targetPid){
   if(!S.pid||!S.player?.isLeader) return;
   const rejectedGid = S.players[targetPid]?.groupRequest;
   const tname=S.players[targetPid]?.name||targetPid;
-  // บันทึกว่าถูกปฏิเสธกลุ่มไหน + clear request
   await update(ref(db,'players/'+targetPid),{groupRequest:null, groupRejected: rejectedGid??-1});
-  await push(ref(db,'game/logs'),{ts:Date.now(),type:'i',msg:tname+' ถูกปฏิเสธจากกลุ่ม '+(S.gs?.groupNames||GN)[rejectedGid]||''});
+  await push(ref(db,'game/logs'),{ts:Date.now(),type:'i',msg:tname+' ถูกปฏิเสธจากกลุ่ม '+((S.gs?.groupNames||GN)[rejectedGid]||'')});
 }
 
 async function doUseItems(){
@@ -976,23 +990,26 @@ function renderRegroup(mg){
   const p=S.player||{}, gs=S.gs||{};
   const isLeader = p.isLeader || false;
   const leaderAssigned = gs.leaderAssigned || false;
-  const leaderSelectOpen = gs.leaderSelectOpen || false;  // ขั้น 4: ผู้เล่นขอเข้าได้
-  const leaderAcceptOpen = gs.leaderAcceptOpen || false;  // ขั้น 5: หัวหน้ารับได้
-  // ช่วง regroup groupId = -1 ทุกคน — ใช้ leaderGroupId แทน
+  const leaderSelectOpen = gs.leaderSelectOpen || false;
+  const leaderAcceptOpen = gs.leaderAcceptOpen || false;
   const myLeaderGid = p.leaderGroupId;
   const myLeaderGroup = (myLeaderGid != null && myLeaderGid >= 0)
-    ? S.groups.find(g => g.id == myLeaderGid) || { id: myLeaderGid, name: (gs.groupNames||GN)[myLeaderGid]||('G'+(+myLeaderGid+1)), members: [], max: gs.maxGroupSize||7 }
+    ? { id: myLeaderGid, name: (gs.groupNames||GN)[myLeaderGid]||('G'+(+myLeaderGid+1)) }
     : null;
+  const alreadyInGroup = p.groupId >= 0;
 
+  // ── หัวหน้ากลุ่ม
   if (isLeader && myLeaderGroup) {
     const gid = myLeaderGroup.id;
-    const pending = Object.values(S.players).filter(pl => pl.alive && String(pl.groupRequest) === String(gid) && pl.id !== S.pid);
+    const pending = Object.values(S.players).filter(pl => pl.alive && String(pl.groupRequest)===String(gid) && pl.id !== S.pid);
+    const memberCount = Object.values(S.players).filter(pl => pl.alive && String(pl.groupId)===String(gid)).length;
+
     const pendingHtml = pending.length
       ? pending.map(pl => {
           const d = DEPTS[pl.dept]||{};
           const acceptBtn = leaderAcceptOpen
             ? `<button class="btn-big btn-amber" style="width:auto;padding:7px 14px;font-size:.7rem" onclick="doLeaderAccept('${pl.id}')">✓ รับ</button>`
-            : `<button class="btn-big btn-ghost" style="width:auto;padding:7px 10px;font-size:.65rem;opacity:.4;cursor:not-allowed" disabled>รอเปิด</button>`;
+            : `<span style="font-family:var(--mono);font-size:.6rem;color:var(--dim)">👁 รอดู</span>`;
           return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--sur2);border-radius:7px;margin-bottom:5px">
             <div style="display:flex;align-items:center;gap:8px">
               <span style="font-size:1.1rem">${d.icon||'👤'}</span>
@@ -1003,7 +1020,7 @@ function renderRegroup(mg){
             </div>
             <div style="display:flex;gap:5px">
               ${acceptBtn}
-              <button class="btn-big btn-ghost" style="width:auto;padding:7px 12px;font-size:.7rem" onclick="doLeaderReject('${pl.id}')">✕</button>
+              ${leaderAcceptOpen ? `<button class="btn-big btn-ghost" style="width:auto;padding:7px 12px;font-size:.7rem" onclick="doLeaderReject('${pl.id}')">✕</button>` : ''}
             </div>
           </div>`;
         }).join('')
@@ -1012,8 +1029,8 @@ function renderRegroup(mg){
     const leaderStatus = leaderAcceptOpen
       ? `<div style="background:var(--green-dim);border:1px solid var(--green-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--green);margin-bottom:8px">🟢 เปิดให้เลือกลูกทีมแล้ว — กด ✓ รับได้เลย</div>`
       : leaderSelectOpen
-        ? `<div style="background:var(--amber-dim);border:1px solid var(--amber-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--amber);margin-bottom:8px">💬 ผู้เล่นกำลังส่งคำขอ — รอ Admin เปิดให้เลือกลูกทีม</div>`
-        : `<div style="background:var(--purple-dim);border:1px solid var(--purple-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--purple);margin-bottom:8px">👁 หัวหน้าถูกกำหนดแล้ว — รอ Admin เปิดให้ผู้เล่นเลือกหัวหน้า</div>`;
+        ? `<div style="background:var(--amber-dim);border:1px solid var(--amber-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--amber);margin-bottom:8px">💬 สมาชิกกำลังส่งคำขอ — รอ Admin เปิดให้เลือกลูกทีม</div>`
+        : `<div style="background:var(--sur2);border:1px solid var(--brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--dim);margin-bottom:8px">⏳ รอ Admin เปิดให้สมาชิกเลือกกลุ่ม</div>`;
 
     return`
     <div class="card ca-amber">
@@ -1021,52 +1038,85 @@ function renderRegroup(mg){
         <span style="font-size:1.6rem">👑</span>
         <div>
           <div style="font-family:var(--deco);font-size:1.1rem;letter-spacing:.08em;color:var(--amber)">คุณคือหัวหน้า ${myLeaderGroup.name}</div>
-          <div style="font-size:.78rem;color:var(--dim);margin-top:2px">${leaderAcceptOpen?'รับหรือปฏิเสธคนที่ขอเข้ากลุ่มได้':leaderSelectOpen?'ผู้เล่นกำลังส่งคำขอ — รอ Admin เปิดขั้นต่อไป':'รอ Admin เปิดให้ผู้เล่นเลือกหัวหน้า'}</div>
+          <div style="font-size:.78rem;color:var(--dim);margin-top:2px">สมาชิกปัจจุบัน ${memberCount} คน</div>
         </div>
       </div>
     </div>
     ${leaderStatus}
-    <div class="sec-hd">รอการอนุมัติ (${pending.length} คน)</div>
+    <div class="sec-hd">รายชื่อที่ขอเข้า (${pending.length} คน)</div>
     ${pendingHtml}`;
   }
 
+  // ── สมาชิกที่เข้ากลุ่มแล้ว — ล็อก ย้ายไม่ได้
+  if (alreadyInGroup && !isLeader) {
+    const myG = S.groups.find(g=>g.id==p.groupId);
+    const members = myG ? myG.members.filter(m=>S.players[m.id]?.alive||m.alive) : [];
+    const memberTags = members.map(m => {
+      const d=DEPTS[m.dept]||{};
+      const isLdr=S.players[m.id]?.isLeader;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--sur2);border-radius:6px;margin-bottom:4px">
+        <span style="font-size:1rem">${d.icon||'👤'}</span>
+        <span style="font-size:.8rem;color:var(--txt)">${isLdr?'👑 ':''} ${m.name}</span>
+        <span style="font-family:var(--mono);font-size:.58rem;color:var(--dim)">${m.dept}</span>
+      </div>`;
+    }).join('');
+    return`
+    <div class="card ca-green">
+      <div style="text-align:center">
+        <div style="font-size:1.4rem;margin-bottom:4px">✅</div>
+        <div style="font-family:var(--deco);font-size:1.1rem;letter-spacing:.08em;color:var(--green)">อยู่ใน ${myG?.name||''} แล้ว</div>
+        <div style="font-size:.78rem;color:var(--dim);margin-top:2px">🔒 ย้ายกลุ่มไม่ได้แล้ว</div>
+      </div>
+    </div>
+    <div class="sec-hd">สมาชิกในกลุ่ม</div>
+    ${memberTags}`;
+  }
+
+  // ── สมาชิกทั่วไป ยังไม่มีกลุ่ม
   const myRequest = p.groupRequest;
-  const myRejected = p.groupRejected; // gid ที่ถูกปฏิเสธล่าสุด
+  const myRejected = p.groupRejected;
   const wasRejected = myRejected != null && myRejected >= 0;
 
   const list = S.groups.map(g => {
     const leaderMember = g.members.find(m => S.players[m.id]?.isLeader && S.players[m.id]?.alive);
     const leaderName = leaderMember ? (S.players[leaderMember.id]?.name||leaderMember.name) : null;
     const mine = g.id === p.groupId;
-    const requested = myRequest == g.id && !mine;
-    const wasRejectedHere = myRejected == g.id;
+    const requested = myRequest != null && String(myRequest)===String(g.id);
+    const wasRejectedHere = myRejected != null && String(myRejected)===String(g.id);
     const aliveCount = g.members.filter(m=>S.players[m.id]?.alive).length;
     const full = aliveCount >= g.max;
-    // highlight กลุ่มที่ยังรับได้ (มีที่ว่าง + ไม่ใช่กลุ่มที่เพิ่งปฏิเสธ) เมื่อถูกปฏิเสธ
-    // highlight กลุ่มที่ยังรับได้เมื่อถูกปฏิเสธ + leaderSelectOpen เปิดแล้ว
-    const isAvailable = wasRejected && !mine && !full && !wasRejectedHere && leaderSelectOpen;
+    const isAvailable = wasRejected && !full && !wasRejectedHere && leaderSelectOpen;
 
     let actionBtn = '';
-    if (mine) {
-      actionBtn = `<span style="font-family:var(--mono);font-size:.6rem;color:var(--green)">✓ อยู่ที่นี่</span>`;
-    } else if (wasRejectedHere) {
-      actionBtn = `<span style="font-family:var(--mono);font-size:.6rem;color:var(--red)">ไม่รับ</span>`;
-    } else if (requested) {
+    if (requested) {
       actionBtn = `<span style="font-family:var(--mono);font-size:.6rem;color:var(--amber)">⏳ รออนุมัติ...</span>`;
+    } else if (wasRejectedHere) {
+      // countdown timer — ดึงจาก S ที่เก็บไว้
+      const key = 'rjt_'+S.pid+'_'+g.id;
+      const rejTime = S._rejectTimers?.[key];
+      const now = Date.now();
+      const remaining = rejTime ? Math.max(0, Math.ceil((rejTime - now)/1000)) : 0;
+      if (remaining > 0) {
+        actionBtn = `<span id="rjcd_${g.id}" style="font-family:var(--mono);font-size:.75rem;font-weight:700;color:var(--red);min-width:28px;text-align:center">${remaining}</span>`;
+      } else {
+        // countdown หมดแล้ว — ปุ่มกลับมา
+        actionBtn = leaderSelectOpen
+          ? `<button class="btn-big ${isAvailable?'btn-amber':'btn-ghost'}" style="width:auto;padding:5px 12px;font-size:.65rem;touch-action:manipulation" onclick="doRequestGroup(${g.id})">ขอเข้า →</button>`
+          : `<span style="font-family:var(--mono);font-size:.6rem;color:var(--red)">ไม่รับ</span>`;
+      }
     } else if (full) {
       actionBtn = `<span style="font-family:var(--mono);font-size:.6rem;color:var(--red)">FULL</span>`;
     } else if (leaderSelectOpen) {
       actionBtn = `<button class="btn-big ${isAvailable?'btn-amber':'btn-ghost'}" style="width:auto;padding:5px 12px;font-size:.65rem;touch-action:manipulation" onclick="doRequestGroup(${g.id})">ขอเข้า →</button>`;
     } else if (leaderAssigned) {
-      actionBtn = `<span style="font-family:var(--mono);font-size:.6rem;color:var(--dim)">รอเปิด</span>`;
+      // สเตป 3 — ไม่มีปุ่มใดๆ แค่แสดงชื่อหัวหน้า
+      actionBtn = '';
     } else {
       actionBtn = `<button class="btn-big btn-ghost" style="width:auto;padding:5px 12px;font-size:.65rem;touch-action:manipulation" onclick="doJoinGroup(${g.id})">เข้า →</button>`;
     }
 
-    // border: ถูกปฏิเสธ=แดง, ของเรา=ทอง, ขอแล้ว=เหลืองจาง, available=เขียว, ปกติ=ขาว
     const borderCol = wasRejectedHere ? 'var(--red-brd)'
-      : mine ? 'var(--amber-brd)'
-      : requested ? 'rgba(245,166,35,.2)'
+      : requested ? 'rgba(245,166,35,.3)'
       : isAvailable ? 'var(--green-brd)'
       : 'var(--brd)';
     const bgCol = wasRejectedHere ? 'var(--red-dim)'
@@ -1076,9 +1126,8 @@ function renderRegroup(mg){
     return`<div style="background:${bgCol};border:1px solid ${borderCol};border-radius:var(--r);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px">
       <div style="flex:1">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:${leaderName?'3px':'0'}">
-          <span style="font-family:var(--deco);font-size:.95rem;letter-spacing:.1em;color:${mine?'var(--amber)':'var(--txt)'}">${mine?'★ ':''}${g.name}</span>
+          <span style="font-family:var(--deco);font-size:.95rem;letter-spacing:.1em;color:var(--txt)">${g.name}</span>
           <span style="font-family:var(--mono);font-size:.55rem;color:var(--dim)">${aliveCount}/${g.max}</span>
-          ${isAvailable ? `<span style="font-family:var(--mono);font-size:.52rem;color:var(--green)">● รับได้</span>` : ''}
         </div>
         ${leaderName ? `<div style="font-size:.68rem;color:var(--dim)">👑 <span style="color:var(--amber)">${leaderName}</span></div>` : ''}
       </div>
@@ -1086,15 +1135,15 @@ function renderRegroup(mg){
     </div>`;
   }).join('');
 
-  // rejection notice card
-  const rejectedGname = wasRejected ? (S.gs?.groupNames||GN)[myRejected]||('กลุ่ม '+(+myRejected+1)) : '';
+  // rejection notice
+  const rejectedGname = wasRejected ? ((gs.groupNames||GN)[myRejected]||('กลุ่ม '+(+myRejected+1))) : '';
   const rejectionCard = wasRejected ? `
     <div class="card ca-red" style="margin-bottom:4px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:1.2rem">🚪</span>
         <div>
-          <div style="font-size:.82rem;color:var(--red);font-weight:600">กลุ่ม ${rejectedGname} ไม่รับคุณในรอบนี้</div>
-          <div style="font-size:.75rem;color:var(--dim);margin-top:2px">กลุ่มที่มีไฟสีเขียวยังรับสมาชิกอยู่ — ลองขอเข้าดู</div>
+          <div style="font-size:.82rem;color:var(--red);font-weight:600">กลุ่ม ${rejectedGname} ไม่รับในรอบนี้</div>
+          <div style="font-size:.75rem;color:var(--dim);margin-top:2px">รอ countdown แล้วลองกลุ่มอื่นได้</div>
         </div>
       </div>
     </div>` : '';
@@ -1102,16 +1151,16 @@ function renderRegroup(mg){
   const headerMsg = !leaderAssigned
     ? `<div style="font-size:.82rem;color:var(--dim)">รอ Admin สุ่มหัวหน้ากลุ่ม...</div>`
     : !leaderSelectOpen
-      ? `<div style="font-size:.82rem;color:var(--dim)">👁 หัวหน้าถูกกำหนดแล้ว — รอ Admin เปิดให้เลือก</div>`
+      ? `<div style="font-size:.82rem;color:var(--dim)">⏳ รอ Admin เปิดให้เลือกกลุ่ม</div>`
       : leaderAcceptOpen
-        ? `<div style="font-size:.82rem;color:var(--green)">🟢 หัวหน้ากำลังเลือกลูกทีม — รอผล</div>`
+        ? `<div style="font-size:.82rem;color:var(--green)">🟢 หัวหน้ากำลังเลือกลูกทีม</div>`
         : `<div style="font-size:.82rem;color:var(--amber)">💬 เลือกกลุ่มที่อยากเข้า แล้วรอหัวหน้ารับ</div>`;
 
   return`
   <div class="card ca-purple">
     <div style="text-align:center">
       <div style="font-size:1.6rem;margin-bottom:5px">🔀</div>
-      <div style="font-family:var(--deco);font-size:1.2rem;letter-spacing:.1em;color:var(--purple);margin-bottom:3px">${mg?'อยู่กลุ่ม '+mg.name+' แล้ว':'กลุ่มถูกรีเซ็ต'}</div>
+      <div style="font-family:var(--deco);font-size:1.2rem;letter-spacing:.1em;color:var(--purple);margin-bottom:3px">กลุ่มถูกรีเซ็ต</div>
       ${headerMsg}
     </div>
   </div>
@@ -1119,6 +1168,7 @@ function renderRegroup(mg){
   <div class="sec-hd">กลุ่มทั้งหมด</div>
   <div style="display:flex;flex-direction:column;gap:7px">${list}</div>`;
 }
+
 
 function renderWait(ev,evIdx,mg){
   // headcount_reward — แสดงรายละเอียดเงื่อนไขและ reward ที่จะได้
