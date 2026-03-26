@@ -1058,28 +1058,63 @@ function renderEvCfgTable() {
       const conds = c.conditions||ev.conditions||[];
       const maxHp = c.maxHp!==undefined?c.maxHp:(ev.maxHp||10);
       const condRows = conds.map((cond,ci) => {
-        const rh = JSON.stringify(cond.reqHeadcount||{});
-        const rdesc = cond.desc||'';
+        const hc = cond.reqHeadcount||{};
+        const rdesc = cond.desc||('เงื่อนไข '+(ci+1));
         const rewardType = cond.reward?.type||'hp';
         const rewardAmt = cond.reward?.amt||2;
         const rewardDepts = JSON.stringify(cond.reward?.depts||[]);
+        // dept inputs สำหรับ reqHeadcount
+        const hcInputs = DK.map(dk=>{
+          const dinfo=DEPTS[dk]||{};
+          const val=hc[dk]||0;
+          return h('div','style="display:flex;flex-direction:column;align-items:center;gap:2px"',
+            h('span','style="font-size:.85rem"',dinfo.icon||dk)+
+            h('span','style="font-family:monospace;font-size:.48rem;color:var(--dim)"',dk)+
+            h('input','type="number" min="0" max="20" value="'+val+'" class="ain" style="width:44px" '+
+              'oninput="saveCondHcField(\''+ev.id+'\','+ci+',\''+dk+'\',+this.value)"','')
+          );
+        }).join('');
+        // reward depts checkboxes (ถ้า type=items)
+        const rdChecks = rewardType==='items' ? DK.map(dk=>{
+          const dinfo=DEPTS[dk]||{};
+          const checked=(cond.reward?.depts||[]).includes(dk);
+          return h('label','style="display:flex;align-items:center;gap:3px;font-family:monospace;font-size:.6rem;cursor:pointer"',
+            h('input','type="checkbox" '+(checked?'checked':'')+' onchange="saveCondRdDepts(\''+ev.id+'\','+ci+',\''+dk+'\',this.checked)"','')+
+            dinfo.icon+' '+dk
+          );
+        }).join('') : '';
+
         return h('div','style="background:var(--sur2);border:1px solid var(--brd2);border-radius:5px;padding:8px;margin-bottom:5px"',
-          h('div','style="font-family:monospace;font-size:.55rem;color:var(--dim);margin-bottom:5px"','เงื่อนไข '+(ci+1)+' — '+rdesc)+
+          h('div','style="font-family:monospace;font-size:.55rem;color:var(--green);margin-bottom:6px"','เงื่อนไข '+(ci+1)+' — '+rdesc)+
+          // reqHeadcount dept inputs
+          h('div','style="margin-bottom:6px"',
+            h('div','class="cfg-lbl" style="margin-bottom:5px"','จำนวนคน dept ที่ต้องมีในกลุ่ม (0 = ไม่เช็ค)')+
+            h('div','style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;background:var(--sur);border:1px solid var(--brd);border-radius:6px;padding:7px 9px"',hcInputs)
+          )+
           h('div','class="cfg-grid"',
-            h('div','class="cfg-row"',h('div','class="cfg-lbl"','reqHeadcount (JSON: dept→คน)')+
-              h('input','type="text" style="width:100%" value=\''+rh+'\' onblur="saveCondHeadcount(\''+ev.id+'\','+ci+',this.value)"',''))+
-            h('div','class="cfg-row"',h('div','class="cfg-lbl"','reward type (hp/items)')+
-              h('input','type="text" style="width:100%" value="'+rewardType+'" onblur="saveCondReward(\''+ev.id+'\','+ci+',\'type\',this.value)"',''))+
-            h('div','class="cfg-row"',h('div','class="cfg-lbl"','reward amt (+จำนวน)')+
-              h('input','class="ain" type="number" min="1" max="20" value="'+rewardAmt+'" onchange="saveCondReward(\''+ev.id+'\','+ci+',\'amt\',+this.value)"',''))+
-            h('div','class="cfg-row"',h('div','class="cfg-lbl"','reward depts (JSON, ถ้า type=items)')+
-              h('input','type="text" style="width:100%" value=\''+rewardDepts+'\' onblur="saveCondReward(\''+ev.id+'\','+ci+',\'depts\',JSON.parse(this.value))"',''))
-          )
+            h('div','class="cfg-row"',
+              h('div','class="cfg-lbl"','รางวัล type')+
+              h('select','style="background:var(--sur);border:1px solid var(--brd2);color:var(--txt);padding:4px 6px;border-radius:4px;font-family:monospace;font-size:.68rem" onchange="saveCondReward(\''+ev.id+'\','+ci+',\'type\',this.value)"',
+                h('option','value="hp"'+(rewardType==='hp'?' selected':''),'HP')+
+                h('option','value="items"'+(rewardType==='items'?' selected':''),'Items')
+              )
+            )+
+            h('div','class="cfg-row"',
+              h('div','class="cfg-lbl"','จำนวน (+amt)')+
+              h('input','class="ain" type="number" min="1" max="20" value="'+rewardAmt+'" onchange="saveCondReward(\''+ev.id+'\','+ci+',\'amt\',+this.value)"','')
+            )
+          )+
+          (rewardType==='items'?h('div','style="margin-top:6px"',
+            h('div','class="cfg-lbl" style="margin-bottom:5px"','dept ที่ได้รับ items')+
+            h('div','style="display:flex;flex-wrap:wrap;gap:6px"',rdChecks)
+          ):'')
         );
       }).join('');
       fields += h('div','style="margin-top:6px"',
-        h('div','class="cfg-row" style="margin-bottom:6px"',h('div','class="cfg-lbl"','Max HP (heal cap)')+h('input','class="ain" type="number" min="1" max="30" value="'+maxHp+'" onchange="saveEvCfg(\''+ev.id+'\',\'maxHp\',+this.value)"',''))+
-        condRows
+        h('div','class="cfg-row" style="margin-bottom:8px"',
+          h('div','class="cfg-lbl"','Max HP (heal cap)')+
+          h('input','class="ain" type="number" min="1" max="30" value="'+maxHp+'" onchange="saveEvCfg(\''+ev.id+'\',\'maxHp\',+this.value)"','')
+        )+condRows
       );
     }
 
@@ -1142,6 +1177,32 @@ async function saveCondHeadcount(evId, condIdx, val) {
     await update(ref(db,'game/state'), {eventConfig:cfg});
     toast('✅ บันทึก reqHeadcount condition '+(condIdx+1));
   } catch(e) { toast('❌ JSON ไม่ถูกต้อง', true); }
+}
+
+// ── saveCondHcField: บันทึก reqHeadcount ทีละ dept ──
+async function saveCondHcField(evId, condIdx, dept, val) {
+  const gs = S.gs||{}; const cfg = JSON.parse(JSON.stringify(gs.eventConfig||{}));
+  if (!cfg[evId]) cfg[evId] = {};
+  const baseConds = DEFAULT_EVENTS.find(e=>String(e.id)===String(evId))?.conditions||[];
+  if (!cfg[evId].conditions) cfg[evId].conditions = baseConds.map(c=>({...c,reward:{...c.reward}}));
+  const hc = Object.assign({}, cfg[evId].conditions[condIdx].reqHeadcount||baseConds[condIdx]?.reqHeadcount||{});
+  if (val > 0) hc[dept] = val;
+  else delete hc[dept];
+  cfg[evId].conditions[condIdx].reqHeadcount = hc;
+  await update(ref(db,'game/state'), {eventConfig:cfg});
+}
+
+// ── saveCondRdDepts: toggle dept ใน reward.depts ──
+async function saveCondRdDepts(evId, condIdx, dept, checked) {
+  const gs = S.gs||{}; const cfg = JSON.parse(JSON.stringify(gs.eventConfig||{}));
+  if (!cfg[evId]) cfg[evId] = {};
+  const baseConds = DEFAULT_EVENTS.find(e=>String(e.id)===String(evId))?.conditions||[];
+  if (!cfg[evId].conditions) cfg[evId].conditions = baseConds.map(c=>({...c,reward:{...c.reward,depts:[...(c.reward?.depts||[])]} }));
+  let depts = [...(cfg[evId].conditions[condIdx].reward?.depts || baseConds[condIdx]?.reward?.depts || [])];
+  if (checked && !depts.includes(dept)) depts.push(dept);
+  if (!checked) depts = depts.filter(d=>d!==dept);
+  cfg[evId].conditions[condIdx].reward = {...(cfg[evId].conditions[condIdx].reward||{}), depts};
+  await update(ref(db,'game/state'), {eventConfig:cfg});
 }
 
 async function saveCondReward(evId, condIdx, field, val) {
@@ -1305,27 +1366,70 @@ function showStartPreview() {
     const displayEmoji = customName?.emoji || ev.emoji;
 
     let condHtml = '';
-    if (ev.type==='global_per'||ev.type==='people_var') {
+
+    if (ev.type==='global_per' || ev.type==='people_var') {
       const req = ev.req||{};
       const reqMult = ev.reqMultiplier||{};
-      const reqStr = Object.entries(req).map(([d,n])=>`${DEPTS[d]?.icon||d} ${d}: ${n} ชิ้น`).join(', ');
-      const multStr = Object.entries(reqMult).map(([d,m])=>`${DEPTS[d]?.icon||d} ${d}: คน×${m}`).join(', ');
-      condHtml = `<span class="cond-dmg">-${ev.dmg||2}HP ถ้าไม่ผ่าน</span>`+
-        (reqStr?`<span class="cond-info">${reqStr}</span>`:'')+
-        (multStr?`<span class="cond-info">${multStr}</span>`:'');
+      const reqChips = Object.entries(req).map(([d,n])=>
+        `<span class="cond-info">${DEPTS[d]?.icon||d} ${d}: ${n} ชิ้น</span>`
+      ).join('');
+      const multChips = Object.entries(reqMult).map(([d,m])=>
+        `<span class="cond-info">${DEPTS[d]?.icon||d} ${d}: คน×${m}</span>`
+      ).join('');
+      condHtml = `<span class="cond-dmg">-${ev.dmg||2} HP ถ้าไม่ผ่าน</span>${reqChips}${multChips}`;
+
     } else if (ev.type==='regroup') {
-      condHtml = `<span class="cond-info">🔀 จัดกลุ่มใหม่${ev.preDmg?` · -${ev.preDmg}HP ก่อน`:''}</span>`;
+      condHtml = `<span class="cond-info">🔀 จัดกลุ่มใหม่${ev.preDmg?` · <span class="cond-dmg">-${ev.preDmg}HP ก่อน</span>`:''}</span>`;
+
     } else if (ev.type==='discard') {
       condHtml = `<span class="cond-info">ถือได้ ≤ ${ev.poolCap||poolCap} ชิ้น/กลุ่ม</span>`;
+
     } else if (ev.type==='collective_pool') {
       const req2 = ev.req||{};
-      const reqStr2 = Object.entries(req2).map(([d,n])=>`${DEPTS[d]?.icon||d}${n}`).join(' ');
-      condHtml = `<span class="cond-info">🧪 กองกลาง: ${reqStr2}</span>`+
-        `<span class="cond-dmg">ขาดแต่ละ tier = -HP</span>`;
+      const reqChips2 = Object.entries(req2).map(([d,n])=>
+        `<span class="cond-info">${DEPTS[d]?.icon||d} ${d}: ${n}</span>`
+      ).join('');
+      const tiers = (ev.dmgTiers||[]).filter(t=>t.dmg>0).map(t=>
+        `<span class="cond-dmg">ขาด≤${t.max}: -${t.dmg}HP</span>`
+      ).join('');
+      condHtml = `<span class="cond-info">🧪 กองกลาง</span>${reqChips2}${tiers}`;
+
     } else if (ev.type==='headcount_reward') {
-      condHtml = `<span class="cond-ok">✓ ระบบตรวจอัตโนมัติ</span><span class="cond-info">นับคน → รางวัล</span>`;
+      // แสดงแต่ละเงื่อนไขชัดๆ
+      const condBlocks = (ev.conditions||[]).map((cond,ci)=>{
+        const hcParts = Object.entries(cond.reqHeadcount||{}).map(([d,n])=>
+          `${DEPTS[d]?.icon||d}${d}≥${n}คน`
+        ).join('+');
+        const rwd = cond.reward?.type==='hp'
+          ? `<span class="cond-ok">+${cond.reward.amt} HP ทุกคน</span>`
+          : `<span class="cond-ok">+${cond.reward.amt} items → ${(cond.reward.depts||[]).map(d=>DEPTS[d]?.icon||d).join('')}</span>`;
+        return `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:3px">
+          <span style="font-family:monospace;font-size:.52rem;color:var(--dim)">${ci+1}.</span>
+          <span class="cond-info">${hcParts}</span>
+          <span style="font-size:.6rem;color:var(--dim)">→</span>${rwd}
+        </div>`;
+      }).join('');
+      condHtml = `<span class="cond-ok">✓ auto</span><span class="cond-info">maxHP ${ev.maxHp||10}</span>${condBlocks}`;
+
     } else if (ev.type==='per_group') {
-      condHtml = `<span class="cond-dmg">ขาด 1 type→-${ev.dmgPerMissType||2}HP</span><span class="cond-info">ต้องมีครบทุก dept</span>`;
+      const dpt = ev.dmgPerMissType||2;
+      const cap = ev.maxMissTypes||3;
+      // penalty table
+      const penRows = Array.from({length:cap+1},(_,m)=>{
+        const dmg = dpt * Math.min(m,cap);
+        return `<span class="${dmg===0?'cond-ok':'cond-dmg'}" style="font-size:.58rem">
+          ขาด${m}${m===cap?'+':''}: ${dmg===0?'ผ่าน':'-'+dmg+'HP'}
+        </span>`;
+      }).join('');
+      condHtml = `<span class="cond-info">ต้องมีครบทุก dept/กลุ่ม</span>
+        <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">${penRows}</div>`;
+
+    } else if (ev.type==='global_all') {
+      const req3 = ev.req||{};
+      const reqChips3 = Object.entries(req3).map(([d,n])=>
+        `<span class="cond-info">${DEPTS[d]?.icon||d} ${d}: ${n}</span>`
+      ).join('');
+      condHtml = `<span class="cond-info">🌐 รวมทุกกลุ่ม</span>${reqChips3}`;
     }
 
     return `<div class="ev-preview-row">
@@ -1829,6 +1933,7 @@ window.doConfirmRegroup=doConfirmRegroup; window.forceAssign=forceAssign;
 window.doRestart=doRestart; window.adminSetHP=adminSetHP; window.adminSetItems=adminSetItems;
 window.saveEvReq=saveEvReq; window.saveEvCfg=saveEvCfg; window.saveGlobalCfg=saveGlobalCfg;
 window.saveEvReqField=saveEvReqField;
+window.saveCondHcField=saveCondHcField; window.saveCondRdDepts=saveCondRdDepts;
 window.saveEvMult=saveEvMult; window.saveCondHeadcount=saveCondHeadcount; window.saveCondReward=saveCondReward;
 window.renderEvCfgTable=renderEvCfgTable; window.scheduleRender=scheduleRender; window.clearLog=clearLog;
 window.doDeletePlayer=doDeletePlayer; window.doKillPlayer=doKillPlayer;
