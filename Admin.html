@@ -800,28 +800,107 @@ function renderRegroupingPanel() {
   const assigned = alive.filter(p => p.groupId >= 0);
   const unassigned = alive.filter(p => p.groupId < 0);
   const leaderAssigned = gs.leaderAssigned || false;
-  const leaderSelectOpen = gs.leaderSelectOpen || false;  // ขั้น 4: ผู้เล่นขอเข้าได้
-  const leaderAcceptOpen = gs.leaderAcceptOpen || false;  // ขั้น 5: หัวหน้ารับได้
+  const leaderSelectOpen = gs.leaderSelectOpen || false;
+  const leaderAcceptOpen = gs.leaderAcceptOpen || false;
+  const activeGroups = S.groupStatus.filter(g => g.aliveCount > 0);
 
-  // ── group rows แสดงชื่อหัวหน้า
-  const leaderRows = S.groupStatus.map(g => {
-    const aliveTags = g.members.filter(m => m.alive).map(m => {
-      const isLdr = S.players[m.id]?.isLeader;
-      return h('span','style="font-size:.66rem;padding:2px 5px;border-radius:3px;font-family:monospace;background:'+(isLdr?'rgba(245,166,35,.15)':'var(--sur2)')+';'+(isLdr?'border:1px solid rgba(245,166,35,.4);color:var(--amber)':'')+'\"',
-        (isLdr?'👑 ':'')+(DEPTS[m.dept]?.icon||'')+' '+m.name);
-    }).join('');
+  // ── progress chips
+  const stepDone = (label) => h('span','style="font-size:.58rem;padding:2px 9px;border-radius:20px;font-weight:700;background:rgba(61,186,106,.12);color:var(--green);border:1px solid rgba(61,186,106,.3)"','✓ '+label);
+  const stepCur  = (label) => h('span','style="font-size:.58rem;padding:2px 9px;border-radius:20px;font-weight:700;background:rgba(245,166,35,.12);color:var(--amber);border:1px solid rgba(245,166,35,.3)"','● '+label);
+  const stepWait = (label) => h('span','style="font-size:.58rem;padding:2px 9px;border-radius:20px;background:var(--sur2);color:var(--dim);border:1px solid var(--brd2)"',label);
+
+  const step1Chip = leaderAssigned ? stepDone('สุ่มหัวหน้า') : stepCur('สุ่มหัวหน้า');
+  const step2Chip = !leaderAssigned ? stepWait('เลือกหัวหน้า') : leaderSelectOpen ? stepCur('เลือกหัวหน้า') : !leaderAcceptOpen ? stepWait('เลือกหัวหน้า') : stepDone('เลือกหัวหน้า');
+  const step3Chip = !leaderSelectOpen ? stepWait('เลือกทีม') : leaderAcceptOpen ? stepCur('เลือกทีม') : stepWait('เลือกทีม');
+
+  // ── header
+  const headerHtml = h('div','style="background:rgba(206,147,216,.07);border:1px solid rgba(206,147,216,.3);border-radius:10px;padding:12px 16px;margin-bottom:12px"',
+    h('div','style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"',
+      h('div','style="display:flex;align-items:center;gap:8px"',
+        h('span','style="font-size:1.3rem"',ev.emoji||'🔀')+
+        h('div','',
+          h('div','style="font-family:\'Bebas Neue\',sans-serif;font-size:.95rem;letter-spacing:3px;color:var(--purple)"',ev.name||'REGROUP')+
+          h('div','style="font-family:monospace;font-size:.55rem;color:var(--dim)"','EVENT '+(evIdx+1)+'/10')
+        )
+      )+
+      h('div','style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end"',
+        h('span','style="font-family:monospace;font-size:.62rem;color:var(--green)"','✓ '+assigned.length+' คน')+
+        h('span','style="font-family:monospace;font-size:.62rem;color:'+(unassigned.length?'var(--red)':'var(--dim)')+'\"','⏳ รอ '+unassigned.length+' คน')
+      )
+    )+
+    h('div','style="display:flex;gap:5px;flex-wrap:wrap"',step1Chip+step2Chip+step3Chip)
+  );
+
+  // ── leader group grid (ใช้ซ้ำใน step1 และ step2)
+  const leaderGrid = (showRequestCount) => activeGroups.map(g => {
     const leader = g.members.find(m => m.alive && S.players[m.id]?.isLeader);
-    return h('div','style="background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:7px 9px;margin-bottom:4px"',
-      h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"',
-        h('span','style="font-family:\'Bebas Neue\',sans-serif;letter-spacing:3px;color:var(--purple)"',g.name)+
-        h('span','style="font-family:monospace;font-size:.58rem;color:'+(g.full?'var(--red)':'var(--dim)')+'\"',
-          g.aliveCount+'/'+g.max+(g.full?' FULL':'')+(leader?' · 👑 '+leader.name:''))
-      )+h('div','style="display:flex;flex-wrap:wrap;gap:3px"',aliveTags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
+    const reqCount = showRequestCount ? Object.values(S.players).filter(p => p.alive && String(p.groupRequest)===String(g.id)).length : null;
+    return h('div','style="display:flex;align-items:center;justify-content:space-between;padding:5px 9px;background:var(--sur2);border-radius:5px;border:1px solid var(--brd)"',
+      h('span','style="font-family:\'Bebas Neue\',sans-serif;font-size:.78rem;letter-spacing:2px;color:var(--purple)"',g.name)+
+      h('div','style="display:flex;align-items:center;gap:6px"',
+        (leader ? h('span','style="font-family:monospace;font-size:.58rem;padding:1px 7px;border-radius:10px;background:rgba(245,166,35,.12);color:var(--amber);border:1px solid rgba(245,166,35,.3)"','👑 '+leader.name) : h('span','style="font-size:.58rem;color:var(--dim)"','ยังไม่มี'))+
+        (reqCount !== null ? h('span','style="font-family:monospace;font-size:.55rem;color:'+(reqCount>0?'var(--amber)':'var(--dim)')+'\"',reqCount > 0 ? reqCount+' ขอ' : '—') : '')
+      )
     );
   }).join('');
 
+  // ── step 1 card: สุ่มหัวหน้า
+  const s1Active = !leaderAssigned;
+  const s1Card = h('div','style="border-radius:8px;padding:11px 14px;margin-bottom:8px;border:1px solid '+(s1Active?'rgba(245,166,35,.35)':'rgba(61,186,106,.25)')+';background:'+(s1Active?'rgba(245,166,35,.04)':'rgba(61,186,106,.04)')+'\"',
+    h('div','style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:'+(leaderAssigned?'8':'4')+'px"',
+      h('div','',
+        h('div','style="font-family:monospace;font-size:.6rem;color:var(--dim);margin-bottom:2px"',s1Active?'ขั้นที่ 1 — รอดำเนินการ':'ขั้นที่ 1 — เสร็จแล้ว')+
+        h('div','style="font-size:.82rem;font-weight:700;color:'+(s1Active?'var(--amber)':'var(--green)')+'\"',s1Active?'สุ่มหัวหน้ากลุ่ม':'สุ่มหัวหน้าแล้ว')+
+        (!leaderAssigned ? h('div','style="font-size:.72rem;color:var(--dim);margin-top:2px"','เลือกจำนวนกลุ่ม แล้วกดสุ่ม') : h('div','style="font-size:.72rem;color:var(--dim);margin-top:2px"',activeGroups.length+' กลุ่ม · หัวหน้าถูก assign แล้ว'))
+      )+
+      h('div','style="display:flex;flex-direction:column;gap:5px;align-items:flex-end"',
+        (!leaderAssigned ? h('div','style="display:flex;align-items:center;gap:6px"',
+          h('span','style="font-family:monospace;font-size:.6rem;color:var(--dim)"','จำนวนกลุ่ม')+
+          h('input','id="rg-group-count" type="number" min="1" max="20" value="'+(activeGroups.length||gs.groupCount||8)+'" class="ain" style="width:44px"','')+
+          h('button','class="btn btn-pu" onclick="showLeaderModal()" style="font-size:.62rem;padding:5px 11px"','👑 สุ่ม')
+        ) : h('button','class="btn btn-s" onclick="showLeaderModal()" style="font-size:.6rem;padding:4px 9px;opacity:.6"','🎲 สุ่มใหม่'))
+      )
+    )+
+    (leaderAssigned ? h('div','style="display:grid;grid-template-columns:1fr 1fr;gap:4px"',leaderGrid(false)) : '')
+  );
+
+  // ── step 2 card: เปิดให้เลือกหัวหน้า
+  const s2Locked = !leaderAssigned;
+  const s2Active = leaderAssigned && !leaderAcceptOpen;
+  const s2Card = h('div','style="border-radius:8px;padding:11px 14px;margin-bottom:8px;border:1px solid '+(s2Locked?'var(--brd)':leaderAcceptOpen?'rgba(61,186,106,.25)':'rgba(245,166,35,.35)')+';background:'+(s2Locked?'var(--sur2)':leaderAcceptOpen?'rgba(61,186,106,.04)':'rgba(245,166,35,.04)')+';opacity:'+(s2Locked?'.45':'1')+'\"',
+    h('div','style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:'+(leaderSelectOpen&&!leaderAcceptOpen?'8':'2')+'px"',
+      h('div','',
+        h('div','style="font-family:monospace;font-size:.6rem;color:var(--dim);margin-bottom:2px"',s2Locked?'ขั้นที่ 2 — รอขั้นที่ 1':leaderAcceptOpen?'ขั้นที่ 2 — เสร็จแล้ว':'ขั้นที่ 2 — กำลังดำเนินอยู่')+
+        h('div','style="font-size:.82rem;font-weight:700;color:'+(s2Locked?'var(--dim)':leaderAcceptOpen?'var(--green)':'var(--amber)')+'\"','เปิดให้ผู้เล่นเลือกหัวหน้า')+
+        h('div','style="font-size:.72rem;color:var(--dim);margin-top:2px"','ผู้เล่นขอเข้ากลุ่มได้ · หัวหน้าดูรายชื่ออย่างเดียว')
+      )+
+      (!s2Locked ? (leaderSelectOpen
+        ? h('button','class="btn btn-r" onclick="doToggleSelect()" style="font-size:.62rem;padding:5px 11px"','🔴 ปิด')
+        : h('button','class="btn btn-g" onclick="doToggleSelect()" style="font-size:.62rem;padding:5px 11px"','🟢 เปิด')
+      ) : h('button','class="btn btn-s" style="font-size:.62rem;padding:5px 11px;opacity:.4;cursor:not-allowed" disabled','🟢 เปิด'))
+    )+
+    (leaderSelectOpen && !leaderAcceptOpen ? h('div','style="display:grid;grid-template-columns:1fr 1fr;gap:4px"',leaderGrid(true)) : '')
+  );
+
+  // ── step 3 card: เปิดให้หัวหน้าเลือกทีม
+  const s3Locked = !leaderSelectOpen;
+  const s3Card = h('div','style="border-radius:8px;padding:11px 14px;margin-bottom:10px;border:1px solid '+(s3Locked?'var(--brd)':leaderAcceptOpen?'rgba(245,166,35,.35)':'rgba(61,186,106,.25)')+';background:'+(s3Locked?'var(--sur2)':leaderAcceptOpen?'rgba(245,166,35,.04)':'rgba(61,186,106,.04)')+';opacity:'+(s3Locked?'.45':'1')+'\"',
+    h('div','style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px"',
+      h('div','',
+        h('div','style="font-family:monospace;font-size:.6rem;color:var(--dim);margin-bottom:2px"',s3Locked?'ขั้นที่ 3 — รอขั้นที่ 2':leaderAcceptOpen?'ขั้นที่ 3 — กำลังดำเนินอยู่':'ขั้นที่ 3 — รอเปิด')+
+        h('div','style="font-size:.82rem;font-weight:700;color:'+(s3Locked?'var(--dim)':leaderAcceptOpen?'var(--amber)':'var(--dim)')+'\"','เปิดให้หัวหน้าเลือกลูกทีม')+
+        h('div','style="font-size:.72rem;color:var(--dim);margin-top:2px"','หัวหน้ากด ✓/✕ ได้ · คนที่ถูกรับย้ายไม่ได้')
+      )+
+      (!s3Locked ? (leaderAcceptOpen
+        ? h('button','class="btn btn-r" onclick="doToggleAccept()" style="font-size:.62rem;padding:5px 11px"','🔴 ปิด')
+        : h('button','class="btn btn-g" onclick="doToggleAccept()" style="font-size:.62rem;padding:5px 11px"','🟢 เปิด')
+      ) : h('button','class="btn btn-s" style="font-size:.62rem;padding:5px 11px;opacity:.4;cursor:not-allowed" disabled','🟢 เปิด'))
+    )
+  );
+
+  // ── unassigned (force assign)
   const unassignedHtml = unassigned.length ? h('div','class="unassigned-box"',
-    h('div','style="font-family:monospace;font-size:.6rem;color:var(--red);margin-bottom:5px"','⚠️ ยังไม่เลือก '+unassigned.length+' คน')+
+    h('div','style="font-family:monospace;font-size:.6rem;color:var(--red);margin-bottom:5px"','⚠️ ยังไม่เลือก '+unassigned.length+' คน — Admin จัดให้ได้')+
     unassigned.map(p => {
       const d = DEPTS[p.dept]||{};
       const opts = S.groupStatus.map(g => h('option','value="'+g.id+'"'+(g.full?' disabled':''),g.name+(g.full?' (เต็ม)':''))).join('');
@@ -833,65 +912,16 @@ function renderRegroupingPanel() {
     }).join('')
   ) : '';
 
-  // ── ปุ่มควบคุม 5 ขั้นตอน
-  // ขั้น 1+2: input จำนวนกลุ่ม + ปุ่มสุ่ม (แสดงก่อน confirm)
-  const groupCountInput = !leaderAssigned
-    ? h('div','style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:var(--sur2);border:1px solid var(--brd);border-radius:6px"',
-        h('span','style="font-family:monospace;font-size:.6rem;color:var(--dim)"','จำนวนกลุ่มที่จะเล่น')+
-        h('input','id="rg-group-count" type="number" min="1" max="20" value="'+(S.groupStatus.filter(g=>g.aliveCount>0).length||gs.groupCount||8)+'" class="ain" style="width:52px" oninput=""','')+
-        h('span','style="font-family:monospace;font-size:.55rem;color:var(--dim)"','(พบ '+S.groupStatus.filter(g=>g.aliveCount>0).length+' กลุ่มที่มีคน)')
-      )
-    : '';
-
-  const leaderBtn = leaderAssigned
-    ? h('button','class="btn btn-s" onclick="showLeaderModal()" style="font-size:.62rem;padding:5px 11px"','🎲 สุ่มหัวหน้าใหม่')
-    : h('button','class="btn btn-pu" onclick="showLeaderModal()" style="font-size:.62rem;padding:5px 11px"','👑 สุ่มหัวหน้ากลุ่ม');
-
-  // ขั้น 4: เปิดให้ผู้เล่นเลือกหัวหน้า
-  const selectBtn = leaderAssigned
-    ? (leaderSelectOpen
-        ? h('button','class="btn btn-r" onclick="doToggleSelect()" style="font-size:.62rem;padding:5px 11px"','🔴 ปิดการเลือกหัวหน้า')
-        : h('button','class="btn btn-g" onclick="doToggleSelect()" style="font-size:.62rem;padding:5px 11px"','🟢 เปิดให้เลือกหัวหน้า'))
-    : '';
-
-  // ขั้น 5: เปิดให้หัวหน้าเลือกลูกทีม (เปิดได้เมื่อผู้เล่นส่ง request แล้ว)
-  const acceptBtn = leaderSelectOpen
-    ? (leaderAcceptOpen
-        ? h('button','class="btn btn-r" onclick="doToggleAccept()" style="font-size:.62rem;padding:5px 11px"','🔴 ปิดหัวหน้าเลือกลูกทีม')
-        : h('button','class="btn btn-g" onclick="doToggleAccept()" style="font-size:.62rem;padding:5px 11px"','🟢 เปิดให้หัวหน้าเลือกลูกทีม'))
-    : '';
-
-  // ── status banner
-  const statusPhase = !leaderAssigned ? '⏳ รอสุ่มหัวหน้ากลุ่ม'
-    : !leaderSelectOpen ? '👁 หัวหน้าถูกกำหนดแล้ว — รอเปิดให้เลือก'
-    : !leaderAcceptOpen ? '💬 ช่วงเลือกหัวหน้า — ผู้เล่นกำลังส่ง request'
-    : '🟢 ช่วงเลือกลูกทีม — หัวหน้ากำลังรับสมาชิก';
-  const statusColor = !leaderAssigned ? 'var(--dim)'
-    : !leaderSelectOpen ? 'var(--amber)'
-    : !leaderAcceptOpen ? 'var(--purple)'
-    : 'var(--green)';
-  const statusBanner = h('div','style="margin-top:8px;padding:7px 10px;border-radius:6px;font-family:monospace;font-size:.62rem;font-weight:700;background:var(--sur2);border:1px solid var(--brd2);color:'+statusColor+'\"', statusPhase);
-
-  return h('div','class="ev-card regroup"',
-    h('div','style="font-size:.53rem;font-family:monospace;color:var(--dim);margin-bottom:2px"','EVENT '+(evIdx+1)+' / 10')+
-    h('div','style="display:flex;align-items:center;gap:8px"',
-      h('span','style="font-size:1.5rem"',ev.emoji||'🔀')+
-      h('div','class="ev-title regroup"',ev.name||'Regroup')
-    )+
-    h('div','style="font-size:.78rem;margin-top:3px"','รอ Players เลือกกลุ่มใหม่')+
-    h('div','style="font-family:monospace;font-size:.65rem;margin-top:5px;display:flex;gap:10px"',
-      h('span','style="color:var(--green)"','✓ '+assigned.length+' คน เลือกแล้ว')+
-      h('span','style="color:'+(unassigned.length?'var(--red)':'var(--dim)')+'\"','⏳ รออีก '+unassigned.length+' คน')
+  // ── confirm bar
+  const confirmBar = h('div','style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--sur2);border-radius:8px;border:1px solid var(--brd)"',
+    h('span','style="font-family:monospace;font-size:.62rem;color:var(--dim)"','เมื่อทุกคนเข้ากลุ่มแล้ว')+
+    h('div','style="display:flex;gap:6px"',
+      h('button','id="btn-conf-rg" class="btn btn-p" onclick="doConfirmRegroup()" style="font-size:.62rem;padding:6px 14px"','✅ Confirm Regroup ('+assigned.length+'/'+alive.length+')')+
+      h('button','class="btn btn-s" onclick="scheduleRender()" style="font-size:.6rem;padding:5px 9px"','🔄')
     )
-  )+
-  statusBanner+
-  h('div','style="margin-top:8px"',groupCountInput+leaderRows)+
-  unassignedHtml+
-  h('div','style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap"',
-    h('button','id="btn-conf-rg" class="btn btn-p" onclick="doConfirmRegroup()"','✅ Confirm Regroup ('+assigned.length+'/'+alive.length+')')+
-    leaderBtn+selectBtn+acceptBtn+
-    h('button','class="btn btn-s" onclick="scheduleRender()"','🔄 Refresh')
   );
+
+  return headerHtml + s1Card + s2Card + s3Card + unassignedHtml + confirmBar;
 }
 
 // ============================================================
