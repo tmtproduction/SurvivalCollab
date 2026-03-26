@@ -123,6 +123,24 @@ body{color:var(--txt);font-family:var(--thai);overscroll-behavior:none}
 .dead-box{text-align:center;padding:22px 16px;background:rgba(40,20,20,.6);border:1px solid var(--red-brd);border-radius:var(--rl)}
 .dead-title{font-family:var(--deco);font-size:1.4rem;letter-spacing:.12em;color:var(--red)}
 .dead-sub{font-size:.82rem;color:var(--dim);margin-top:4px;line-height:1.6}
+/* ── Instruction Card ── */
+.instr-card{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-radius:var(--r);border:1px solid;margin-bottom:0}
+.instr-card.ic-amber{border-color:var(--amber-brd);background:var(--amber-dim)}
+.instr-card.ic-red{border-color:var(--red-brd);background:var(--red-dim)}
+.instr-card.ic-purple{border-color:var(--purple-brd);background:var(--purple-dim)}
+.instr-card.ic-orange{border-color:rgba(224,107,48,.28);background:rgba(224,107,48,.1)}
+.instr-card.ic-gray{border-color:var(--brd2);background:var(--sur2)}
+.instr-card.ic-green{border-color:var(--green-brd);background:var(--green-dim)}
+.instr-icon{font-size:1.4rem;line-height:1;flex-shrink:0;margin-top:1px}
+.instr-body{}
+.instr-title{font-family:var(--mono);font-size:.68rem;font-weight:600;letter-spacing:.04em;margin-bottom:3px}
+.instr-title.ic-amber{color:var(--amber)}
+.instr-title.ic-red{color:var(--red)}
+.instr-title.ic-purple{color:var(--purple)}
+.instr-title.ic-orange{color:var(--orange)}
+.instr-title.ic-gray{color:var(--dim)}
+.instr-title.ic-green{color:var(--green)}
+.instr-desc{font-size:.8rem;color:var(--txt);line-height:1.5}
 /* cemetery zone in group */
 .cemetery-zone{background:rgba(30,10,10,.5);border:1px dashed rgba(232,62,62,.25);border-radius:var(--r);padding:8px 10px;margin-top:8px}
 .cemetery-lbl{font-family:var(--mono);font-size:.54rem;color:rgba(232,62,62,.5);letter-spacing:.1em;margin-bottom:5px}
@@ -568,6 +586,77 @@ function updatePreview(){
   el.innerHTML=`<span style="font-size:1.3rem">${d.icon}</span><span class="prev-cnt">${cnt}</span><span class="prev-txt">${name?'"'+name+'"':'กรอกชื่อเพื่อดู items'}</span>`;
 }
 
+// ── INSTRUCTION CARD — บอกผู้เล่นว่าตอนนี้ต้องทำอะไร ──────
+function renderInstructionCard(phase, ev){
+  const d=DEPTS[S.player?.dept]||{};
+  const myItems=S.player?.items||0;
+  // กำหนด config ตาม phase + ev.type
+  let color='gray',icon='⏳',title='',desc='';
+
+  if(phase==='lobby'){
+    const inGroup=S.player?.groupId>=0;
+    color=inGroup?'green':'amber';
+    icon=inGroup?'✅':'👋';
+    title=inGroup?'อยู่ในกลุ่มแล้ว':'เลือกกลุ่มก่อน';
+    desc=inGroup?'รอ Admin กด Start Game — ยังไม่ต้องทำอะไร':'แตะกลุ่มด้านล่างเพื่อเข้าร่วม';
+
+  } else if(phase==='regroup'){
+    const inGroup=S.player?.groupId>=0;
+    color='purple';icon='🔀';
+    title='กลุ่มแตกแล้ว! เลือกกลุ่มใหม่';
+    desc=inGroup?'อยู่ในกลุ่มแล้ว — รอ Admin ยืนยัน':'เลือกกลุ่มด้านล่าง แล้วรอ Admin ยืนยัน';
+
+  } else if(phase==='action'){
+    if(ev?.type==='collective_pool'){
+      const relevant=ev?.req&&(S.player?.dept in (ev.req||{}));
+      color='amber';icon='🧪';
+      title='ส่ง items เข้ากองกลาง!';
+      desc=relevant
+        ?`${d.icon} ${d.item} ของคุณต้องใช้ใน event นี้ — ใส่จำนวนแล้วกด ✅`
+        :`dept ของคุณ (${S.player?.dept}) ไม่ได้อยู่ใน req — แต่ช่วยส่งได้ถ้าต้องการ`;
+    } else {
+      color='amber';icon='🎯';
+      title='event เปิดแล้ว! ถึงเวลาใช้ items';
+      const req=ev?.req||{};
+      const need=req[S.player?.dept]||0;
+      desc=need>0
+        ?`กลุ่มต้องการ ${d.icon} ${d.item} รวม ${need} ชิ้น — คุณมี ${myItems} ชิ้น`
+        :`${d.icon} ${d.item} ของคุณไม่ได้อยู่ใน req — ส่งหรือเก็บไว้ก็ได้`;
+    }
+
+  } else if(phase==='discard'){
+    const gs=S.gs||{};
+    const cap=ev?.poolCap||(gs.globalConfig?.poolCap)||55;
+    const mg=myGroup();
+    const groupTotal=mg?mg.members.filter(m=>S.players[m.id]?.alive).reduce((s,m)=>s+(S.players[m.id]?.items||0),0):0;
+    const over=Math.max(0,groupTotal-cap);
+    color='red';icon='⚠️';
+    title='กลุ่มถือของเกิน '+cap+' ชิ้น!';
+    desc=over>0?`กลุ่มมีรวม ${groupTotal} ชิ้น — ต้องทิ้งรวมกัน ${over} ชิ้น แล้ว Admin ถึงจะ confirm ได้`:'กลุ่มอยู่ในเกณฑ์แล้ว — รอ Admin confirm';
+
+  } else if(phase==='wait'){
+    if(ev?.type==='regroup'){
+      color='purple';icon='🔀';title='กำลัง Regroup';desc='รอสมาชิกทุกคนเลือกกลุ่มใหม่ครบ';
+    } else if(ev?.type==='per_group'){
+      color='gray';icon='🏕';title='Admin กำลังตรวจ items';desc='ระบบจะเช็คว่ากลุ่มมี item ครบทุก type ไหม — ยังไม่ต้องทำอะไร';
+    } else if(ev?.type==='headcount_reward'){
+      color='green';icon='💧';title='ตรวจจำนวนคนในกลุ่ม';desc='ระบบนับหัวแบบอัตโนมัติ — ถ้าผ่านเงื่อนไขจะได้รับ HP หรือ items';
+    } else {
+      color='gray';icon='⏳';title='รอ Admin เปิด Event';desc='ยังไม่ต้องทำอะไร — คอยฟัง Admin';
+    }
+
+  }
+
+  if(!title) return '';
+  return`<div class="instr-card ic-${color}">
+    <div class="instr-icon">${icon}</div>
+    <div class="instr-body">
+      <div class="instr-title ic-${color}">${title}</div>
+      <div class="instr-desc">${desc}</div>
+    </div>
+  </div>`;
+}
+
 // ── RENDER ─────────────────────────────────────────────────
 function render(){
   const app=document.getElementById('app');if(!app)return;
@@ -727,19 +816,23 @@ function renderContent(phase){
     </div>
     ${evCard(ev,evIdx,mg)}${groupInfo(mg,ev)}`;
   }
-  if(phase==='lobby')  return renderLobby(mg);
-  if(phase==='regroup')return renderRegroup(mg);
+  // ── Instruction card — แสดงทุก phase ──
+  const instrHtml = renderInstructionCard(phase, ev);
+  const wrap = (inner) => instrHtml ? `${instrHtml}${inner}` : inner;
+
+  if(phase==='lobby')  return wrap(renderLobby(mg));
+  if(phase==='regroup')return wrap(renderRegroup(mg));
   if(phase==='action'){
-    if(ev?.type==='collective_pool')return renderCollectivePool(ev,evIdx,mg,p,d);
-    return renderAction(ev,evIdx,mg,p,d);
+    if(ev?.type==='collective_pool')return wrap(renderCollectivePool(ev,evIdx,mg,p,d));
+    return wrap(renderAction(ev,evIdx,mg,p,d));
   }
   if(phase==='wait'){
-    if(ev?.type==='headcount_reward') return renderHeadcountInfo(ev,evIdx,mg);
-    if(ev?.type==='per_group')        return renderPerGroupInfo(ev,evIdx,mg,p,d);
-    return renderWait(ev,evIdx,mg);
+    if(ev?.type==='headcount_reward') return wrap(renderHeadcountInfo(ev,evIdx,mg));
+    if(ev?.type==='per_group')        return wrap(renderPerGroupInfo(ev,evIdx,mg,p,d));
+    return wrap(renderWait(ev,evIdx,mg));
   }
-  if(phase==='discard')return renderDiscard(ev,evIdx,mg,p,d);
-  return renderWait(ev,evIdx,mg);
+  if(phase==='discard')return wrap(renderDiscard(ev,evIdx,mg,p,d));
+  return wrap(renderWait(ev,evIdx,mg));
 }
 
 function renderCollectivePool(ev,evIdx,mg,p,d){
