@@ -955,23 +955,23 @@ async function clearLog() {
 // ============================================================
 //  CONFIG
 // ============================================================
+// ── helper: สร้าง dept input แทน JSON text ──
+function reqDeptInputs(evId, currentReq) {
+  return DK.map(dk => {
+    const dinfo = DEPTS[dk]||{};
+    const val = currentReq[dk]||0;
+    return h('div','style="display:flex;flex-direction:column;align-items:center;gap:2px"',
+      h('span','style="font-size:.85rem"', dinfo.icon||dk)+
+      h('span','style="font-family:monospace;font-size:.48rem;color:var(--dim)"', dk)+
+      h('input','type="number" min="0" max="99" value="'+val+'" class="ain" style="width:44px" '+
+        'oninput="saveEvReqField(\''+evId+'\',\''+dk+'\',+this.value)"', '')
+    );
+  }).join('');
+}
+
 function renderEvCfgTable() {
   const el = document.getElementById('ev-cfg-cards'); if (!el) return;
   const gs = S.gs||{}, cfg = gs.eventConfig||{};
-
-  // ── helper: สร้าง dept input แทน JSON text ──
-  function reqDeptInputs(evId, currentReq) {
-    return DK.map(dk => {
-      const dinfo = DEPTS[dk]||{};
-      const val = currentReq[dk]||0;
-      return h('div','style="display:flex;flex-direction:column;align-items:center;gap:2px"',
-        h('span','style="font-size:.85rem"', dinfo.icon||dk)+
-        h('span','style="font-family:monospace;font-size:.48rem;color:var(--dim)"', dk)+
-        h('input','type="number" min="0" max="99" value="'+val+'" class="ain" style="width:44px" '+
-          'oninput="saveEvReqField(\''+evId+'\',\''+dk+'\',+this.value)"', '')
-      );
-    }).join('');
-  }
 
   el.innerHTML = DEFAULT_EVENTS.map((ev,idx) => {
     const c = cfg[ev.id]||{};
