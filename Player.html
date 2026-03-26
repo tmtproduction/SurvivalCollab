@@ -966,7 +966,8 @@ function renderRegroup(mg){
   const p=S.player||{}, gs=S.gs||{};
   const isLeader = p.isLeader || false;
   const leaderAssigned = gs.leaderAssigned || false;
-  const leaderAcceptOpen = gs.leaderAcceptOpen || false;
+  const leaderSelectOpen = gs.leaderSelectOpen || false;  // ขั้น 4: ผู้เล่นขอเข้าได้
+  const leaderAcceptOpen = gs.leaderAcceptOpen || false;  // ขั้น 5: หัวหน้ารับได้
   // ช่วง regroup groupId = -1 ทุกคน — ใช้ leaderGroupId แทน
   const myLeaderGid = p.leaderGroupId;
   const myLeaderGroup = (myLeaderGid != null && myLeaderGid >= 0)
@@ -999,8 +1000,10 @@ function renderRegroup(mg){
       : `<div style="text-align:center;padding:14px;color:var(--dim);font-size:.8rem">ยังไม่มีคนขอเข้ากลุ่ม<br><span style="font-size:.7rem">รอสมาชิกมาชักชวน</span></div>`;
 
     const leaderStatus = leaderAcceptOpen
-      ? `<div style="background:var(--green-dim);border:1px solid var(--green-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--green);margin-bottom:8px">🟢 เปิดรับสมาชิกแล้ว — กด ✓ รับได้เลย</div>`
-      : `<div style="background:var(--purple-dim);border:1px solid var(--purple-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--purple);margin-bottom:8px">💬 ช่วงอภิปราย — รอ Admin เปิดให้รับ</div>`;
+      ? `<div style="background:var(--green-dim);border:1px solid var(--green-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--green);margin-bottom:8px">🟢 เปิดให้เลือกลูกทีมแล้ว — กด ✓ รับได้เลย</div>`
+      : leaderSelectOpen
+        ? `<div style="background:var(--amber-dim);border:1px solid var(--amber-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--amber);margin-bottom:8px">💬 ผู้เล่นกำลังส่งคำขอ — รอ Admin เปิดให้เลือกลูกทีม</div>`
+        : `<div style="background:var(--purple-dim);border:1px solid var(--purple-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--purple);margin-bottom:8px">👁 หัวหน้าถูกกำหนดแล้ว — รอ Admin เปิดให้ผู้เล่นเลือกหัวหน้า</div>`;
 
     return`
     <div class="card ca-amber">
@@ -1008,7 +1011,7 @@ function renderRegroup(mg){
         <span style="font-size:1.6rem">👑</span>
         <div>
           <div style="font-family:var(--deco);font-size:1.1rem;letter-spacing:.08em;color:var(--amber)">คุณคือหัวหน้า ${myLeaderGroup.name}</div>
-          <div style="font-size:.78rem;color:var(--dim);margin-top:2px">${leaderAcceptOpen?'รับหรือปฏิเสธคนที่ขอเข้ากลุ่มได้':'รอ Admin กด เปิดให้รับสมาชิก'}</div>
+          <div style="font-size:.78rem;color:var(--dim);margin-top:2px">${leaderAcceptOpen?'รับหรือปฏิเสธคนที่ขอเข้ากลุ่มได้':leaderSelectOpen?'ผู้เล่นกำลังส่งคำขอ — รอ Admin เปิดขั้นต่อไป':'รอ Admin เปิดให้ผู้เล่นเลือกหัวหน้า'}</div>
         </div>
       </div>
     </div>
@@ -1030,7 +1033,8 @@ function renderRegroup(mg){
     const aliveCount = g.members.filter(m=>S.players[m.id]?.alive).length;
     const full = aliveCount >= g.max;
     // highlight กลุ่มที่ยังรับได้ (มีที่ว่าง + ไม่ใช่กลุ่มที่เพิ่งปฏิเสธ) เมื่อถูกปฏิเสธ
-    const isAvailable = wasRejected && !mine && !full && !wasRejectedHere && leaderAssigned;
+    // highlight กลุ่มที่ยังรับได้เมื่อถูกปฏิเสธ + leaderSelectOpen เปิดแล้ว
+    const isAvailable = wasRejected && !mine && !full && !wasRejectedHere && leaderSelectOpen;
 
     let actionBtn = '';
     if (mine) {
@@ -1041,8 +1045,10 @@ function renderRegroup(mg){
       actionBtn = `<span style="font-family:var(--mono);font-size:.6rem;color:var(--amber)">⏳ รออนุมัติ...</span>`;
     } else if (full) {
       actionBtn = `<span style="font-family:var(--mono);font-size:.6rem;color:var(--red)">FULL</span>`;
-    } else if (leaderAssigned) {
+    } else if (leaderSelectOpen) {
       actionBtn = `<button class="btn-big ${isAvailable?'btn-amber':'btn-ghost'}" style="width:auto;padding:5px 12px;font-size:.65rem;touch-action:manipulation" onclick="doRequestGroup(${g.id})">ขอเข้า →</button>`;
+    } else if (leaderAssigned) {
+      actionBtn = `<span style="font-family:var(--mono);font-size:.6rem;color:var(--dim)">รอเปิด</span>`;
     } else {
       actionBtn = `<button class="btn-big btn-ghost" style="width:auto;padding:5px 12px;font-size:.65rem;touch-action:manipulation" onclick="doJoinGroup(${g.id})">เข้า →</button>`;
     }
@@ -1085,9 +1091,11 @@ function renderRegroup(mg){
 
   const headerMsg = !leaderAssigned
     ? `<div style="font-size:.82rem;color:var(--dim)">รอ Admin สุ่มหัวหน้ากลุ่ม...</div>`
-    : leaderAcceptOpen
-      ? `<div style="font-size:.82rem;color:var(--green)">🟢 ขอเข้ากลุ่มได้เลย — หัวหน้ารับได้แล้ว</div>`
-      : `<div style="font-size:.82rem;color:var(--purple)">💬 ช่วงอภิปราย — เดินชักชวนหัวหน้าก่อน</div>`;
+    : !leaderSelectOpen
+      ? `<div style="font-size:.82rem;color:var(--dim)">👁 หัวหน้าถูกกำหนดแล้ว — รอ Admin เปิดให้เลือก</div>`
+      : leaderAcceptOpen
+        ? `<div style="font-size:.82rem;color:var(--green)">🟢 หัวหน้ากำลังเลือกลูกทีม — รอผล</div>`
+        : `<div style="font-size:.82rem;color:var(--amber)">💬 เลือกกลุ่มที่อยากเข้า แล้วรอหัวหน้ารับ</div>`;
 
   return`
   <div class="card ca-purple">

@@ -800,8 +800,10 @@ function renderRegroupingPanel() {
   const assigned = alive.filter(p => p.groupId >= 0);
   const unassigned = alive.filter(p => p.groupId < 0);
   const leaderAssigned = gs.leaderAssigned || false;
-  const leaderAcceptOpen = gs.leaderAcceptOpen || false;
+  const leaderSelectOpen = gs.leaderSelectOpen || false;  // ขั้น 4: ผู้เล่นขอเข้าได้
+  const leaderAcceptOpen = gs.leaderAcceptOpen || false;  // ขั้น 5: หัวหน้ารับได้
 
+  // ── group rows แสดงชื่อหัวหน้า
   const leaderRows = S.groupStatus.map(g => {
     const aliveTags = g.members.filter(m => m.alive).map(m => {
       const isLdr = S.players[m.id]?.isLeader;
@@ -831,25 +833,44 @@ function renderRegroupingPanel() {
     }).join('')
   ) : '';
 
+  // ── ปุ่มควบคุม 5 ขั้นตอน
+  // ขั้น 1+2: input จำนวนกลุ่ม + ปุ่มสุ่ม (แสดงก่อน confirm)
+  const groupCountInput = !leaderAssigned
+    ? h('div','style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:var(--sur2);border:1px solid var(--brd);border-radius:6px"',
+        h('span','style="font-family:monospace;font-size:.6rem;color:var(--dim)"','จำนวนกลุ่มที่จะเล่น')+
+        h('input','id="rg-group-count" type="number" min="1" max="20" value="'+(S.groupStatus.filter(g=>g.aliveCount>0).length||gs.groupCount||8)+'" class="ain" style="width:52px" oninput=""','')+
+        h('span','style="font-family:monospace;font-size:.55rem;color:var(--dim)"','(พบ '+S.groupStatus.filter(g=>g.aliveCount>0).length+' กลุ่มที่มีคน)')
+      )
+    : '';
+
   const leaderBtn = leaderAssigned
-    ? h('button','class="btn btn-s" onclick="showLeaderModal()" style="font-size:.62rem;padding:5px 11px"','🎲 สุ่มใหม่')
+    ? h('button','class="btn btn-s" onclick="showLeaderModal()" style="font-size:.62rem;padding:5px 11px"','🎲 สุ่มหัวหน้าใหม่')
     : h('button','class="btn btn-pu" onclick="showLeaderModal()" style="font-size:.62rem;padding:5px 11px"','👑 สุ่มหัวหน้ากลุ่ม');
 
-  // ── ปุ่มเปิด/ปิดช่วงรับสมาชิก — แสดงเมื่อสุ่มหัวหน้าแล้ว
-  const acceptBtn = leaderAssigned
-    ? (leaderAcceptOpen
-        ? h('button','class="btn btn-r" onclick="doToggleAccept()" style="font-size:.62rem;padding:5px 11px"','🔴 ปิดรับสมาชิก')
-        : h('button','class="btn btn-g" onclick="doToggleAccept()" style="font-size:.62rem;padding:5px 11px"','🟢 เปิดให้รับสมาชิก'))
+  // ขั้น 4: เปิดให้ผู้เล่นเลือกหัวหน้า
+  const selectBtn = leaderAssigned
+    ? (leaderSelectOpen
+        ? h('button','class="btn btn-r" onclick="doToggleSelect()" style="font-size:.62rem;padding:5px 11px"','🔴 ปิดการเลือกหัวหน้า')
+        : h('button','class="btn btn-g" onclick="doToggleSelect()" style="font-size:.62rem;padding:5px 11px"','🟢 เปิดให้เลือกหัวหน้า'))
     : '';
 
-  // ── status banner แสดงช่วงปัจจุบัน
-  const statusBanner = leaderAssigned
-    ? h('div','style="margin-top:8px;padding:7px 10px;border-radius:6px;font-family:monospace;font-size:.62rem;font-weight:700;'+
-        (leaderAcceptOpen
-          ? 'background:rgba(61,186,106,.1);border:1px solid rgba(61,186,106,.3);color:var(--green)'
-          : 'background:rgba(206,147,216,.1);border:1px solid rgba(206,147,216,.3);color:var(--purple)')+'\"',
-        leaderAcceptOpen ? '🟢 ช่วงรับสมาชิก — หัวหน้ากด ✓ รับได้แล้ว' : '💬 ช่วงอภิปราย — ให้ผู้เล่นเดินชักชวนกันก่อน')
+  // ขั้น 5: เปิดให้หัวหน้าเลือกลูกทีม (เปิดได้เมื่อผู้เล่นส่ง request แล้ว)
+  const acceptBtn = leaderSelectOpen
+    ? (leaderAcceptOpen
+        ? h('button','class="btn btn-r" onclick="doToggleAccept()" style="font-size:.62rem;padding:5px 11px"','🔴 ปิดหัวหน้าเลือกลูกทีม')
+        : h('button','class="btn btn-g" onclick="doToggleAccept()" style="font-size:.62rem;padding:5px 11px"','🟢 เปิดให้หัวหน้าเลือกลูกทีม'))
     : '';
+
+  // ── status banner
+  const statusPhase = !leaderAssigned ? '⏳ รอสุ่มหัวหน้ากลุ่ม'
+    : !leaderSelectOpen ? '👁 หัวหน้าถูกกำหนดแล้ว — รอเปิดให้เลือก'
+    : !leaderAcceptOpen ? '💬 ช่วงเลือกหัวหน้า — ผู้เล่นกำลังส่ง request'
+    : '🟢 ช่วงเลือกลูกทีม — หัวหน้ากำลังรับสมาชิก';
+  const statusColor = !leaderAssigned ? 'var(--dim)'
+    : !leaderSelectOpen ? 'var(--amber)'
+    : !leaderAcceptOpen ? 'var(--purple)'
+    : 'var(--green)';
+  const statusBanner = h('div','style="margin-top:8px;padding:7px 10px;border-radius:6px;font-family:monospace;font-size:.62rem;font-weight:700;background:var(--sur2);border:1px solid var(--brd2);color:'+statusColor+'\"', statusPhase);
 
   return h('div','class="ev-card regroup"',
     h('div','style="font-size:.53rem;font-family:monospace;color:var(--dim);margin-bottom:2px"','EVENT '+(evIdx+1)+' / 10')+
@@ -864,12 +885,11 @@ function renderRegroupingPanel() {
     )
   )+
   statusBanner+
-  h('div','style="margin-top:8px"',leaderRows)+
+  h('div','style="margin-top:8px"',groupCountInput+leaderRows)+
   unassignedHtml+
   h('div','style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap"',
     h('button','id="btn-conf-rg" class="btn btn-p" onclick="doConfirmRegroup()"','✅ Confirm Regroup ('+assigned.length+'/'+alive.length+')')+
-    leaderBtn+
-    acceptBtn+
+    leaderBtn+selectBtn+acceptBtn+
     h('button','class="btn btn-s" onclick="scheduleRender()"','🔄 Refresh')
   );
 }
@@ -1764,7 +1784,8 @@ async function doConfirmRegroup() {
     pendingConfirm: false,
     currentEvent: nextEv,
     leaderAssigned: false,
-    leaderAcceptOpen: false  // reset ทุกครั้งที่จบ regroup
+    leaderSelectOpen: false,
+    leaderAcceptOpen: false
   });
   // clear isLeader และ groupRequest ทุกคน
   const clears = {};
@@ -1785,13 +1806,14 @@ let _leaderDraft = {}; // { gid: pid } — ผลสุ่มชั่วคร�
 
 function showLeaderModal() {
   const gs = S.gs||{};
-  const playerArr = Object.values(S.players);
-  // นับกลุ่มที่มีคน (alive ≥ 1)
   const activeCnt = S.groupStatus.filter(g => g.aliveCount > 0).length;
+  // อ่านจำนวนกลุ่มจาก input ใน panel (ขั้น 1)
+  const panelInput = document.getElementById('rg-group-count');
+  const wantGroups = panelInput ? Math.max(1, +panelInput.value||activeCnt) : activeCnt;
   const inp = document.getElementById('leader-group-count');
-  if (inp) inp.value = activeCnt;
+  if (inp) inp.value = wantGroups;
   document.getElementById('leader-modal-sub').textContent =
-    'พบ '+activeCnt+' กลุ่มที่มีผู้เล่น — สุ่ม random แล้วตรวจสอบก่อนยืนยัน';
+    'สุ่มหัวหน้า '+wantGroups+' กลุ่ม จาก '+activeCnt+' กลุ่มที่มีผู้เล่น';
   previewLeaders();
   document.getElementById('leader-preview-modal').style.display = 'flex';
 }
@@ -1851,6 +1873,7 @@ async function confirmLeaders() {
     leaders.push(gname+': '+(S.players[pid]?.name||pid));
   });
   updates['game/state/leaderAssigned'] = true;
+  updates['game/state/leaderSelectOpen'] = false;
   updates['game/state/leaderAcceptOpen'] = false;
 
   await update(ref(db), updates);
@@ -1863,10 +1886,16 @@ function closeLeaderPreview() {
   document.getElementById('leader-preview-modal').style.display = 'none';
 }
 
+async function doToggleSelect() {
+  const current = S.gs?.leaderSelectOpen || false;
+  await update(ref(db,'game/state'), { leaderSelectOpen: !current, leaderAcceptOpen: false });
+  toast(!current ? '🟢 เปิดให้ผู้เล่นเลือกหัวหน้าแล้ว' : '🔴 ปิดการเลือกหัวหน้า');
+}
+
 async function doToggleAccept() {
   const current = S.gs?.leaderAcceptOpen || false;
   await update(ref(db,'game/state'), { leaderAcceptOpen: !current });
-  toast(!current ? '🟢 เปิดให้หัวหน้ารับสมาชิกแล้ว' : '🔴 ปิดการรับสมาชิก');
+  toast(!current ? '🟢 เปิดให้หัวหน้าเลือกลูกทีมแล้ว' : '🔴 ปิดการเลือกลูกทีม');
 }
 
 async function doRandomLeader() {
@@ -1884,7 +1913,8 @@ async function doRandomLeader() {
     leaders.push((gs.groupNames||GN)[gid]+': '+pick.name);
   }
   updates['game/state/leaderAssigned'] = true;
-  updates['game/state/leaderAcceptOpen'] = false; // reset ให้อยู่ในช่วงอภิปรายก่อน
+  updates['game/state/leaderSelectOpen'] = false;
+  updates['game/state/leaderAcceptOpen'] = false;
   await update(ref(db), updates);
   await push(ref(db,'game/logs'), {ts:Date.now(),type:'p',msg:'👑 สุ่มหัวหน้า — '+leaders.join(' | ')});
   toast('👑 สุ่มหัวหน้าแล้ว — กด 🟢 เปิดให้รับสมาชิก เมื่อพร้อม');
@@ -2150,7 +2180,7 @@ window.showStartPreview=showStartPreview; window.closeStartPreview=closeStartPre
 window.doConfirmStart=doConfirmStart;
 window.doRunEvent=doRunEvent; window.doConfirmEvent=doConfirmEvent;
 window.doConfirmRegroup=doConfirmRegroup; window.forceAssign=forceAssign;
-window.doRandomLeader=doRandomLeader; window.doToggleAccept=doToggleAccept;
+window.doRandomLeader=doRandomLeader; window.doToggleAccept=doToggleAccept; window.doToggleSelect=doToggleSelect;
 window.showLeaderModal=showLeaderModal; window.previewLeaders=previewLeaders;
 window.confirmLeaders=confirmLeaders; window.closeLeaderPreview=closeLeaderPreview;
 window.doRestart=doRestart; window.adminSetHP=adminSetHP; window.adminSetItems=adminSetItems;
