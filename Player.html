@@ -456,9 +456,19 @@ function startListeners(){
   });
   onValue(ref(db,'players'),snap=>{
     S.players=snap.val()||{};
-    if(S.pid&&S.players[S.pid])S.player=S.players[S.pid];
+    if(S.pid){
+      if(S.players[S.pid]){
+        S.player=S.players[S.pid];
+      } else {
+        // node ของตัวเองหายไป — Admin ลบออกแล้ว
+        clearSession();
+        S.pid=null; S.player=null; S.connected=false;
+        render(); // จะ render หน้า login
+        return;
+      }
+    }
     buildGroups();render();
-    syncAmbient(); // ← ambient hook
+    syncAmbient();
   });
   onValue(ref(db,'.info/connected'),snap=>{
     S.connected=snap.val();
