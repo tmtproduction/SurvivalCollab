@@ -110,38 +110,37 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 /* ── LOADING / EMPTY ── */
 .loading{text-align:center;padding:40px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--dim)}
 .refresh-hint{text-align:center;font-family:'Space Mono',monospace;font-size:.58rem;color:var(--dim);margin-top:20px}
-/* ── Lesson Section ── */
-.lesson-section{border:1px solid rgba(245,166,35,.22);border-radius:10px;padding:16px 18px;margin-top:20px;background:rgba(245,166,35,.04)}
-.lesson-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:5px;color:var(--amber);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+/* ── Lesson Section — light theme ── */
+.lesson-section{border:1px solid #d4c9a8;border-radius:10px;padding:16px 18px;margin-top:20px;background:#faf8f2}
+.lesson-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:5px;color:#5c4a1e;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .lkw{font-size:.68rem;padding:3px 10px;border-radius:20px;font-family:'Sarabun',sans-serif}
-.lkw-teal{background:rgba(29,158,117,.12);color:#3dba6a;border:1px solid rgba(29,158,117,.3)}
-.lkw-purple{background:rgba(155,114,208,.12);color:var(--purple);border:1px solid rgba(155,114,208,.3)}
-.lkw-amber{background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.25)}
-.lkw-orange{background:rgba(224,107,48,.1);color:#e06b30;border:1px solid rgba(224,107,48,.28)}
+.lkw-teal{background:#c8f0e0;color:#1a5e42;border:1px solid #7dcaaa}
+.lkw-purple{background:#e8e2fc;color:#3d2e8a;border:1px solid #a89ce0}
+.lkw-amber{background:#fdecc8;color:#7a4c00;border:1px solid #d9a83c}
+.lkw-orange{background:#fde0cc;color:#7a3010;border:1px solid #d98050}
 /* accordion */
-.lac-item{border-bottom:1px solid rgba(30,48,64,.5)}
+.lac-item{border-bottom:1px solid #e0d9c4}
 .lac-item:last-of-type{border-bottom:none}
 .lac-hdr{display:flex;align-items:center;gap:10px;padding:9px 4px;cursor:pointer;user-select:none;-webkit-user-select:none}
 .lac-hdr:active{opacity:.75}
-.lac-num{font-family:'Space Mono',monospace;font-size:.55rem;color:var(--dim);min-width:28px}
-.lac-name{font-family:'Space Mono',monospace;font-size:.63rem;color:var(--txt);flex:1}
+.lac-num{font-family:'Space Mono',monospace;font-size:.55rem;color:#9a8a68;min-width:28px}
+.lac-name{font-family:'Space Mono',monospace;font-size:.63rem;color:#3a2e1c;flex:1}
 .lac-kws{display:flex;flex-wrap:wrap;gap:4px;margin-right:6px}
-.lac-arrow{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--dim);transition:transform .2s;min-width:10px}
+.lac-arrow{font-family:'Space Mono',monospace;font-size:.6rem;color:#9a8a68;transition:transform .2s;min-width:10px}
 .lac-arrow.open{transform:rotate(90deg)}
 .lac-body{display:none;padding:0 4px 12px 38px}
 .lac-body.open{display:block}
-.lac-insight{font-family:'Sarabun',sans-serif;font-size:.8rem;color:var(--dim);line-height:1.7;border-left:2px solid rgba(245,166,35,.3);padding-left:10px;margin-top:6px}
-/* insight highlight word */
-.lac-hl{color:var(--txt);font-weight:600}
+.lac-insight{font-family:'Sarabun',sans-serif;font-size:.82rem;color:#4a3e28;line-height:1.75;border-left:3px solid #c9a84c;padding-left:10px;margin-top:4px;background:#f5f0e4;border-radius:0 5px 5px 0;padding:8px 10px 8px 12px}
+.lac-hl{color:#5c3d00;font-weight:700}
 /* cards + quote */
 .lesson-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:12px 0}
-.lesson-card{background:var(--sur);border:1px solid var(--brd);border-radius:8px;padding:10px 12px}
+.lesson-card{background:#fff;border:1px solid #ddd6be;border-radius:8px;padding:10px 12px}
 .lesson-card-icon{font-size:1.2rem;margin-bottom:5px}
-.lesson-card-title{font-family:'Space Mono',monospace;font-size:.6rem;font-weight:700;color:var(--amber);margin-bottom:3px}
-.lesson-card-sub{font-size:.75rem;color:var(--dim);line-height:1.5}
-.lesson-quote{border-left:3px solid var(--amber);padding:10px 14px;margin-top:14px;background:rgba(245,166,35,.05);border-radius:0 6px 6px 0}
-.lesson-quote-text{font-family:'Sarabun',sans-serif;font-size:.88rem;color:var(--txt);line-height:1.6;font-style:italic}
-.lesson-quote-attr{font-family:'Space Mono',monospace;font-size:.55rem;color:var(--dim);margin-top:5px}
+.lesson-card-title{font-family:'Space Mono',monospace;font-size:.6rem;font-weight:700;color:#7a5c00;margin-bottom:3px}
+.lesson-card-sub{font-size:.75rem;color:#5a4e38;line-height:1.5}
+.lesson-quote{border-left:3px solid #c9a84c;padding:10px 14px;margin-top:14px;background:#f0e8d0;border-radius:0 6px 6px 0}
+.lesson-quote-text{font-family:'Sarabun',sans-serif;font-size:.88rem;color:#3a2e1c;line-height:1.6;font-style:italic}
+.lesson-quote-attr{font-family:'Space Mono',monospace;font-size:.55rem;color:#9a8a68;margin-top:5px}
 
 /* ── DEBRIEF SUMMARY ── */
 .deb-section{margin-top:28px;padding-top:20px;border-top:2px solid rgba(206,147,216,.2)}
@@ -541,40 +540,40 @@ function render() {
 const LESSON_DATA = [
   { num:'1–3', name:'หลงทาง / หิวโหย / บาดเจ็บ',
     kws:[{t:'teal',w:'การมีส่วนร่วม'},{t:'teal',w:'ผลกระทบร่วมกัน'}],
-    insight:'ทุกกลุ่มเจอเงื่อนไขเดียวกัน แต่ทรัพยากรกระจายอยู่คนละมือ — ถ้าใครไม่ยอมส่ง items <span class="lac-hl">ทั้งกลุ่มโดน penalty พร้อมกัน</span> สะท้อนความจริงในที่ทำงานว่า การกักข้อมูลหรือไม่ให้ความร่วมมือของคนคนเดียว สามารถฉุดทั้งทีมได้'
+    insight:'ทุกกลุ่มเจอเงื่อนไขเดียวกัน แต่ทรัพยากรกระจายอยู่คนละมือ — ถ้าใครไม่ยอมส่งของเข้ากลุ่ม <span class="lac-hl">ทั้งกลุ่มได้รับผลกระทบพร้อมกัน</span> โดยไม่มีข้อยกเว้น ในงานจริงก็เช่นกัน เมื่อคนในทีมกักข้อมูลหรือไม่ให้ความร่วมมือ งานส่วนอื่นก็หยุดตามไปด้วย ลองถามตัวเองว่า มีข้อมูลหรือทรัพยากรอะไรที่เราถือไว้คนเดียว แต่ถ้าแชร์ออกไปจะทำให้ทีมทำงานได้ดีขึ้น'
   },
   { num:'4, 8', name:'แผ่นดินไหว / ไฟป่า',
-    kws:[{t:'purple',w:'การปรับตัว'},{t:'purple',w:'สร้าง Trust ใหม่'}],
-    insight:'ทุกคนถูก reset กลุ่มโดยไม่มีการเตือนล่วงหน้า บังคับให้ต้อง<span class="lac-hl"> rebuild ความไว้ใจกับคนใหม่อย่างรวดเร็ว</span> — เหมือนการปรับโครงสร้างองค์กร ย้ายแผนก หรือเข้าโปรเจคใหม่ที่ไม่ได้เลือกเอง สังเกตว่าใครเป็นคนวิ่งไปหาคนอื่นก่อน คือ connector ที่แท้จริงขององค์กร'
+    kws:[{t:'purple',w:'การปรับตัว'},{t:'purple',w:'สร้างความไว้ใจใหม่'}],
+    insight:'ทุกคนถูกรีเซ็ตกลุ่มโดยไม่มีการเตือนล่วงหน้า บังคับให้ต้อง<span class="lac-hl">สร้างความไว้ใจกับคนใหม่ให้ได้อย่างรวดเร็ว</span> สังเกตดูว่าใครในทีมเป็นคนวิ่งไปหาคนอื่นก่อน นั่นคือคนที่มีทักษะการสร้างความสัมพันธ์ตามธรรมชาติ ในงานจริง เมื่อเกิดการโยกย้ายแผนก เปลี่ยนทีม หรือรับโปรเจคใหม่ที่ไม่คุ้นเคย ทักษะนี้คือสิ่งที่ทำให้ก้าวข้ามช่วงเปลี่ยนผ่านได้เร็วกว่าคนอื่น'
   },
   { num:'4b', name:'พบแหล่งน้ำ',
-    kws:[{t:'teal',w:'ความหลากหลาย'},{t:'teal',w:'ทักษะต่างกัน = พลัง'}],
-    insight:'กลุ่มที่มีสัดส่วน dept หลากหลาย<span class="lac-hl">ได้รางวัลโดยอัตโนมัติโดยไม่ต้องทำอะไรเพิ่ม</span> — สะท้อนแนวคิด cross-functional team ว่าความหลากหลายของทักษะไม่ใช่แค่ "ดี" แต่เป็นข้อได้เปรียบที่จับต้องได้จริง คำถามสำหรับ debrief: ทีมคุณได้รางวัลนี้เพราะ "ทำ" อะไร หรือเพราะแค่ "มี" คนครบ?'
+    kws:[{t:'teal',w:'ความหลากหลาย'},{t:'teal',w:'ทักษะที่ต่างกัน คือพลัง'}],
+    insight:'กลุ่มที่มีสัดส่วนคนจากหลายแผนก<span class="lac-hl">ได้รับรางวัลโดยอัตโนมัติโดยไม่ต้องออกแรงเพิ่ม</span> แค่มีองค์ประกอบที่ครบก็พอ นี่คือภาพสะท้อนของทีมที่ดีในองค์กร ความหลากหลายของทักษะและมุมมองไม่ใช่แค่สิ่งที่ดูดีบนกระดาษ แต่สร้างความได้เปรียบที่จับต้องได้จริงในสถานการณ์จริง'
   },
   { num:'5', name:'สร้างแพ',
     kws:[{t:'amber',w:'ทรัพยากรกับขนาดทีม'}],
-    insight:'req ไม่ตายตัว — <span class="lac-hl">ยิ่งกลุ่มใหญ่ยิ่งต้องใช้ของมากขึ้นตามสัดส่วน</span> กลุ่มที่รับคนเยอะอาจได้เปรียบด้านความหลากหลาย แต่เสียเปรียบด้านต้นทุน สะท้อนความจริงขององค์กรที่ headcount เพิ่มแต่ resource ไม่ได้เพิ่มตาม'
+    insight:'ยิ่งกลุ่มมีสมาชิกมาก ยิ่งต้องใช้ทรัพยากรมากตามสัดส่วน — <span class="lac-hl">คนเพิ่มขึ้น แต่ของไม่ได้เพิ่มตาม</span> กลุ่มใหญ่จึงต้องวางแผนการใช้ทรัพยากรร่วมกันอย่างรอบคอบกว่ากลุ่มเล็ก ในงานจริงเมื่อทีมขยายตัวหรือได้รับโปรเจคเพิ่ม งบประมาณและกำลังคนไม่ได้ขยายตามเสมอ การวางแผนจัดสรรจึงสำคัญมาก'
   },
   { num:'6', name:'สถานการณ์ฉุกเฉิน',
     kws:[{t:'orange',w:'การตัดสินใจ'},{t:'orange',w:'ปล่อยวางสิ่งที่ไม่จำเป็น'}],
-    insight:'นี่คือ event ที่ "เจ็บปวด" ที่สุด เพราะ<span class="lac-hl">คนไม่อยากทิ้งของที่สะสมมา</span> แม้จะเกินความจำเป็น — สะท้อน sunk cost fallacy และการที่องค์กรยึดติดกับ process เดิมที่ไม่จำเป็นแล้ว ใครเป็นคนตัดสินใจว่าจะทิ้งอะไร? จะเห็น decision-making pattern ของกลุ่มชัดมากใน event นี้'
+    insight:'คนส่วนใหญ่<span class="lac-hl">ไม่อยากทิ้งของที่สะสมมาตลอดเกม</span> แม้จะรู้ว่าเกินความจำเป็น — ความรู้สึกนี้เหมือนกับที่เราไม่อยากยกเลิกวิธีทำงานเดิมที่คุ้นชินแม้มันจะล้าสมัยไปแล้ว ในงานจริง ลองถามตัวเองว่ามีขั้นตอน กระบวนการ หรือนิสัยการทำงานอะไรที่เราถือไว้เพราะ "คุ้นเคย" แต่จริงๆ ไม่ได้ช่วยอะไรแล้ว'
   },
   { num:'9', name:'โรคระบาด',
-    kws:[{t:'purple',w:'ผลประโยชน์ส่วนรวม'},{t:'purple',w:'แบ่งปัน > กั๊ก'}],
-    insight:'แต่ละกลุ่มมีแรงจูงใจเก็บของไว้ตัวเอง แต่ถ้าทุกคนคิดแบบนั้น<span class="lac-hl">ทุกคนพังพร้อมกัน</span> — นี่คือ Tragedy of the Commons ในรูปแบบเกม เหมือนสถานการณ์จริงที่แผนกต่างๆ กั๊กข้อมูลหรือ resource ไว้เพื่อตัวเอง ทั้งที่ถ้าแชร์กันจะได้ผลดีกว่าทุกฝ่าย'
+    kws:[{t:'purple',w:'ผลประโยชน์ส่วนรวม'},{t:'purple',w:'แบ่งปันดีกว่ากั๊กไว้'}],
+    insight:'แต่ละกลุ่มมีแรงจูงใจที่จะเก็บของไว้เพื่อตัวเอง แต่ถ้าทุกกลุ่มคิดแบบนั้น<span class="lac-hl">ทุกคนได้รับผลเสียพร้อมกัน</span> ในทางกลับกัน กลุ่มที่ยอมส่งของเข้ากองกลางมากกว่าคนอื่นกลับช่วยให้ทุกคนรอดได้ ในงานจริง การกักข้อมูลหรือทรัพยากรไว้กับแผนกตัวเองอาจดูดีในระยะสั้น แต่ทำให้องค์กรโดยรวมอ่อนแอลงในระยะยาว'
   },
   { num:'10', name:'หนีรอด',
     kws:[{t:'teal',w:'ทีมที่สมบูรณ์'},{t:'teal',w:'ไม่ทิ้งใครไว้ข้างหลัง'}],
-    insight:'ไม่ใช่เรื่องปริมาณ แต่เรื่อง<span class="lac-hl">ความครบถ้วนของทักษะ</span> — กลุ่มที่มีของเยอะแต่ขาด dept เดียวก็โดน penalty เหมือนกัน สะท้อนงานจริงที่บางครั้งไม่ต้องการของเยอะ แต่ต้องการครบทุกมิติ ขาดคนเดียวงานหยุด'
+    insight:'ไม่ใช่เรื่องว่าใครมีของมากที่สุด แต่เรื่อง<span class="lac-hl">ความครบถ้วนของทักษะในทีม</span> — กลุ่มที่มีของเยอะแต่ขาดคนจากแผนกใดแผนกหนึ่งก็ยังโดนผลกระทบ ในงานจริง โปรเจคที่ดีไม่ได้ต้องการทีมที่เก่งที่สุด แต่ต้องการทีมที่มีครบทุกด้าน ขาดแม้แค่คนเดียวที่ทำหน้าที่สำคัญ งานก็หยุด'
   },
 ];
 const LESSON_CARDS = [
-  { icon:'🤝', title:'TEAM WORK', sub:'ผลของตัวเองส่งผลต่อทุกคน' },
-  { icon:'🔀', title:'ADAPTABILITY', sub:'ทำงานกับคนใหม่ได้เสมอ' },
-  { icon:'🌐', title:'COLLECTIVE', sub:'แชร์ทรัพยากร > กั๊กไว้คนเดียว' },
-  { icon:'⚖️', title:'DECISION', sub:'รู้ว่าต้องปล่อยอะไรไปเพื่ออะไร' },
+  { icon:'🤝', title:'การทำงานเป็นทีม', sub:'ผลของตัวเองส่งผลต่อทุกคนในทีมเสมอ' },
+  { icon:'🔀', title:'การปรับตัว', sub:'ทำงานกับคนใหม่และสถานการณ์ใหม่ได้เสมอ' },
+  { icon:'🌐', title:'ประโยชน์ร่วมกัน', sub:'แบ่งปันทรัพยากรได้ผลดีกว่าเก็บไว้คนเดียว' },
+  { icon:'⚖️', title:'การตัดสินใจ', sub:'รู้จักปล่อยวางสิ่งที่ไม่จำเป็นเพื่อสิ่งที่สำคัญกว่า' },
 ];
-const LESSON_QUOTE = 'ทีมที่ดีไม่ได้แค่เก่ง แต่ต้องรู้จักแบ่งปัน';
+const LESSON_QUOTE = 'ทีมที่ดีไม่ได้แค่เก่งในหน้าที่ตัวเอง แต่รู้จักแบ่งปันเพื่อให้ทุกคนไปถึงเป้าหมายพร้อมกัน';
 
 function lessonToggle(idx) {
   const body = document.getElementById('lac-body-'+idx);
