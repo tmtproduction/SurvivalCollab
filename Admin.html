@@ -1027,32 +1027,55 @@ function renderEvCfgTable() {
     } else if (ev.type==='per_group') {
       const dpt = c.dmgPerMissType!==undefined?c.dmgPerMissType:(ev.dmgPerMissType||2);
       const cap = c.maxMissTypes!==undefined?c.maxMissTypes:(ev.maxMissTypes||3);
-      const chk = JSON.stringify(c.checkDepts||ev.checkDepts||DK);
-      fields += h('div','class="cfg-grid" style="margin-top:6px"',
-        h('div','class="cfg-row"',
-          h('div','class="cfg-lbl"','DMG ต่อ 1 type ที่ขาด')+
-          h('input','class="ain" type="number" min="1" max="10" value="'+dpt+'" onchange="saveEvCfg(\''+ev.id+'\',\'dmgPerMissType\',+this.value)"','')
-        )+
-        h('div','class="cfg-row"',
-          h('div','class="cfg-lbl"','Cap สูงสุด (จำนวน type ที่นับ)')+
-          h('input','class="ain" type="number" min="1" max="10" value="'+cap+'" onchange="saveEvCfg(\''+ev.id+'\',\'maxMissTypes\',+this.value)"','')
-        )+
-        h('div','class="cfg-row"',
-          h('div','class="cfg-lbl"','เช็คเฉพาะ dept (JSON array, ว่าง=ทุก dept)')+
-          h('input','type="text" style="width:100%" value=\''+chk+'\' onblur="try{saveEvCfg(\''+ev.id+'\',\'checkDepts\',JSON.parse(this.value))}catch(e){toast(\'JSON ไม่ถูกต้อง\',true)}"','')
-        )
-      );
-      // preview penalty table
-      const rows=[];
-      for(let m=0;m<=cap;m++){
+      const activeDepts = c.checkDepts||ev.checkDepts||DK;
+      const uid = 'pg_'+ev.id; // unique id prefix สำหรับ live preview
+
+      // dept checkboxes — เลือก dept ที่จะเช็ค
+      const deptChecks = DK.map(dk=>{
+        const dinfo=DEPTS[dk]||{};
+        const checked=activeDepts.includes(dk);
+        return h('label','style="display:flex;align-items:center;gap:4px;font-family:monospace;font-size:.65rem;cursor:pointer;padding:4px 7px;background:var(--sur2);border:1px solid var(--brd'+(checked?'2':'')+');border-radius:5px"',
+          h('input','type="checkbox" '+(checked?'checked':'')+
+            ' onchange="pgToggleDept(\''+uid+'\',\''+ev.id+'\',\''+dk+'\',this.checked)"','')+
+          h('span','style="font-size:.9rem"',dinfo.icon||dk)+
+          ' '+dk
+        );
+      }).join('');
+
+      // penalty table (static ตามค่าปัจจุบัน — live preview อัปเดตผ่าน JS)
+      const penRows = Array.from({length:cap+1},(_,m)=>{
         const dmg=dpt*Math.min(m,cap);
-        rows.push(h('span','style="font-family:monospace;font-size:.6rem;padding:2px 6px;border-radius:3px;background:var(--sur2);border:1px solid var(--brd2);margin:1px"',
-          'ขาด '+m+(m===cap?'+':'')+' type → '+(dmg===0?'ผ่าน ✓':'-'+dmg+' HP')
-        ));
-      }
+        const isPass=dmg===0;
+        return h('div','style="display:flex;align-items:center;justify-content:space-between;padding:4px 10px;border-radius:4px;margin-bottom:2px;background:'+(isPass?'rgba(61,186,106,.08)':'rgba(232,64,64,.08)')+';border:1px solid '+(isPass?'rgba(61,186,106,.25)':'rgba(232,64,64,.2)')+';"',
+          h('span','style="font-family:monospace;font-size:.65rem;color:var(--dim)"','ขาด '+m+(m===cap?'+':'')+' type')+
+          h('span','style="font-family:monospace;font-size:.7rem;font-weight:700;color:'+(isPass?'var(--green)':'var(--red)')+';"',isPass?'ผ่าน ✓':'-'+dmg+' HP')
+        );
+      }).join('');
+
       fields += h('div','style="margin-top:8px"',
-        h('div','class="cfg-lbl" style="margin-bottom:4px"','Preview penalty')+
-        h('div','style="display:flex;flex-wrap:wrap;gap:2px"',rows.join(''))
+        // ── 2 inputs
+        h('div','style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px"',
+          h('div','class="cfg-row"',
+            h('div','class="cfg-lbl"','DMG ต่อ 1 type ที่ขาด')+
+            h('input','id="'+uid+'_dpt" class="ain" type="number" min="1" max="10" value="'+dpt+'"'+
+              ' oninput="pgUpdatePreview(\''+uid+'\')" onchange="saveEvCfg(\''+ev.id+'\',\'dmgPerMissType\',+this.value)"','')
+          )+
+          h('div','class="cfg-row"',
+            h('div','class="cfg-lbl"','จำนวน type สูงสุดที่นับโทษ')+
+            h('input','id="'+uid+'_cap" class="ain" type="number" min="1" max="10" value="'+cap+'"'+
+              ' oninput="pgUpdatePreview(\''+uid+'\')" onchange="saveEvCfg(\''+ev.id+'\',\'maxMissTypes\',+this.value)"','')
+          )
+        )+
+        // ── dept checkboxes
+        h('div','style="margin-bottom:10px"',
+          h('div','class="cfg-lbl" style="margin-bottom:6px"','dept ที่ต้องเช็ค (untick = ไม่นับ dept นั้น)')+
+          h('div','id="'+uid+'_depts" style="display:flex;flex-wrap:wrap;gap:5px"',deptChecks)
+        )+
+        // ── live penalty table
+        h('div','',
+          h('div','class="cfg-lbl" style="margin-bottom:5px"','Penalty Table (live)')+
+          h('div','id="'+uid+'_table" style="display:flex;flex-direction:column;gap:0"',penRows)
+        )
       );
     } else if (ev.type==='headcount_reward') {
       const conds = c.conditions||ev.conditions||[];
@@ -1213,6 +1236,40 @@ async function saveCondReward(evId, condIdx, field, val) {
   cfg[evId].conditions[condIdx].reward[field] = val;
   await update(ref(db,'game/state'), {eventConfig:cfg});
   toast('✅ บันทึก reward.'+field+' condition '+(condIdx+1));
+}
+
+// ── per_group live preview helpers ──────────────────────────
+function pgUpdatePreview(uid) {
+  const dptEl = document.getElementById(uid+'_dpt');
+  const capEl = document.getElementById(uid+'_cap');
+  const tableEl = document.getElementById(uid+'_table');
+  if (!dptEl||!capEl||!tableEl) return;
+  const dpt = Math.max(1, +dptEl.value||1);
+  const cap = Math.max(1, +capEl.value||1);
+  let html = '';
+  for (let m=0; m<=cap; m++) {
+    const dmg = dpt * Math.min(m, cap);
+    const isPass = dmg === 0;
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 10px;border-radius:4px;margin-bottom:2px;background:${isPass?'rgba(61,186,106,.08)':'rgba(232,64,64,.08)'};border:1px solid ${isPass?'rgba(61,186,106,.25)':'rgba(232,64,64,.2)'};">
+      <span style="font-family:monospace;font-size:.65rem;color:var(--dim)">ขาด ${m}${m===cap?'+':''} type</span>
+      <span style="font-family:monospace;font-size:.7rem;font-weight:700;color:${isPass?'var(--green)':'var(--red)'}">${isPass?'ผ่าน ✓':'-'+dmg+' HP'}</span>
+    </div>`;
+  }
+  tableEl.innerHTML = html;
+}
+
+async function pgToggleDept(uid, evId, dept, checked) {
+  const gs = S.gs||{}; const cfg = JSON.parse(JSON.stringify(gs.eventConfig||{}));
+  if (!cfg[evId]) cfg[evId] = {};
+  const baseEv = DEFAULT_EVENTS.find(e=>String(e.id)===String(evId));
+  let depts = [...(cfg[evId].checkDepts || baseEv?.checkDepts || DK)];
+  if (checked && !depts.includes(dept)) depts.push(dept);
+  if (!checked) depts = depts.filter(d=>d!==dept);
+  // เรียงตาม DK เพื่อ consistency
+  depts = DK.filter(d=>depts.includes(d));
+  cfg[evId].checkDepts = depts;
+  await update(ref(db,'game/state'), {eventConfig:cfg});
+  toast('✅ อัปเดต dept: '+depts.join(', '));
 }
 
 async function saveEvCfg(evId, field, val) {
@@ -1934,6 +1991,7 @@ window.doRestart=doRestart; window.adminSetHP=adminSetHP; window.adminSetItems=a
 window.saveEvReq=saveEvReq; window.saveEvCfg=saveEvCfg; window.saveGlobalCfg=saveGlobalCfg;
 window.saveEvReqField=saveEvReqField;
 window.saveCondHcField=saveCondHcField; window.saveCondRdDepts=saveCondRdDepts;
+window.pgUpdatePreview=pgUpdatePreview; window.pgToggleDept=pgToggleDept;
 window.saveEvMult=saveEvMult; window.saveCondHeadcount=saveCondHeadcount; window.saveCondReward=saveCondReward;
 window.renderEvCfgTable=renderEvCfgTable; window.scheduleRender=scheduleRender; window.clearLog=clearLog;
 window.doDeletePlayer=doDeletePlayer; window.doKillPlayer=doKillPlayer;
