@@ -524,12 +524,17 @@ async function doRequestGroup(gid){
 
 async function doLeaderAccept(targetPid){
   if(!S.pid||!S.player?.isLeader) return;
-  const mg=myGroup(); if(!mg) return;
-  const aliveInGroup=Object.values(S.players).filter(p=>p.alive&&p.groupId==mg.id).length;
-  if(aliveInGroup>=(mg.max||7)){ toast('❌ กลุ่มเต็มแล้ว',true); return; }
+  const gid = S.player.leaderGroupId;
+  if(gid == null || gid < 0){ toast('❌ ไม่พบกลุ่มของหัวหน้า',true); return; }
+  const gs = S.gs||{};
+  const maxSize = gs.maxGroupSize||7;
+  // นับคนที่ได้รับอนุมัติเข้ากลุ่มนี้แล้ว (groupId == gid)
+  const aliveInGroup = Object.values(S.players).filter(p=>p.alive&&String(p.groupId)===String(gid)).length;
+  if(aliveInGroup >= maxSize){ toast('❌ กลุ่มเต็มแล้ว',true); return; }
   const tname=S.players[targetPid]?.name||targetPid;
-  await update(ref(db,'players/'+targetPid),{groupId:mg.id, groupRequest:null, groupRejected:null});
-  await push(ref(db,'game/logs'),{ts:Date.now(),type:'g',msg:'👑 '+S.player.name+' รับ '+tname+' เข้ากลุ่ม '+mg.name});
+  const gname=(gs.groupNames||GN)[gid]||('G'+(+gid+1));
+  await update(ref(db,'players/'+targetPid),{groupId:+gid, groupRequest:null, groupRejected:null});
+  await push(ref(db,'game/logs'),{ts:Date.now(),type:'g',msg:'👑 '+S.player.name+' รับ '+tname+' เข้ากลุ่ม '+gname});
 }
 
 async function doLeaderReject(targetPid){
@@ -962,13 +967,18 @@ function renderRegroup(mg){
   const isLeader = p.isLeader || false;
   const leaderAssigned = gs.leaderAssigned || false;
   const leaderAcceptOpen = gs.leaderAcceptOpen || false;
+  // ช่วง regroup groupId = -1 ทุกคน — ใช้ leaderGroupId แทน
+  const myLeaderGid = p.leaderGroupId;
+  const myLeaderGroup = (myLeaderGid != null && myLeaderGid >= 0)
+    ? S.groups.find(g => g.id == myLeaderGid) || { id: myLeaderGid, name: (gs.groupNames||GN)[myLeaderGid]||('G'+(+myLeaderGid+1)), members: [], max: gs.maxGroupSize||7 }
+    : null;
 
-  if (isLeader && mg) {
-    const pending = Object.values(S.players).filter(pl => pl.alive && pl.groupRequest == mg.id && pl.id !== S.pid);
+  if (isLeader && myLeaderGroup) {
+    const gid = myLeaderGroup.id;
+    const pending = Object.values(S.players).filter(pl => pl.alive && String(pl.groupRequest) === String(gid) && pl.id !== S.pid);
     const pendingHtml = pending.length
       ? pending.map(pl => {
           const d = DEPTS[pl.dept]||{};
-          // ปุ่มรับ disabled ถ้ายังไม่เปิดช่วงรับ
           const acceptBtn = leaderAcceptOpen
             ? `<button class="btn-big btn-amber" style="width:auto;padding:7px 14px;font-size:.7rem" onclick="doLeaderAccept('${pl.id}')">✓ รับ</button>`
             : `<button class="btn-big btn-ghost" style="width:auto;padding:7px 10px;font-size:.65rem;opacity:.4;cursor:not-allowed" disabled>รอเปิด</button>`;
@@ -988,7 +998,6 @@ function renderRegroup(mg){
         }).join('')
       : `<div style="text-align:center;padding:14px;color:var(--dim);font-size:.8rem">ยังไม่มีคนขอเข้ากลุ่ม<br><span style="font-size:.7rem">รอสมาชิกมาชักชวน</span></div>`;
 
-    // status banner สำหรับหัวหน้า
     const leaderStatus = leaderAcceptOpen
       ? `<div style="background:var(--green-dim);border:1px solid var(--green-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--green);margin-bottom:8px">🟢 เปิดรับสมาชิกแล้ว — กด ✓ รับได้เลย</div>`
       : `<div style="background:var(--purple-dim);border:1px solid var(--purple-brd);border-radius:7px;padding:7px 12px;font-size:.75rem;color:var(--purple);margin-bottom:8px">💬 ช่วงอภิปราย — รอ Admin เปิดให้รับ</div>`;
@@ -998,7 +1007,7 @@ function renderRegroup(mg){
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:1.6rem">👑</span>
         <div>
-          <div style="font-family:var(--deco);font-size:1.1rem;letter-spacing:.08em;color:var(--amber)">คุณคือหัวหน้า ${mg.name}</div>
+          <div style="font-family:var(--deco);font-size:1.1rem;letter-spacing:.08em;color:var(--amber)">คุณคือหัวหน้า ${myLeaderGroup.name}</div>
           <div style="font-size:.78rem;color:var(--dim);margin-top:2px">${leaderAcceptOpen?'รับหรือปฏิเสธคนที่ขอเข้ากลุ่มได้':'รอ Admin กด เปิดให้รับสมาชิก'}</div>
         </div>
       </div>

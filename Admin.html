@@ -1771,6 +1771,8 @@ async function doConfirmRegroup() {
   Object.keys(S.players).forEach(pid => {
     clears['players/'+pid+'/isLeader'] = false;
     clears['players/'+pid+'/groupRequest'] = null;
+    clears['players/'+pid+'/groupRejected'] = null;
+    clears['players/'+pid+'/leaderGroupId'] = null;
   });
   if (Object.keys(clears).length) await update(ref(db), clears);
   await push(ref(db,'game/logs'), {ts:Date.now(),type:'p',msg:'🔀 Regroup เสร็จสิ้น — Event '+(nextEv+1)+' พร้อมแล้ว'});
@@ -1801,16 +1803,19 @@ function previewLeaders() {
   const wantGroups = Math.max(1, +(inp?.value||8));
   const hint = document.getElementById('leader-group-hint');
 
-  // เลือกเฉพาะ wantGroups กลุ่มแรกที่มีคน
+  // ช่วง regroup ทุกคน groupId = -1 → ใช้ prevGroupId ที่เก็บไว้
+  // ถ้าไม่มี prevGroupId ใช้ groupStatus ของ S.groupStatus (ก่อน regroup)
+  // สุ่มจาก S.groupStatus ที่มี aliveCount > 0
   const activeGroups = S.groupStatus.filter(g => g.aliveCount > 0).slice(0, wantGroups);
   if (hint) hint.textContent = 'กลุ่มที่มีผู้เล่น: '+S.groupStatus.filter(g=>g.aliveCount>0).length+' กลุ่ม';
 
   _leaderDraft = {};
   const rows = activeGroups.map(g => {
+    // ใช้ aliveMembers จาก groupStatus ที่ Admin side build ไว้ (ก่อน reset)
     const alive = g.members.filter(m => m.alive);
     if (!alive.length) return '';
     const pick = alive[Math.floor(Math.random() * alive.length)];
-    _leaderDraft[g.id] = pick.id;
+    _leaderDraft[g.id] = { pid: pick.id, gid: g.id, gname: g.name };
     const d = DEPTS[pick.dept]||{};
     return h('div','style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--sur2);border:1px solid var(--brd);border-radius:7px"',
       h('div','style="display:flex;align-items:center;gap:8px"',
@@ -1830,18 +1835,20 @@ function previewLeaders() {
 async function confirmLeaders() {
   const gs = S.gs||{};
   const playerArr = Object.values(S.players);
-  if (!Object.keys(_leaderDraft).length) { toast('❌ ยังไม่มีผลสุ่ม', true); return; }
+  if (!Object.keys(_leaderDraft).length) { toast('❌ ยังไม่มีผลสุ่ม กด 🎲 สุ่มใหม่ก่อน', true); return; }
 
   const updates = {};
-  // clear isLeader ทุกคนก่อน
-  playerArr.forEach(p => { updates['players/'+p.id+'/isLeader'] = false; });
-  // write หัวหน้าตาม draft
+  // clear isLeader + leaderGroupId ทุกคนก่อน
+  playerArr.forEach(p => {
+    updates['players/'+p.id+'/isLeader'] = false;
+    updates['players/'+p.id+'/leaderGroupId'] = null;
+  });
+  // write หัวหน้าตาม draft พร้อม leaderGroupId
   const leaders = [];
-  Object.entries(_leaderDraft).forEach(([gid, pid]) => {
+  Object.values(_leaderDraft).forEach(({ pid, gid, gname }) => {
     updates['players/'+pid+'/isLeader'] = true;
-    const pname = S.players[pid]?.name||pid;
-    const gname = (gs.groupNames||GN)[gid]||('G'+(+gid+1));
-    leaders.push(gname+': '+pname);
+    updates['players/'+pid+'/leaderGroupId'] = gid; // Player ใช้รู้ว่าตัวเองหัวหน้ากลุ่มไหน
+    leaders.push(gname+': '+(S.players[pid]?.name||pid));
   });
   updates['game/state/leaderAssigned'] = true;
   updates['game/state/leaderAcceptOpen'] = false;
