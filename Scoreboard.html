@@ -110,6 +110,38 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 /* ── LOADING / EMPTY ── */
 .loading{text-align:center;padding:40px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--dim)}
 .refresh-hint{text-align:center;font-family:'Space Mono',monospace;font-size:.58rem;color:var(--dim);margin-top:20px}
+/* ── Lesson Section ── */
+.lesson-section{border:1px solid rgba(245,166,35,.22);border-radius:10px;padding:16px 18px;margin-top:20px;background:rgba(245,166,35,.04)}
+.lesson-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:5px;color:var(--amber);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.lkw{font-size:.68rem;padding:3px 10px;border-radius:20px;font-family:'Sarabun',sans-serif}
+.lkw-teal{background:rgba(29,158,117,.12);color:#3dba6a;border:1px solid rgba(29,158,117,.3)}
+.lkw-purple{background:rgba(155,114,208,.12);color:var(--purple);border:1px solid rgba(155,114,208,.3)}
+.lkw-amber{background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.25)}
+.lkw-orange{background:rgba(224,107,48,.1);color:#e06b30;border:1px solid rgba(224,107,48,.28)}
+/* accordion */
+.lac-item{border-bottom:1px solid rgba(30,48,64,.5)}
+.lac-item:last-of-type{border-bottom:none}
+.lac-hdr{display:flex;align-items:center;gap:10px;padding:9px 4px;cursor:pointer;user-select:none;-webkit-user-select:none}
+.lac-hdr:active{opacity:.75}
+.lac-num{font-family:'Space Mono',monospace;font-size:.55rem;color:var(--dim);min-width:28px}
+.lac-name{font-family:'Space Mono',monospace;font-size:.63rem;color:var(--txt);flex:1}
+.lac-kws{display:flex;flex-wrap:wrap;gap:4px;margin-right:6px}
+.lac-arrow{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--dim);transition:transform .2s;min-width:10px}
+.lac-arrow.open{transform:rotate(90deg)}
+.lac-body{display:none;padding:0 4px 12px 38px}
+.lac-body.open{display:block}
+.lac-insight{font-family:'Sarabun',sans-serif;font-size:.8rem;color:var(--dim);line-height:1.7;border-left:2px solid rgba(245,166,35,.3);padding-left:10px;margin-top:6px}
+/* insight highlight word */
+.lac-hl{color:var(--txt);font-weight:600}
+/* cards + quote */
+.lesson-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:12px 0}
+.lesson-card{background:var(--sur);border:1px solid var(--brd);border-radius:8px;padding:10px 12px}
+.lesson-card-icon{font-size:1.2rem;margin-bottom:5px}
+.lesson-card-title{font-family:'Space Mono',monospace;font-size:.6rem;font-weight:700;color:var(--amber);margin-bottom:3px}
+.lesson-card-sub{font-size:.75rem;color:var(--dim);line-height:1.5}
+.lesson-quote{border-left:3px solid var(--amber);padding:10px 14px;margin-top:14px;background:rgba(245,166,35,.05);border-radius:0 6px 6px 0}
+.lesson-quote-text{font-family:'Sarabun',sans-serif;font-size:.88rem;color:var(--txt);line-height:1.6;font-style:italic}
+.lesson-quote-attr{font-family:'Space Mono',monospace;font-size:.55rem;color:var(--dim);margin-top:5px}
 
 /* ── DEBRIEF SUMMARY ── */
 .deb-section{margin-top:28px;padding-top:20px;border-top:2px solid rgba(206,147,216,.2)}
@@ -500,7 +532,105 @@ function render() {
   board.innerHTML = out;
   // render debrief section แยก (ไม่ block render หลัก)
   renderDebriefSection();
+  renderLessonSection();
 }
+
+// ============================================================
+//  LESSON SECTION — ภาพสะท้อนจากเกม
+// ============================================================
+const LESSON_DATA = [
+  { num:'1–3', name:'หลงทาง / หิวโหย / บาดเจ็บ',
+    kws:[{t:'teal',w:'การมีส่วนร่วม'},{t:'teal',w:'ผลกระทบร่วมกัน'}],
+    insight:'ทุกกลุ่มเจอเงื่อนไขเดียวกัน แต่ทรัพยากรกระจายอยู่คนละมือ — ถ้าใครไม่ยอมส่ง items <span class="lac-hl">ทั้งกลุ่มโดน penalty พร้อมกัน</span> สะท้อนความจริงในที่ทำงานว่า การกักข้อมูลหรือไม่ให้ความร่วมมือของคนคนเดียว สามารถฉุดทั้งทีมได้'
+  },
+  { num:'4, 8', name:'แผ่นดินไหว / ไฟป่า',
+    kws:[{t:'purple',w:'การปรับตัว'},{t:'purple',w:'สร้าง Trust ใหม่'}],
+    insight:'ทุกคนถูก reset กลุ่มโดยไม่มีการเตือนล่วงหน้า บังคับให้ต้อง<span class="lac-hl"> rebuild ความไว้ใจกับคนใหม่อย่างรวดเร็ว</span> — เหมือนการปรับโครงสร้างองค์กร ย้ายแผนก หรือเข้าโปรเจคใหม่ที่ไม่ได้เลือกเอง สังเกตว่าใครเป็นคนวิ่งไปหาคนอื่นก่อน คือ connector ที่แท้จริงขององค์กร'
+  },
+  { num:'4b', name:'พบแหล่งน้ำ',
+    kws:[{t:'teal',w:'ความหลากหลาย'},{t:'teal',w:'ทักษะต่างกัน = พลัง'}],
+    insight:'กลุ่มที่มีสัดส่วน dept หลากหลาย<span class="lac-hl">ได้รางวัลโดยอัตโนมัติโดยไม่ต้องทำอะไรเพิ่ม</span> — สะท้อนแนวคิด cross-functional team ว่าความหลากหลายของทักษะไม่ใช่แค่ "ดี" แต่เป็นข้อได้เปรียบที่จับต้องได้จริง คำถามสำหรับ debrief: ทีมคุณได้รางวัลนี้เพราะ "ทำ" อะไร หรือเพราะแค่ "มี" คนครบ?'
+  },
+  { num:'5', name:'สร้างแพ',
+    kws:[{t:'amber',w:'ทรัพยากรกับขนาดทีม'}],
+    insight:'req ไม่ตายตัว — <span class="lac-hl">ยิ่งกลุ่มใหญ่ยิ่งต้องใช้ของมากขึ้นตามสัดส่วน</span> กลุ่มที่รับคนเยอะอาจได้เปรียบด้านความหลากหลาย แต่เสียเปรียบด้านต้นทุน สะท้อนความจริงขององค์กรที่ headcount เพิ่มแต่ resource ไม่ได้เพิ่มตาม'
+  },
+  { num:'6', name:'สถานการณ์ฉุกเฉิน',
+    kws:[{t:'orange',w:'การตัดสินใจ'},{t:'orange',w:'ปล่อยวางสิ่งที่ไม่จำเป็น'}],
+    insight:'นี่คือ event ที่ "เจ็บปวด" ที่สุด เพราะ<span class="lac-hl">คนไม่อยากทิ้งของที่สะสมมา</span> แม้จะเกินความจำเป็น — สะท้อน sunk cost fallacy และการที่องค์กรยึดติดกับ process เดิมที่ไม่จำเป็นแล้ว ใครเป็นคนตัดสินใจว่าจะทิ้งอะไร? จะเห็น decision-making pattern ของกลุ่มชัดมากใน event นี้'
+  },
+  { num:'9', name:'โรคระบาด',
+    kws:[{t:'purple',w:'ผลประโยชน์ส่วนรวม'},{t:'purple',w:'แบ่งปัน > กั๊ก'}],
+    insight:'แต่ละกลุ่มมีแรงจูงใจเก็บของไว้ตัวเอง แต่ถ้าทุกคนคิดแบบนั้น<span class="lac-hl">ทุกคนพังพร้อมกัน</span> — นี่คือ Tragedy of the Commons ในรูปแบบเกม เหมือนสถานการณ์จริงที่แผนกต่างๆ กั๊กข้อมูลหรือ resource ไว้เพื่อตัวเอง ทั้งที่ถ้าแชร์กันจะได้ผลดีกว่าทุกฝ่าย'
+  },
+  { num:'10', name:'หนีรอด',
+    kws:[{t:'teal',w:'ทีมที่สมบูรณ์'},{t:'teal',w:'ไม่ทิ้งใครไว้ข้างหลัง'}],
+    insight:'ไม่ใช่เรื่องปริมาณ แต่เรื่อง<span class="lac-hl">ความครบถ้วนของทักษะ</span> — กลุ่มที่มีของเยอะแต่ขาด dept เดียวก็โดน penalty เหมือนกัน สะท้อนงานจริงที่บางครั้งไม่ต้องการของเยอะ แต่ต้องการครบทุกมิติ ขาดคนเดียวงานหยุด'
+  },
+];
+const LESSON_CARDS = [
+  { icon:'🤝', title:'TEAM WORK', sub:'ผลของตัวเองส่งผลต่อทุกคน' },
+  { icon:'🔀', title:'ADAPTABILITY', sub:'ทำงานกับคนใหม่ได้เสมอ' },
+  { icon:'🌐', title:'COLLECTIVE', sub:'แชร์ทรัพยากร > กั๊กไว้คนเดียว' },
+  { icon:'⚖️', title:'DECISION', sub:'รู้ว่าต้องปล่อยอะไรไปเพื่ออะไร' },
+];
+const LESSON_QUOTE = 'ทีมที่ดีไม่ได้แค่เก่ง แต่ต้องรู้จักแบ่งปัน';
+
+function lessonToggle(idx) {
+  const body = document.getElementById('lac-body-'+idx);
+  const arrow = document.getElementById('lac-arrow-'+idx);
+  if (!body) return;
+  const open = body.classList.toggle('open');
+  if (arrow) arrow.classList.toggle('open', open);
+}
+
+function renderLessonSection() {
+  let el = document.getElementById('lesson-section');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'lesson-section';
+    const board = document.getElementById('board');
+    if (board) board.parentNode.insertBefore(el, board.nextSibling);
+  }
+
+  const visible = D.gs?.lessonVisible || false;
+  if (!visible) { el.innerHTML = ''; return; }
+
+  const evRows = LESSON_DATA.map((ev, i) => `
+    <div class="lac-item">
+      <div class="lac-hdr" onclick="lessonToggle(${i})">
+        <span class="lac-num">${ev.num}</span>
+        <span class="lac-name">${ev.name}</span>
+        <span class="lac-kws">${ev.kws.map(k=>`<span class="lkw lkw-${k.t}">${k.w}</span>`).join('')}</span>
+        <span class="lac-arrow" id="lac-arrow-${i}">▶</span>
+      </div>
+      <div class="lac-body" id="lac-body-${i}">
+        <div class="lac-insight">${ev.insight}</div>
+      </div>
+    </div>`
+  ).join('');
+
+  const cards = LESSON_CARDS.map(c =>
+    `<div class="lesson-card">
+      <div class="lesson-card-icon">${c.icon}</div>
+      <div class="lesson-card-title">${c.title}</div>
+      <div class="lesson-card-sub">${c.sub}</div>
+    </div>`
+  ).join('');
+
+  el.innerHTML = `<div class="lesson-section">
+    <div class="lesson-title">🪞 ภาพสะท้อนจากเกม</div>
+    <div>${evRows}</div>
+    <div style="font-family:'Space Mono',monospace;font-size:.55rem;color:var(--dim);letter-spacing:1px;margin:16px 0 8px">KEY INSIGHTS</div>
+    <div class="lesson-cards">${cards}</div>
+    <div class="lesson-quote">
+      <div class="lesson-quote-text">"${LESSON_QUOTE}"</div>
+      <div class="lesson-quote-attr">— Survival Game · TMT</div>
+    </div>
+  </div>`;
+}
+
+window.lessonToggle = lessonToggle;
 
 // ============================================================
 //  DEBRIEF SUMMARY

@@ -600,7 +600,10 @@ function renderGamePanel() {
       h('div','style="font-family:monospace;font-size:.75rem;color:var(--dim);margin-top:10px"','รอด '+alive.length+'/'+pa.length+' คน')+
       h('div','style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap"',
         h('a','href="Scoreboard.html?noredirect=1" target="_blank" class="btn btn-g"','🏆 Scoreboard')+
-        h('button','class="btn btn-pu" onclick="doStartDebrief()"','🪞 เปิด Debrief')
+        h('button','class="btn btn-pu" onclick="doStartDebrief()"','🪞 เปิด Debrief')+
+        h('button','class="btn btn-s" onclick="doToggleLesson()" style="font-size:.62rem;padding:5px 11px"',
+          (S.gs?.lessonVisible ? '📖 ซ่อน Lesson' : '📖 แสดง Lesson')
+        )
       )+
       h('div','style="margin-top:16px;background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:12px 16px"',
         h('div','style="font-family:monospace;font-size:.6rem;color:var(--dim);margin-bottom:10px"','⏱ Countdown Timer สำหรับ Debrief')+
@@ -655,7 +658,10 @@ function renderGamePanel() {
       )+
       h('div','style="display:flex;gap:7px;flex-wrap:wrap"',
         h('a','href="Scoreboard.html?noredirect=1#debrief" target="_blank" class="btn btn-g"','📊 ดูสรุป Debrief')+
-        h('button','class="btn btn-pu" onclick="doEndDebrief()"','⏹ จบ Debrief')
+        h('button','class="btn btn-pu" onclick="doEndDebrief()"','⏹ จบ Debrief')+
+        h('button','class="btn btn-s" onclick="doToggleLesson()" style="font-size:.62rem;padding:5px 11px"',
+          (S.gs?.lessonVisible ? '📖 ซ่อน Lesson' : '📖 แสดง Lesson')
+        )
       )
     );
     return;
@@ -1965,6 +1971,12 @@ async function doStartDebrief() {
   toast('🪞 Debrief เปิดแล้ว');
 }
 
+async function doToggleLesson() {
+  const current = S.gs?.lessonVisible || false;
+  await update(ref(db,'game/state'), { lessonVisible: !current });
+  toast(!current ? '📖 แสดง Lesson Section บน Scoreboard แล้ว' : '📖 ซ่อน Lesson Section แล้ว');
+}
+
 async function doStartCountdown() {
   const sec = +document.getElementById('cd-sec')?.value || 60;
   const label = document.getElementById('cd-label')?.value || 'เวลา';
@@ -1996,6 +2008,7 @@ window.saveEvMult=saveEvMult; window.saveCondHeadcount=saveCondHeadcount; window
 window.renderEvCfgTable=renderEvCfgTable; window.scheduleRender=scheduleRender; window.clearLog=clearLog;
 window.doDeletePlayer=doDeletePlayer; window.doKillPlayer=doKillPlayer;
 window.doEndDebrief=doEndDebrief; window.doStartDebrief=doStartDebrief; window.doStartCountdown=doStartCountdown; window.doStopCountdown=doStopCountdown;
+window.doToggleLesson=doToggleLesson;
 window.doQuickTimer=doQuickTimer;
 </script>
 </body>
