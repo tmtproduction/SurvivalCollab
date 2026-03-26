@@ -1850,38 +1850,44 @@ function showLeaderModal() {
 
 function previewLeaders() {
   const gs = S.gs||{};
-  const playerArr = Object.values(S.players);
   const inp = document.getElementById('leader-group-count');
   const wantGroups = Math.max(1, +(inp?.value||8));
   const hint = document.getElementById('leader-group-hint');
 
-  // ช่วง regroup ทุกคน groupId = -1 → ใช้ prevGroupId ที่เก็บไว้
-  // ถ้าไม่มี prevGroupId ใช้ groupStatus ของ S.groupStatus (ก่อน regroup)
-  // สุ่มจาก S.groupStatus ที่มี aliveCount > 0
-  const activeGroups = S.groupStatus.filter(g => g.aliveCount > 0).slice(0, wantGroups);
-  if (hint) hint.textContent = 'กลุ่มที่มีผู้เล่น: '+S.groupStatus.filter(g=>g.aliveCount>0).length+' กลุ่ม';
+  // สุ่มจากผู้รอดชีวิตทั้งหมด ไม่สนใจ groupId (ช่วง regroup ทุกคน = -1)
+  const allAlive = Object.values(S.players).filter(p => p.alive);
+  if (hint) hint.textContent = 'ผู้รอดชีวิต '+allAlive.length+' คน → '+wantGroups+' กลุ่ม';
+
+  if (!allAlive.length) {
+    const el = document.getElementById('leader-preview-rows');
+    if (el) el.innerHTML = h('div','style="color:var(--dim);font-size:.75rem;text-align:center;padding:12px"','ไม่พบผู้รอดชีวิต');
+    return;
+  }
+
+  // สุ่มไม่ซ้ำจากผู้รอดชีวิตทั้งหมด — 1 คนต่อกลุ่ม
+  const shuffled = [...allAlive].sort(() => Math.random() - 0.5);
+  const groupNames = gs.groupNames || GN;
 
   _leaderDraft = {};
-  const rows = activeGroups.map(g => {
-    // ใช้ aliveMembers จาก groupStatus ที่ Admin side build ไว้ (ก่อน reset)
-    const alive = g.members.filter(m => m.alive);
-    if (!alive.length) return '';
-    const pick = alive[Math.floor(Math.random() * alive.length)];
-    _leaderDraft[g.id] = { pid: pick.id, gid: g.id, gname: g.name };
+  const rows = [];
+  for (let gid = 0; gid < wantGroups; gid++) {
+    const pick = shuffled[gid % shuffled.length];
+    const gname = groupNames[gid] || ('G'+(gid+1));
+    _leaderDraft[gid] = { pid: pick.id, gid, gname };
     const d = DEPTS[pick.dept]||{};
-    return h('div','style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--sur2);border:1px solid var(--brd);border-radius:7px"',
+    rows.push(h('div','style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--sur2);border:1px solid var(--brd);border-radius:7px"',
       h('div','style="display:flex;align-items:center;gap:8px"',
-        h('span','style="font-family:\'Bebas Neue\',sans-serif;font-size:.85rem;letter-spacing:2px;color:var(--amber);min-width:80px"',g.name)+
+        h('span','style="font-family:\'Bebas Neue\',sans-serif;font-size:.85rem;letter-spacing:2px;color:var(--amber);min-width:80px"',gname)+
         h('span','style="font-size:.9rem"',d.icon||'')+
         h('span','style="font-size:.8rem;color:var(--txt)"',pick.name)+
         h('span','style="font-family:monospace;font-size:.58rem;color:var(--dim);margin-left:4px"',pick.dept)
       )+
       h('span','style="font-family:monospace;font-size:.6rem;padding:2px 8px;border-radius:10px;background:rgba(245,166,35,.12);color:var(--amber);border:1px solid rgba(245,166,35,.3)"','👑 หัวหน้า')
-    );
-  }).join('');
+    ));
+  }
 
   const el = document.getElementById('leader-preview-rows');
-  if (el) el.innerHTML = rows || h('div','style="color:var(--dim);font-size:.75rem;text-align:center;padding:12px"','ไม่พบกลุ่มที่มีผู้เล่น');
+  if (el) el.innerHTML = rows.join('');
 }
 
 async function confirmLeaders() {
@@ -1890,18 +1896,24 @@ async function confirmLeaders() {
   if (!Object.keys(_leaderDraft).length) { toast('❌ ยังไม่มีผลสุ่ม กด 🎲 สุ่มใหม่ก่อน', true); return; }
 
   const updates = {};
-  // clear isLeader + leaderGroupId ทุกคนก่อน
+  // clear ทุกคนก่อน — reset groupId กลับเป็น -1
   playerArr.forEach(p => {
     updates['players/'+p.id+'/isLeader'] = false;
     updates['players/'+p.id+'/leaderGroupId'] = null;
+    updates['players/'+p.id+'/groupId'] = -1;
+    updates['players/'+p.id+'/groupRequest'] = null;
+    updates['players/'+p.id+'/groupRejected'] = null;
   });
-  // write หัวหน้าตาม draft พร้อม leaderGroupId
+
+  // write หัวหน้าตาม draft — assign groupId ให้หัวหน้าทันที
   const leaders = [];
   Object.values(_leaderDraft).forEach(({ pid, gid, gname }) => {
     updates['players/'+pid+'/isLeader'] = true;
-    updates['players/'+pid+'/leaderGroupId'] = gid; // Player ใช้รู้ว่าตัวเองหัวหน้ากลุ่มไหน
+    updates['players/'+pid+'/leaderGroupId'] = gid;
+    updates['players/'+pid+'/groupId'] = gid;  // หัวหน้าเข้ากลุ่มตัวเองทันที
     leaders.push(gname+': '+(S.players[pid]?.name||pid));
   });
+
   updates['game/state/leaderAssigned'] = true;
   updates['game/state/leaderSelectOpen'] = false;
   updates['game/state/leaderAcceptOpen'] = false;
@@ -1909,7 +1921,7 @@ async function confirmLeaders() {
   await update(ref(db), updates);
   await push(ref(db,'game/logs'), {ts:Date.now(),type:'p',msg:'👑 ยืนยันหัวหน้า — '+leaders.join(' | ')});
   closeLeaderPreview();
-  toast('👑 ยืนยันหัวหน้าแล้ว '+leaders.length+' กลุ่ม — กด 🟢 เปิดให้รับสมาชิก เมื่อพร้อม');
+  toast('👑 ยืนยันหัวหน้าแล้ว '+leaders.length+' กลุ่ม — กด 🟢 เปิดให้เลือกหัวหน้า เมื่อพร้อม');
 }
 
 function closeLeaderPreview() {
