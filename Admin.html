@@ -185,7 +185,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="tabs">
     <div class="tab tab-active" id="tab-game"     onclick="switchTab('game')">🎮 GAME</div>
     <div class="tab" id="tab-players"  onclick="switchTab('players')">👥 PLAYERS</div>
-    <div class="tab" id="tab-groups"   onclick="switchTab('groups')">🔀 GROUPS</div>
     <div class="tab" id="tab-log"      onclick="switchTab('log')">📋 LOG</div>
     <div class="tab" id="tab-config"   onclick="switchTab('config')">⚙️ CONFIG</div>
     <div class="tab" id="tab-settings" onclick="switchTab('settings')">🚀 SETUP</div>
@@ -573,16 +572,106 @@ function switchTab(name) {
 function renderActivePanel() {
   if (S.activeTab==='game') renderGamePanel();
   else if (S.activeTab==='players') renderPlayersPanel();
-  else if (S.activeTab==='groups') renderGroupsPanel();
   else if (S.activeTab==='log') renderLogPanel();
 }
 
 // ============================================================
 //  GAME PANEL
 // ============================================================
+function renderTimerBanner() {
+  const cd = S.gs?.countdown;
+  const active = cd?.active;
+  const presets = [30,60,120,180,300];
+  const presetBtns = presets.map(s =>
+    h('button','class="btn btn-s" style="font-size:.58rem;padding:3px 8px" onclick="doQuickTimer('+s+')"',
+      Math.floor(s/60)+'m'+(s%60?s%60+'s':''))
+  ).join('');
+  if (!active) {
+    return h('div','id="timer-banner" style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--sur2);border:1px solid var(--brd);border-radius:8px;margin-bottom:10px;flex-wrap:wrap"',
+      h('span','style="font-family:monospace;font-size:.6rem;color:var(--dim)"','⏱ Quick Timer:')+
+      presetBtns
+    );
+  }
+  const rem = Math.max(0, Math.ceil((cd.endsAt - Date.now())/1000));
+  const mm = String(Math.floor(rem/60)).padStart(2,'0');
+  const ss = String(rem%60).padStart(2,'0');
+  return h('div','id="timer-banner" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(61,186,106,.07);border:1px solid rgba(61,186,106,.3);border-radius:8px;margin-bottom:10px;flex-wrap:wrap;gap:8px"',
+    h('div','',
+      h('div','class="timer-num" style="font-family:monospace;font-size:1.5rem;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums"',mm+':'+ss)+
+      h('div','style="font-family:monospace;font-size:.6rem;color:var(--dim);margin-top:1px"','⏱ '+(cd.label||'Timer'))
+    )+
+    h('div','style="display:flex;flex-direction:column;gap:5px;align-items:flex-end"',
+      h('div','style="display:flex;gap:4px"',
+        h('button','class="btn btn-r" style="font-size:.58rem;padding:3px 8px" onclick="doQuickTimer(0)"','■ หยุด')
+      )+
+      h('div','style="display:flex;gap:4px;flex-wrap:wrap"',presetBtns)
+    )
+  );
+}
+
+function renderGroupsInline() {
+  if (!S.groupStatus.length) return '';
+  const isPending = S.gs?.pendingConfirm;
+  const cards = S.groupStatus.map(g => {
+    const contrib = g.poolContrib||{};
+    const pool = g.pool||{};
+    if (!g.members.length) return '';
+    const poolHtml = DK.map(dk => {
+      const cv = contrib[dk]||0, rv = pool[dk]||0;
+      const show = isPending ? cv : rv;
+      const color = isPending&&cv>0 ? 'color:var(--green)' : '';
+      return h('div','class="ib"',(DEPTS[dk]?.icon||dk)+h('span','class="iv" style="'+color+'"',show));
+    }).join('');
+    const poolLabel = isPending
+      ? h('div','style="font-family:monospace;font-size:.48rem;color:var(--green);margin-bottom:3px"','✦ CONTRIBUTED')
+      : h('div','style="font-family:monospace;font-size:.48rem;color:var(--dim);margin-bottom:3px"','POOL');
+    const mHtml = g.members.map(m => {
+      const md = DEPTS[m.dept]||{};
+      const mc = m.hp<=2?'var(--red)':m.hp<=4?'#ff9800':'var(--green)';
+      let mpips = '';
+      for (let i=0;i<(m.maxHp||0);i++) mpips += h('span','style="width:5px;height:5px;border-radius:50%;display:inline-block;margin-right:1px;background:'+(i<(m.hp||0)?mc:'var(--brd2)')+';"','');
+      return h('div','class="mrow'+(m.alive?'':' mrow-dead')+'"',
+        h('div','style="display:flex;align-items:center;gap:3px"',
+          h('span','style="font-size:.6rem"',md.icon||'')+h('span','style="font-size:.63rem"',m.name)
+        )+
+        h('div','style="display:flex;align-items:center;gap:3px"',
+          h('span','style="font-family:monospace;font-size:.58rem;color:'+(md.color||'var(--dim)')+';"',m.items||0)+mpips
+        )
+      );
+    }).join('');
+    return h('div','class="gcard"',
+      h('div','style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"',
+        h('div','class="gname"',g.name)+
+        h('div','style="font-family:monospace;font-size:.55rem;color:var(--dim);background:var(--sur2);padding:2px 5px;border-radius:8px"',
+          g.aliveCount+'/'+g.max+(g.members.length>g.aliveCount?' +'+( g.members.length-g.aliveCount)+'💀':''))
+      )+poolLabel+h('div','class="pool-row"',poolHtml)+h('div','class="mlist-a"',mHtml)
+    );
+  }).join('');
+  return h('div','style="margin-top:14px"',
+    h('div','style="font-family:monospace;font-size:.55rem;color:var(--dim);letter-spacing:1px;margin-bottom:8px;border-top:1px solid var(--brd);padding-top:12px"','GROUPS')+
+    h('div','id="groups-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"',cards)
+  );
+}
+
 function renderGamePanel() {
   const el = document.getElementById('game-content'); if (!el) return;
   const gs = S.gs||{}, phase = gs.phase||'lobby';
+
+  // live tick for timer
+  clearInterval(window._timerTick);
+  if (gs.countdown?.active) {
+    window._timerTick = setInterval(()=>{
+      const numEl = document.querySelector('.timer-num');
+      if (!numEl) { clearInterval(window._timerTick); return; }
+      const cd = S.gs?.countdown;
+      if (!cd?.active) { clearInterval(window._timerTick); scheduleRender(); return; }
+      const rem = Math.max(0, Math.ceil((cd.endsAt - Date.now())/1000));
+      numEl.textContent = String(Math.floor(rem/60)).padStart(2,'0')+':'+String(rem%60).padStart(2,'0');
+      if (rem === 0) { clearInterval(window._timerTick); scheduleRender(); }
+    }, 500);
+  }
+
+  const timerHtml = renderTimerBanner();
 
   if (phase === 'lobby') {
     const gsHtml = S.groupStatus.map(g => {
@@ -594,7 +683,7 @@ function renderGamePanel() {
         ) + h('div','style="display:flex;flex-wrap:wrap;gap:3px"',tags||h('span','style="font-size:.58rem;color:var(--dim)"','ว่าง'))
       );
     }).join('');
-    el.innerHTML = gsHtml + h('div','style="margin-top:10px;display:flex;gap:8px"', h('button','id="btn-start" class="btn btn-p" onclick="doStartGame()"','▶ Start Game'));
+    el.innerHTML = timerHtml + gsHtml + h('div','style="margin-top:10px;display:flex;gap:8px"', h('button','id="btn-start" class="btn btn-p" onclick="doStartGame()"','▶ Start Game'));
     return;
   }
 
@@ -602,7 +691,7 @@ function renderGamePanel() {
     const pa = Object.values(S.players);
     const alive = pa.filter(p => p.alive);
     const debriefCount = Object.keys(S.gs?.debriefCount||{}).length||0;
-    el.innerHTML = h('div','style="text-align:center;padding:30px 20px"',
+    el.innerHTML = timerHtml + h('div','style="text-align:center;padding:30px 20px"',
       h('div','style="font-size:3rem"','🏁')+
       h('div','style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;letter-spacing:6px;color:var(--amber);margin-top:10px"','จบเกม!')+
       h('div','style="font-family:monospace;font-size:.75rem;color:var(--dim);margin-top:10px"','รอด '+alive.length+'/'+pa.length+' คน')+
@@ -647,7 +736,7 @@ function renderGamePanel() {
         )
       : '';
 
-    el.innerHTML = h('div','style="padding:16px"',
+    el.innerHTML = timerHtml + h('div','style="padding:16px"',
       h('div','style="display:flex;align-items:center;gap:10px;margin-bottom:14px"',
         h('span','style="font-size:2rem"','🪞')+
         h('div','',
@@ -676,7 +765,7 @@ function renderGamePanel() {
   }
 
   if (phase === 'regrouping') {
-    el.innerHTML = renderRegroupingPanel(); return;
+    el.innerHTML = timerHtml + renderRegroupingPanel() + renderGroupsInline(); return;
   }
 
   // playing — guard: currentEvent อาจ = EV_TOTAL หลัง event สุดท้าย
@@ -797,7 +886,7 @@ function renderGamePanel() {
     h('div','class="st"','LOG')+
     h('div','class="logbox" id="mini-log"',renderLogItems(S.logs.slice(-15)))
   );
-  el.innerHTML = out;
+  el.innerHTML = timerHtml + out + renderGroupsInline();
   updateMiniLog();
 }
 
