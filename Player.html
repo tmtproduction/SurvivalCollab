@@ -503,7 +503,7 @@ function startListeners(){
 async function doLogin(){
   const name=(document.getElementById('inp-name')?.value||'').trim();
   const dept=document.getElementById('inp-dept')?.value||'PD1';
-  const row=(document.getElementById('inp-row')?.value||'').trim();
+  const row='';
   if(!name){S.err='กรุณากรอกชื่อ';render();return;}
   const gs=S.gs||{};
   if(gs.gameStarted&&gs.phase!=='lobby'){S.err='เกมเริ่มแล้ว ไม่สามารถเข้าร่วมได้';render();return;}
@@ -725,21 +725,19 @@ function render(){
   const phase=getPhase();
   if(phase==='login'){
     const active=document.activeElement;
-    const inLoginForm=active&&['inp-name','inp-dept','inp-row'].includes(active.id);
+    const inLoginForm=active&&['inp-name','inp-dept'].includes(active.id);
     if(inLoginForm) return;
     // restore ค่า input ที่พิมพ์ไว้ (ป้องกันหายเมื่อ Firebase update)
     const prevName=document.getElementById('inp-name')?.value||'';
     const prevDept=document.getElementById('inp-dept')?.value||'PD1';
-    const prevRow=document.getElementById('inp-row')?.value||'';
+    const prevRow='';
     const hadInput=prevName.length>0;
     renderLogin(app);
     if(hadInput){
       const n=document.getElementById('inp-name');
       const d=document.getElementById('inp-dept');
-      const r=document.getElementById('inp-row');
       if(n) n.value=prevName;
       if(d) d.value=prevDept;
-      if(r) r.value=prevRow;
       updatePreview();
     }
     return;
@@ -759,8 +757,6 @@ function renderLogin(app){
         <input id="inp-name" type="text" placeholder="กรอกชื่อจริง" oninput="updatePreview()" autocomplete="off"></div>
       <div class="fld"><div class="fld-lbl">แผนก</div>
         <select id="inp-dept" onchange="updatePreview()">${opts}</select></div>
-      <div class="fld"><div class="fld-lbl">แถวที่ (ไม่บังคับ)</div>
-        <input id="inp-row" type="text" placeholder="A, B, 1, 2 ..."></div>
       <div class="prev-row" id="prev-row"><span class="prev-txt">กรอกชื่อเพื่อดู items</span></div>
       ${S.err?`<div class="err-msg">${S.err}</div>`:''}
       <button class="btn-big btn-amber" onclick="doLogin()" ${S.loading?'disabled':''}>${S.loading?'⏳ กำลังโหลด...':'เข้าร่วมเกม →'}</button>
