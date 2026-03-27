@@ -348,7 +348,7 @@ const DEFAULT_EVENTS = [
   {id:1,name:'หลงทาง',emoji:'🗺',type:'global_per',req:{PD1:5},dmg:2,desc:'แต่ละกลุ่มต้องมีเข็มทิศ 5 ชิ้น'},
   {id:2,name:'หิวโหย',emoji:'🍖',type:'global_per',req:{PD3:5},dmg:2,desc:'แต่ละกลุ่มต้องมีอาหาร 5 ชิ้น'},
   {id:3,name:'บาดเจ็บ',emoji:'🩹',type:'global_per',req:{EN:6},dmg:2,desc:'แต่ละกลุ่มต้องมียา 6 ชิ้น'},
-  {id:4,name:'แผ่นดินไหว',emoji:'🌋',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
+  {id:4,name:'หนีผีป่า',emoji:'👻',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
   {id:'4b',name:'พบแหล่งน้ำ',emoji:'💧',type:'headcount_reward',maxHp:10,
     conditions:[
       {reqHeadcount:{PD1:2,QA:1},reward:{type:'hp',amt:2},desc:'PD1≥2คน+QA≥1คน → +2 HP ทุกคน'},
@@ -359,8 +359,16 @@ const DEFAULT_EVENTS = [
   {id:6,name:'สถานการณ์ฉุกเฉิน',emoji:'⚖',type:'discard',poolCap:55,desc:'แต่ละกลุ่มถือได้ไม่เกิน 55 ชิ้น'},
   {id:7,name:'หนาวจัด',emoji:'🥶',type:'global_per',req:{PD3:1,MN:2},dmg:2,desc:'ต้องมีอาหาร 1 + เครื่องมือ 2 ชิ้น'},
   {id:8,name:'ไฟป่า',emoji:'🔥',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
-  {id:9,name:'โรคระบาด',emoji:'🦠',type:'collective_pool',req:{EN:40,QA:20,MN:40},dmgTiers:[{max:0,dmg:0},{max:20,dmg:1},{max:40,dmg:2},{max:999,dmg:3}],desc:'ทุกกลุ่มส่ง items เข้ากองกลาง — รวมกันต้องถึง EN:40 QA:20 MN:40'},
-  {id:10,name:'หนีรอด',emoji:'🚁',type:'per_group',dmgPerMissType:2,desc:'ตรวจแยกกลุ่ม — ขาด 1 type→-2HP, 2→-4HP, 3+→-6HP'},
+  {id:9,name:'โรคระบาด',emoji:'🦠',type:'collective_pool',
+    req:{EN:10,MN:20,PD2:40,QA:20},
+    dmgTiers:[{max:0,dmg:0},{max:30,dmg:1},{max:60,dmg:2},{max:999,dmg:3}],
+    desc:'ทุกกลุ่มส่ง items เข้ากองกลาง — EN:10 MN:20 PD2:40 QA:20'},
+  {id:10,name:'หนีรอด',emoji:'🚁',type:'per_group',
+    reqAllDepts:true,
+    reqItemPerDept:1,
+    dmgPerMissType:1,
+    dmgCap:4,
+    desc:'ต้องมีคนที่มีชีวิต+items≥1 ครบทุก dept — ขาด 1→-1HP, 2→-2HP, 3→-3HP, 4+→-4HP'},
 ];
 const EV_TOTAL = DEFAULT_EVENTS.length;
 
@@ -2122,23 +2130,45 @@ function applyDamage(ev, playerArr, poolMap, gs, poolCap, updates, logs, groupRe
     }
 
   } else if (ev.type==='per_group') {
-    const dmgPer = ev.dmgPerMissType||2;
-    const maxMiss = ev.maxMissTypes||3;
-    const checkDepts = ev.checkDepts||DK; // เช็คเฉพาะ dept ที่กำหนด
     const groupIds = [...new Set(playerArr.filter(alive).map(p=>p.groupId))].filter(id=>id>=0);
     groupIds.forEach(gid => {
-      const pool = poolMap[gid]||{};
       const aliveInGroup = playerArr.filter(p=>p.groupId==gid&&p.alive);
-      const missing = checkDepts.filter(dk=>!(pool[dk]>0));
       const gname = (gs.groupNames||GN)[gid]||('G'+gid);
-      if (!missing.length) {
-        logs.push({type:'g',msg:gname+': มีครบทุก type ✓'});
-        groupResults[gid] = { name:gname, pass:true, dmg:0 };
+
+      if (ev.reqAllDepts) {
+        // Event 11 หนีรอด — ต้องมีคนที่มีชีวิต + items≥1 ครบทุก dept
+        const minItem = ev.reqItemPerDept||1;
+        const missing = DK.filter(dk => {
+          // หาคนที่มีชีวิต dept นั้น และมี items ≥ minItem
+          return !aliveInGroup.some(p => p.dept===dk && (p.items||0)>=minItem);
+        });
+        const missCnt = missing.length;
+        const cap = ev.dmgCap||4;
+        const dmg = Math.min(missCnt, cap) * (ev.dmgPerMissType||1);
+        if (!missCnt) {
+          logs.push({type:'g',msg:gname+': มีครบทุก dept ✓'});
+          groupResults[gid] = { name:gname, pass:true, dmg:0 };
+        } else {
+          aliveInGroup.forEach(p => dmgPlayer(p,dmg));
+          logs.push({type:'b',msg:gname+': ขาด '+missCnt+' dept ['+missing.map(dk=>DEPTS[dk]?.icon||dk).join('')+'] → -'+dmg+' HP'});
+          groupResults[gid] = { name:gname, pass:false, dmg, missingTypes:missCnt };
+        }
       } else {
-        const dmg = dmgPer * Math.min(missing.length, maxMiss);
-        aliveInGroup.forEach(p => dmgPlayer(p,dmg));
-        logs.push({type:'b',msg:gname+': ขาด '+missing.length+' type ['+missing.map(dk=>DEPTS[dk]?.icon||dk).join('')+'] → -'+dmg+' HP'});
-        groupResults[gid] = { name:gname, pass:false, dmg, missingTypes:missing.length };
+        // per_group แบบเดิม — เช็ค pool items
+        const pool = poolMap[gid]||{};
+        const dmgPer = ev.dmgPerMissType||2;
+        const maxMiss = ev.maxMissTypes||3;
+        const checkDepts = ev.checkDepts||DK;
+        const missing = checkDepts.filter(dk=>!(pool[dk]>0));
+        if (!missing.length) {
+          logs.push({type:'g',msg:gname+': มีครบทุก type ✓'});
+          groupResults[gid] = { name:gname, pass:true, dmg:0 };
+        } else {
+          const dmg = dmgPer * Math.min(missing.length, maxMiss);
+          aliveInGroup.forEach(p => dmgPlayer(p,dmg));
+          logs.push({type:'b',msg:gname+': ขาด '+missing.length+' type ['+missing.map(dk=>DEPTS[dk]?.icon||dk).join('')+'] → -'+dmg+' HP'});
+          groupResults[gid] = { name:gname, pass:false, dmg, missingTypes:missing.length };
+        }
       }
     });
 

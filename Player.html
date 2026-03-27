@@ -255,14 +255,18 @@ const EVENTS=[
   {id:1,name:'หลงทาง',emoji:'🗺',type:'global_per',req:{PD1:5},dmg:2,desc:'แต่ละกลุ่มต้องมีเข็มทิศ 5 ชิ้น'},
   {id:2,name:'หิวโหย',emoji:'🍖',type:'global_per',req:{PD3:5},dmg:2,desc:'แต่ละกลุ่มต้องมีอาหาร 5 ชิ้น'},
   {id:3,name:'บาดเจ็บ',emoji:'🩹',type:'global_per',req:{EN:6},dmg:2,desc:'แต่ละกลุ่มต้องมียา 6 ชิ้น'},
-  {id:4,name:'แผ่นดินไหว',emoji:'🌋',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
+  {id:4,name:'หนีผีป่า',emoji:'👻',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
   {id:'4b',name:'พบแหล่งน้ำ',emoji:'💧',type:'headcount_reward',desc:'เช็คจำนวนคน dept — อาจได้รับ HP หรือ items เพิ่ม'},
   {id:5,name:'สร้างแพ',emoji:'🛖',type:'people_var',reqMultiplier:{MN:2},dmg:2,desc:'ต้องมีเครื่องมือ = คนมีชีวิต × 2'},
   {id:6,name:'สถานการณ์ฉุกเฉิน',emoji:'⚖',type:'discard',poolCap:55,desc:'แต่ละกลุ่มถือได้ไม่เกิน 55 ชิ้น'},
   {id:7,name:'หนาวจัด',emoji:'🥶',type:'global_per',req:{PD3:1,MN:2},dmg:2,desc:'ต้องมีอาหาร 1 + เครื่องมือ 2 ชิ้น'},
   {id:8,name:'ไฟป่า',emoji:'🔥',type:'regroup',preDmg:0,desc:'กลุ่มกระจัดกระจาย — เลือกกลุ่มใหม่'},
-  {id:9,name:'โรคระบาด',emoji:'🦠',type:'collective_pool',req:{EN:40,QA:20,MN:40},desc:'ทุกกลุ่มส่ง items เข้ากองกลาง — ช่วยกันให้ครบ EN:40 QA:20 MN:40'},
-  {id:10,name:'หนีรอด',emoji:'🚁',type:'per_group',desc:'ตรวจแยกกลุ่ม — ต้องมีครบทุก item type'},
+  {id:9,name:'โรคระบาด',emoji:'🦠',type:'collective_pool',
+    req:{EN:10,MN:20,PD2:40,QA:20},
+    desc:'ทุกกลุ่มส่ง items เข้ากองกลาง — EN:10 MN:20 PD2:40 QA:20'},
+  {id:10,name:'หนีรอด',emoji:'🚁',type:'per_group',
+    reqAllDepts:true,reqItemPerDept:1,dmgPerMissType:1,dmgCap:4,
+    desc:'ต้องมีคนที่มีชีวิต+items≥1 ครบทุก dept — ขาด 1→-1HP, 2→-2HP, 3→-3HP, 4+→-4HP'},
 ];
 const EV_TOTAL=EVENTS.length;
 
